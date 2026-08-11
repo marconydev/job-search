@@ -12,24 +12,40 @@ async function run() {
     const result = await syncJobs(DEFAULT_LIMIT)
 
     console.log("")
-    console.log("Sincronização concluída")
-    console.log("-----------------------")
-    console.log(`Fonte:       ${result.source}`)
-    console.log(`Encontradas: ${result.found}`)
-    console.log(`Novas:       ${result.inserted}`)
-    console.log(`Duplicadas:  ${result.duplicates}`)
-    console.log(`Analisadas:  ${result.analyzed}`)
-    console.log(`Relevantes:  ${result.relevant}`)
-    console.log(`Descartadas: ${result.discarded}`)
+    console.log("Fontes")
+    console.log("------")
+
+    for (const source of result.sources) {
+      console.log(`${source.source}:`)
+
+      if (source.error) {
+        console.log(`  Erro:       ${source.error}`)
+        continue
+      }
+
+      console.log(`  Encontradas: ${source.found}`)
+      console.log(`  Novas:       ${source.inserted}`)
+      console.log(`  Duplicadas:  ${source.duplicates}`)
+    }
+
+    console.log("")
+    console.log("Resumo")
+    console.log("------")
+    console.log(`Encontradas: ${result.totals.found}`)
+    console.log(`Novas:       ${result.totals.inserted}`)
+    console.log(`Duplicadas:  ${result.totals.duplicates}`)
+    console.log(`Analisadas:  ${result.totals.analyzed}`)
+    console.log(`Relevantes:  ${result.totals.relevant}`)
+    console.log(`Descartadas: ${result.totals.discarded}`)
   } catch (error) {
     console.error("Falha durante a sincronização:", error)
 
-    // Define o código de saída sem interromper o finally.
-    // Isso permite fechar corretamente a conexão com o PostgreSQL.
+    // Mantemos o código de erro para que uma automação futura consiga
+    // identificar que a execução terminou com falha.
     process.exitCode = 1
   } finally {
-    // Diferente da API, este script precisa terminar depois da execução.
-    // Sem encerrar o pool, o Node pode continuar aberto aguardando conexões.
+    // Este processo é executado sob demanda e precisa encerrar o pool
+    // antes de devolver o controle ao sistema operacional.
     await db.end()
   }
 }

@@ -1,4 +1,8 @@
-import type { JobCollection } from "../types/collector.js"
+import type {
+  JobCollection,
+  JobCollector
+} from "../types/collector.js"
+
 import type { NewJob } from "../types/job.js"
 
 const REMOTIVE_API_URL = "https://remotive.com/api/remote-jobs"
@@ -18,10 +22,10 @@ type RemotiveResponse = {
 }
 
 /**
- * Converte uma vaga da Remotive para o formato usado internamente.
+ * Traduz o formato da Remotive para o modelo usado pelo Job Search.
  *
- * A partir daqui o restante do sistema não precisa conhecer nomes como
- * company_name ou candidate_required_location.
+ * Manter essa conversão dentro do coletor evita que o restante do sistema
+ * precise conhecer campos específicos de cada plataforma.
  */
 function normalizeJob(job: RemotiveJob): NewJob {
   return {
@@ -37,12 +41,6 @@ function normalizeJob(job: RemotiveJob): NewJob {
   }
 }
 
-/**
- * Busca vagas na Remotive e devolve somente dados normalizados.
- *
- * Salvar no banco não é responsabilidade do coletor. Isso permite que
- * todas as fontes usem o mesmo tratamento de duplicidade e persistência.
- */
 export async function collectRemotiveJobs(
   limit = 100
 ): Promise<JobCollection> {
@@ -60,10 +58,17 @@ export async function collectRemotiveJobs(
 
   const data = (await response.json()) as RemotiveResponse
 
-  const jobs = data.jobs.map(normalizeJob)
-
   return {
     source: "remotive",
-    jobs
+    jobs: data.jobs.map(normalizeJob)
   }
+}
+
+/**
+ * O sincronizador trabalha com coletores através desta estrutura comum.
+ * Assim podemos adicionar novas fontes sem criar regras específicas nele.
+ */
+export const remotiveCollector: JobCollector = {
+  name: "remotive",
+  collect: collectRemotiveJobs
 }
