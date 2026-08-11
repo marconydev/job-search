@@ -3,6 +3,10 @@ import type {
   ProvedorPagina
 } from "./discovery.js"
 
+import type {
+  ResultadoElegibilidadeLocalizacao
+} from "./elegibilidade.js"
+
 /**
  * Guardo aqui os dados que consigo extrair de uma publicação de vaga.
  *
@@ -22,10 +26,10 @@ export type VagaExtraida = {
 }
 
 /**
- * Registro o resultado da inspeção de uma página encontrada na busca.
+ * Registro o resultado completo da inspeção de uma página.
  *
- * Só considero a página como uma publicação de vaga quando encontro
- * evidência suficiente no conteúdo analisado.
+ * Quando encontro uma vaga, já devolvo também a análise geográfica
+ * para não precisar recalcular essa regra em outras partes do sistema.
  */
 export type InspecaoPagina = {
   pagina: PaginaClassificada
@@ -34,13 +38,12 @@ export type InspecaoPagina = {
   codigoStatus: number
   ehPublicacaoVaga: boolean
   vaga: VagaExtraida | null
+  elegibilidadeBrasil:
+    ResultadoElegibilidadeLocalizacao | null
 }
 
 /**
  * Uso este formato quando não consigo acessar ou analisar uma página.
- *
- * Dessa forma registro a falha sem interromper a inspeção das demais
- * oportunidades encontradas.
  */
 export type FalhaInspecaoPagina = {
   pagina: PaginaClassificada

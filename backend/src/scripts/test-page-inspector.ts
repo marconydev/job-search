@@ -8,17 +8,13 @@ import {
   inspecionarPaginaVaga
 } from "../discovery/page-inspector.js"
 
-import {
-  avaliarElegibilidadeBrasil
-} from "../services/elegibilidade-localizacao.js"
-
 import type {
   PaginaClassificada
 } from "../types/discovery.js"
 
 /**
- * Uso este script para testar uma única página sem executar uma
- * descoberta completa pela Brave Search.
+ * Uso este script para testar uma única página sem executar uma nova
+ * descoberta e sem consumir chamadas da Brave Search.
  */
 async function executar() {
   const url = process.argv[2]
@@ -63,8 +59,6 @@ async function executar() {
       pagina
     )
 
-  // Trato falha de acesso separadamente de uma página acessada
-  // normalmente que apenas não apresentou uma vaga reconhecível.
   if ("erro" in resultado) {
     console.error(
       "Não consegui inspecionar a página."
@@ -100,53 +94,33 @@ async function executar() {
 
   if (!resultado.vaga) {
     console.log("")
-
     console.log(
       "A página foi acessada, mas não consegui extrair uma vaga válida."
     )
-
     return
   }
 
-  const vaga = resultado.vaga
-
-  const elegibilidade =
-    avaliarElegibilidadeBrasil(
-      vaga.localizacao,
-      vaga.descricao
-    )
+  const vaga =
+    resultado.vaga
 
   console.log("")
   console.log("Dados extraídos")
   console.log("---------------")
 
   console.log(
-    `Título: ${
-      vaga.titulo ??
-      "não informado"
-    }`
+    `Título: ${vaga.titulo ?? "não informado"}`
   )
 
   console.log(
-    `Empresa: ${
-      vaga.empresa ??
-      "não informada"
-    }`
+    `Empresa: ${vaga.empresa ?? "não informada"}`
   )
 
   console.log(
-    `Local: ${
-      vaga.localizacao ??
-      "não informado"
-    }`
+    `Local: ${vaga.localizacao ?? "não informado"}`
   )
 
   console.log(
-    `Remoto: ${
-      vaga.remoto
-        ? "sim"
-        : "não"
-    }`
+    `Remoto: ${vaga.remoto ? "sim" : "não"}`
   )
 
   console.log(
@@ -182,11 +156,19 @@ async function executar() {
   console.log("-------------")
 
   console.log(
-    `Brasil: ${elegibilidade.situacao}`
+    `Brasil: ${
+      resultado.elegibilidadeBrasil
+        ?.situacao ??
+      "não avaliada"
+    }`
   )
 
   console.log(
-    `Motivo: ${elegibilidade.motivo}`
+    `Motivo: ${
+      resultado.elegibilidadeBrasil
+        ?.motivo ??
+      "não informado"
+    }`
   )
 
   if (vaga.descricao) {
@@ -194,7 +176,6 @@ async function executar() {
     console.log("Descrição")
     console.log("---------")
 
-    // Mostro somente o começo da descrição para manter o teste legível.
     console.log(
       vaga.descricao.length > 800
         ? `${vaga.descricao.slice(0, 800)}...`

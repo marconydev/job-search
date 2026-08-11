@@ -1,16 +1,10 @@
-export type SituacaoLocalizacao =
-  | "compativel"
-  | "incompativel"
-  | "indefinida"
-
-export type ResultadoElegibilidadeLocalizacao = {
-  situacao: SituacaoLocalizacao
-  motivo: string
-}
+import type {
+  ResultadoElegibilidadeLocalizacao
+} from "../types/elegibilidade.js"
 
 /**
- * Normalizo o texto para conseguir comparar localizações escritas
- * com ou sem acentos e com diferenças entre maiúsculas e minúsculas.
+ * Normalizo o texto para comparar localizações independentemente
+ * de acentos, letras maiúsculas ou espaços duplicados.
  */
 function normalizarTexto(valor: string) {
   return valor
@@ -22,11 +16,49 @@ function normalizarTexto(valor: string) {
 }
 
 /**
- * Reconheço algumas localizações brasileiras que costumam aparecer
- * sem a palavra Brasil no campo de localização das plataformas.
+ * Escapo caracteres especiais antes de montar uma expressão regular.
+ */
+function escaparRegex(valor: string) {
+  return valor.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&"
+  )
+}
+
+/**
+ * Procuro o termo como uma palavra ou expressão completa.
  *
- * Evito usar siglas curtas como SP ou RJ isoladamente porque elas
- * podem gerar falsos positivos em outros textos.
+ * Evito usar includes diretamente porque, por exemplo, "india"
+ * não deve ser encontrada dentro de "indiana".
+ */
+function contemTermo(
+  texto: string,
+  termo: string
+) {
+  const termoEscapado =
+    escaparRegex(termo)
+
+  const padrao = new RegExp(
+    `(^|[^a-z0-9])${termoEscapado}([^a-z0-9]|$)`,
+    "i"
+  )
+
+  return padrao.test(texto)
+}
+
+function contemAlgumTermo(
+  texto: string,
+  termos: string[]
+) {
+  return termos.some(
+    (termo) =>
+      contemTermo(texto, termo)
+  )
+}
+
+/**
+ * Reconheço localizações brasileiras que podem aparecer sem a
+ * palavra Brasil no campo de localização.
  */
 const localizacoesBrasil = [
   "brasil",
@@ -58,11 +90,24 @@ const localizacoesBrasil = [
 ]
 
 /**
- * Mantenho aqui regiões que claramente indicam uma vaga restrita
- * a outro país ou mercado.
+ * Considero estas regiões amplas compatíveis porque incluem o Brasil.
  *
- * Não tento cadastrar todos os países do mundo. Amplio esta lista
- * conforme os resultados reais do projeto mostrarem necessidade.
+ * Ainda posso invalidar a vaga se a descrição trouxer uma restrição
+ * explícita excluindo candidatos brasileiros.
+ */
+const regioesCompativeis = [
+  "worldwide",
+  "anywhere",
+  "global",
+  "latin america",
+  "latam",
+  "south america",
+  "americas"
+]
+
+/**
+ * Mantenho aqui alguns mercados encontrados com frequência nas buscas
+ * e que claramente não representam uma vaga disponível no Brasil.
  */
 const localizacoesIncompativeis = [
   "germany",
@@ -72,12 +117,9 @@ const localizacoesIncompativeis = [
   "european union",
   "emea",
   "united states",
-  "united states only",
-  "us only",
-  "usa only",
+  "usa",
   "canada",
   "united kingdom",
-  "uk only",
   "ireland",
   "portugal",
   "spain",
@@ -94,78 +136,132 @@ const localizacoesIncompativeis = [
 ]
 
 /**
- * Alguns termos indicam uma área ampla que pode incluir o Brasil.
- *
- * Não aprovo nem descarto automaticamente esses casos porque preciso
- * de alguma informação adicional confirmando que o Brasil é aceito.
+ * Procuro primeiro restrições explícitas contra candidatos localizados
+ * no Brasil para não aprovar uma vaga apenas porque ela também usa
+ * termos como global ou worldwide.
  */
-const localizacoesAmplas = [
-  "worldwide",
-  "anywhere",
-  "global",
-  "latin america",
-  "latam",
-  "south america",
-  "americas",
-  "remote",
-  "remoto",
-  "remota"
+const exclusoesBrasil = [
+  "except brazil",
+  "except brasil",
+  "excluding brazil",
+  "excluding brasil",
+  "not available in brazil",
+  "not available in brasil",
+  "cannot hire in brazil",
+  "cannot hire in brasil",
+  "can't hire in brazil",
+  "can't hire in brasil",
+  "nao contratamos no brasil",
+  "nao aceita candidatos do brasil"
 ]
 
-function contemAlgumTermo(
-  texto: string,
-  termos: string[]
+/**
+ * Uso estes textos para diferenciar uma simples menção a outro país
+ * de uma restrição real de residência ou autorização de trabalho.
+ */
+const indicadoresRestricao = [
+  "must be based in",
+  "must reside in",
+  "must be located in",
+  "applicants must be based in",
+  "candidates must be based in",
+  "only candidates in",
+  "only candidates located in",
+  "legal right to work in",
+  "right to work in"
+]
+
+function descricaoRestringeParaOutroPais(
+  descricao: string
 ) {
-  return termos.some(
-    (termo) => texto.includes(termo)
+  const possuiIndicador =
+    contemAlgumTermo(
+      descricao,
+      indicadoresRestricao
+    )
+
+  if (!possuiIndicador) {
+    return false
+  }
+
+  return contemAlgumTermo(
+    descricao,
+    localizacoesIncompativeis
   )
 }
 
 /**
- * Avalio se a oportunidade permite trabalho a partir do Brasil.
+ * Avalio se consigo confirmar que a oportunidade aceita candidatos
+ * trabalhando a partir do Brasil.
  *
- * Uso também a descrição como apoio porque algumas plataformas deixam
- * a localização genérica e informam a restrição geográfica apenas no
- * texto completo da vaga.
+ * Remoto sozinho não é suficiente. A vaga também precisa possuir uma
+ * localização compatível ou não apresentar uma restrição internacional.
  */
 export function avaliarElegibilidadeBrasil(
   localizacao: string | null,
   descricao: string | null = null
 ): ResultadoElegibilidadeLocalizacao {
-  const textoLocalizacao = normalizarTexto(
-    localizacao ?? ""
-  )
+  const textoLocalizacao =
+    normalizarTexto(
+      localizacao ?? ""
+    )
 
-  const textoDescricao = normalizarTexto(
-    descricao ?? ""
-  )
+  const textoDescricao =
+    normalizarTexto(
+      descricao ?? ""
+    )
 
-  const textoCompleto =
-    `${textoLocalizacao} ${textoDescricao}`.trim()
-
-  /**
-   * Dou prioridade a uma indicação explícita de Brasil.
-   *
-   * Assim uma descrição como "Remote - Brazil" continua válida mesmo
-   * que também mencione escritórios ou equipes de outros países.
-   */
   if (
     contemAlgumTermo(
-      textoCompleto,
+      textoDescricao,
+      exclusoesBrasil
+    )
+  ) {
+    return {
+      situacao: "incompativel",
+      motivo:
+        "A descrição exclui explicitamente candidatos localizados no Brasil."
+    }
+  }
+
+  if (
+    descricaoRestringeParaOutroPais(
+      textoDescricao
+    )
+  ) {
+    return {
+      situacao: "incompativel",
+      motivo:
+        "A descrição exige residência ou autorização de trabalho em outro país."
+    }
+  }
+
+  if (
+    contemAlgumTermo(
+      textoLocalizacao,
       localizacoesBrasil
     )
   ) {
     return {
       situacao: "compativel",
       motivo:
-        "A vaga possui indicação explícita de localização compatível com o Brasil."
+        "A localização informada é compatível com o Brasil."
     }
   }
 
-  /**
-   * Quando a própria localização aponta claramente para outro mercado,
-   * descarto antes de considerar que a palavra remoto possa torná-la válida.
-   */
+  if (
+    contemAlgumTermo(
+      textoLocalizacao,
+      regioesCompativeis
+    )
+  ) {
+    return {
+      situacao: "compativel",
+      motivo:
+        "A região informada inclui candidatos localizados no Brasil."
+    }
+  }
+
   if (
     contemAlgumTermo(
       textoLocalizacao,
@@ -179,40 +275,32 @@ export function avaliarElegibilidadeBrasil(
     }
   }
 
-  /**
-   * Também observo restrições explícitas escritas dentro da descrição.
-   */
-  if (
-    contemAlgumTermo(
-      textoDescricao,
-      localizacoesIncompativeis
-    )
-  ) {
-    return {
-      situacao: "incompativel",
-      motivo:
-        "A descrição indica uma restrição geográfica fora do Brasil."
-    }
-  }
-
   if (!textoLocalizacao) {
     return {
       situacao: "indefinida",
       motivo:
-        "A vaga não informou localização suficiente para confirmar elegibilidade no Brasil."
+        "A vaga não informou localização suficiente para confirmar a elegibilidade no Brasil."
     }
   }
 
   if (
-    contemAlgumTermo(
+    contemTermo(
       textoLocalizacao,
-      localizacoesAmplas
+      "remote"
+    ) ||
+    contemTermo(
+      textoLocalizacao,
+      "remoto"
+    ) ||
+    contemTermo(
+      textoLocalizacao,
+      "remota"
     )
   ) {
     return {
       situacao: "indefinida",
       motivo:
-        "A localização é ampla ou remota, mas ainda não confirma que candidatos no Brasil são aceitos."
+        "A vaga é remota, mas ainda não informa de quais países aceita candidatos."
     }
   }
 

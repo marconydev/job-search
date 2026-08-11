@@ -14,6 +14,10 @@ import {
   extrairVagaGreenhouse
 } from "../extractors/greenhouse.js"
 
+import {
+  avaliarElegibilidadeBrasil
+} from "../services/elegibilidade-localizacao.js"
+
 import type {
   PaginaClassificada
 } from "../types/discovery.js"
@@ -22,6 +26,14 @@ import type {
   ResultadoInspecaoPagina,
   VagaExtraida
 } from "../types/page-inspection.js"
+
+import {
+  extrairVagaWorkable
+} from "../extractors/workable.js"
+
+import {
+  extrairVagaSmartRecruiters
+} from "../extractors/smartrecruiters.js"
 
 type ObjetoJsonLd = {
   [chave: string]: unknown
@@ -64,9 +76,7 @@ function lerTexto(
 function lerListaTexto(
   valor: unknown
 ): string | null {
-  if (
-    typeof valor === "string"
-  ) {
+  if (typeof valor === "string") {
     return lerTexto(valor)
   }
 
@@ -79,9 +89,7 @@ function lerListaTexto(
       (item): item is string =>
         typeof item === "string"
     )
-    .map(
-      (item) => item.trim()
-    )
+    .map((item) => item.trim())
     .filter(Boolean)
 
   return valores.length > 0
@@ -129,9 +137,7 @@ function ehPublicacaoDeVaga(
 ) {
   const tipo = valor["@type"]
 
-  if (
-    typeof tipo === "string"
-  ) {
+  if (typeof tipo === "string") {
     return (
       tipo.toLowerCase() ===
       "jobposting"
@@ -160,9 +166,7 @@ function encontrarPublicacaoVaga(
   if (Array.isArray(valor)) {
     for (const item of valor) {
       const publicacao =
-        encontrarPublicacaoVaga(
-          item
-        )
+        encontrarPublicacaoVaga(item)
 
       if (publicacao) {
         return publicacao
@@ -176,9 +180,7 @@ function encontrarPublicacaoVaga(
     return null
   }
 
-  if (
-    ehPublicacaoDeVaga(valor)
-  ) {
+  if (ehPublicacaoDeVaga(valor)) {
     return valor
   }
 
@@ -187,9 +189,7 @@ function encontrarPublicacaoVaga(
     of Object.values(valor)
   ) {
     const publicacao =
-      encontrarPublicacaoVaga(
-        filho
-      )
+      encontrarPublicacaoVaga(filho)
 
     if (publicacao) {
       return publicacao
@@ -239,8 +239,8 @@ function extrairPublicacaoVagaDoHtml(
         return publicacao
       }
     } catch {
-      // Ignoro somente o bloco inválido e continuo procurando porque
-      // outros scripts da mesma página ainda podem estar corretos.
+      // Ignoro apenas o bloco inválido para continuar procurando
+      // outros dados estruturados existentes na mesma página.
       continue
     }
   }
@@ -257,9 +257,7 @@ function extrairEmpresa(
   const organizacao =
     publicacao.hiringOrganization
 
-  if (
-    !ehObjeto(organizacao)
-  ) {
+  if (!ehObjeto(organizacao)) {
     return null
   }
 
@@ -294,9 +292,7 @@ function extrairEndereco(
   const endereco =
     valor.address
 
-  if (
-    typeof endereco === "string"
-  ) {
+  if (typeof endereco === "string") {
     return lerTexto(endereco)
   }
 
@@ -497,40 +493,59 @@ function normalizarPublicacaoVaga(
 }
 
 /**
- * Para plataformas que disponibilizam uma API pública de vagas,
- * tento primeiro essa fonte estruturada.
- *
- * Se a consulta não retornar uma vaga válida, continuo com os métodos
- * genéricos e específicos baseados no HTML.
+ * Para plataformas com extratores estruturados, tento primeiro a
+ * integração específica e mantenho o HTML como alternativa.
  */
 async function extrairVaga(
   html: string,
   provedor: PaginaClassificada["provedor"],
   urlFinal: string
 ): Promise<VagaExtraida | null> {
-  if (
-    provedor === "lever"
-  ) {
-    const vagaLever =
+  if (provedor === "lever") {
+    const vaga =
       await extrairVagaLever(
         urlFinal
       )
 
-    if (vagaLever) {
-      return vagaLever
+    if (vaga) {
+      return vaga
     }
   }
 
-  if (
-    provedor === "greenhouse"
-  ) {
-    const vagaGreenhouse =
+  if (provedor === "greenhouse") {
+    const vaga =
       await extrairVagaGreenhouse(
         urlFinal
       )
 
-    if (vagaGreenhouse) {
-      return vagaGreenhouse
+    if (vaga) {
+      return vaga
+    }
+  }
+
+      if (
+    provedor === "workable"
+  ) {
+    const vaga =
+      await extrairVagaWorkable(
+        urlFinal
+      )
+
+    if (vaga) {
+      return vaga
+    }
+  }
+
+  if (
+    provedor === "smartrecruiters"
+  ) {
+    const vaga =
+      await extrairVagaSmartRecruiters(
+        urlFinal
+      )
+
+    if (vaga) {
+      return vaga
     }
   }
 
@@ -546,9 +561,7 @@ async function extrairVaga(
     )
   }
 
-  if (
-    provedor === "gupy"
-  ) {
+  if (provedor === "gupy") {
     return extrairVagaGupy(
       html,
       urlFinal
@@ -559,11 +572,10 @@ async function extrairVaga(
 }
 
 /**
- * Abro uma página encontrada e tento confirmar se ela representa
- * realmente uma oportunidade de emprego.
+ * Abro a página e devolvo a vaga já acompanhada da análise geográfica.
  *
- * Sigo redirecionamentos normais, mas não tento contornar CAPTCHA,
- * autenticação ou qualquer outro bloqueio aplicado pelo site.
+ * Centralizo a elegibilidade aqui para que futuras importações, APIs
+ * e telas utilizem exatamente a mesma decisão sobre o Brasil.
  */
 export async function inspecionarPaginaVaga(
   pagina: PaginaClassificada
@@ -573,9 +585,7 @@ export async function inspecionarPaginaVaga(
 
   const temporizador =
     setTimeout(
-      () => {
-        controlador.abort()
-      },
+      () => controlador.abort(),
       TEMPO_LIMITE_REQUISICAO_MS
     )
 
@@ -613,7 +623,8 @@ export async function inspecionarPaginaVaga(
         codigoStatus:
           resposta.status,
         ehPublicacaoVaga: false,
-        vaga: null
+        vaga: null,
+        elegibilidadeBrasil: null
       }
     }
 
@@ -634,7 +645,8 @@ export async function inspecionarPaginaVaga(
         codigoStatus:
           resposta.status,
         ehPublicacaoVaga: false,
-        vaga: null
+        vaga: null,
+        elegibilidadeBrasil: null
       }
     }
 
@@ -648,6 +660,14 @@ export async function inspecionarPaginaVaga(
         urlFinal
       )
 
+    const elegibilidadeBrasil =
+      vaga
+        ? avaliarElegibilidadeBrasil(
+            vaga.localizacao,
+            vaga.descricao
+          )
+        : null
+
     return {
       pagina,
       urlFinal,
@@ -656,7 +676,8 @@ export async function inspecionarPaginaVaga(
         resposta.status,
       ehPublicacaoVaga:
         Boolean(vaga),
-      vaga
+      vaga,
+      elegibilidadeBrasil
     }
   } catch (erro) {
     const mensagem =
