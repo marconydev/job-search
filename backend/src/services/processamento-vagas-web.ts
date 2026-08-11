@@ -1,4 +1,8 @@
 import {
+  perfilBusca
+} from "../config/search-profile.js"
+
+import {
   descobrirPaginasVagas
 } from "./job-discovery.js"
 
@@ -21,15 +25,17 @@ import type {
 } from "../types/discovery.js"
 
 import type {
-  ResultadoProcessamentoWeb,
-  ResultadoFonteProcessada
+  PaginaSomenteDescoberta,
+  PendenciaProcessamentoWeb,
+  ResultadoFonteProcessada,
+  ResultadoProcessamentoWeb
 } from "../types/processamento-web.js"
 
 type OpcoesProcessamentoWeb = {
   salvarCompativeis?: boolean
 }
 
-const provedoresSuportados =
+const provedoresProcessaveis =
   new Set<ProvedorPagina>([
     "gupy",
     "lever",
@@ -39,20 +45,242 @@ const provedoresSuportados =
   ])
 
 /**
- * Verifico se já possuo uma estratégia confiável para extrair
- * oportunidades desta plataforma.
+ * Mantenho alguns termos adicionais porque nem todo cargo aparece
+ * exatamente com um dos nomes cadastrados no perfil principal.
  */
-function ehProvedorSuportado(
-  pagina: PaginaClassificada
+const termosComplementaresTitulo = [
+  "help desk",
+  "service desk",
+  "support",
+  "suporte",
+  "noc",
+  "monitoring",
+  "monitoramento",
+  "observability",
+  "observabilidade",
+  "implementation",
+  "implantacao",
+  "infraestrutura",
+  "customer onboarding"
+]
+
+function normalizarTexto(
+  valor: string
 ) {
-  return provedoresSuportados.has(
-    pagina.provedor
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function contemExpressao(
+  texto: string,
+  termo: string
+) {
+  const textoNormalizado =
+    ` ${normalizarTexto(texto)} `
+
+  const termoNormalizado =
+    normalizarTexto(termo)
+
+  if (!termoNormalizado) {
+    return false
+  }
+
+  return textoNormalizado.includes(
+    ` ${termoNormalizado} `
   )
 }
 
 /**
- * Crio os contadores usados para acompanhar cada plataforma.
+ * Faço um pré-filtro barato usando apenas o título retornado pela busca.
+ *
+ * Não estou decidindo se a vaga é relevante. Apenas evito abrir páginas
+ * claramente sem relação com a minha busca, como Barista ou Bartender.
  */
+function tituloPareceRelacionado(
+  titulo: string
+) {
+  const cargos = [
+    ...perfilBusca.cargosPrincipais,
+    ...perfilBusca.cargosRelacionados,
+    ...termosComplementaresTitulo
+  ]
+
+  return cargos.some(
+    (cargo) =>
+      contemExpressao(
+        titulo,
+        cargo
+      )
+  )
+}
+
+/**
+ * Identifico páginas conhecidas que representam listas ou pesquisas,
+ * e não uma oportunidade individual.
+ */
+function paginaEhListagem(
+  pagina: PaginaClassificada
+) {
+  try {
+    const url =
+      new URL(pagina.url)
+
+    const caminho =
+      url.pathname.toLowerCase()
+
+    if (
+      pagina.provedor === "indeed"
+    ) {
+      return (
+        !caminho.includes(
+          "/viewjob"
+        ) ||
+        !url.searchParams.has(
+          "jk"
+        )
+      )
+    }
+
+    if (
+      pagina.provedor === "linkedin"
+    ) {
+      return !caminho.includes(
+        "/jobs/view/"
+      )
+    }
+
+    if (
+      pagina.provedor === "greenhouse"
+    ) {
+      return !/\/jobs\/\d+/i.test(
+        caminho
+      )
+    }
+
+    if (
+      pagina.provedor === "workable"
+    ) {
+      return !/\/j\/[a-z0-9]+/i.test(
+        caminho
+      )
+    }
+
+    if (
+      pagina.provedor ===
+      "smartrecruiters"
+    ) {
+      const partes =
+        caminho
+          .split("/")
+          .filter(Boolean)
+
+      return (
+        partes.length < 2 ||
+        !/^\d+/.test(
+          partes[1] ?? ""
+        )
+      )
+    }
+
+    if (
+      pagina.provedor === "lever"
+    ) {
+      const partes =
+        caminho
+          .split("/")
+          .filter(Boolean)
+
+      return partes.length < 2
+    }
+
+    if (
+      pagina.provedor === "gupy"
+    ) {
+      return !(
+        caminho.includes(
+          "/jobs/"
+        ) ||
+        caminho.includes(
+          "/job/"
+        )
+      )
+    }
+
+    if (
+      pagina.provedor === "remote-ok"
+    ) {
+      return (
+        caminho === "/" ||
+        caminho.includes(
+          "customer-support-jobs"
+        ) ||
+        caminho.includes(
+          "technical-jobs"
+        ) ||
+        caminho.includes(
+          "jobs-in-brazil"
+        ) ||
+        caminho.includes(
+          "product-manager-jobs"
+        )
+      )
+    }
+
+    return false
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Algumas URLs da Workable apontam diretamente para /apply/.
+ *
+ * Para extração uso a página principal da vaga, que contém o código
+ * necessário para consultar os dados estruturados.
+ */
+function normalizarPaginaParaInspecao(
+  pagina: PaginaClassificada
+): PaginaClassificada {
+  if (
+    pagina.provedor !==
+    "workable"
+  ) {
+    return pagina
+  }
+
+  try {
+    const url =
+      new URL(pagina.url)
+
+    url.pathname =
+      url.pathname.replace(
+        /\/apply\/?$/i,
+        "/"
+      )
+
+    return {
+      ...pagina,
+      url:
+        url.toString()
+    }
+  } catch {
+    return pagina
+  }
+}
+
+function ehProvedorProcessavel(
+  pagina: PaginaClassificada
+) {
+  return provedoresProcessaveis.has(
+    pagina.provedor
+  )
+}
+
 function criarResultadoProvedor(
   provedor: ProvedorPagina
 ): ResultadoFonteProcessada {
@@ -79,7 +307,9 @@ function obterResultadoProvedor(
   provedor: ProvedorPagina
 ) {
   const existente =
-    resultados.get(provedor)
+    resultados.get(
+      provedor
+    )
 
   if (existente) {
     return existente
@@ -98,11 +328,52 @@ function obterResultadoProvedor(
   return novo
 }
 
+function registrarPendencia(
+  pendencias:
+    PendenciaProcessamentoWeb[],
+
+  pendencia:
+    PendenciaProcessamentoWeb
+) {
+  pendencias.push(
+    pendencia
+  )
+}
+
+function paginaEstaIndisponivel(
+  url: string,
+  codigoStatus: number
+) {
+  if (
+    codigoStatus >= 400
+  ) {
+    return true
+  }
+
+  try {
+    const urlAnalisada =
+      new URL(url)
+
+    return (
+      urlAnalisada
+        .searchParams
+        .get("not_found") ===
+        "true" ||
+      urlAnalisada
+        .searchParams
+        .get("error") ===
+        "true"
+    )
+  } catch {
+    return false
+  }
+}
+
 /**
- * Executo descoberta, inspeção e filtro geográfico.
+ * Executo descoberta, pré-filtro, extração, elegibilidade e importação.
  *
- * Quando habilito salvarCompativeis, gravo somente oportunidades cuja
- * elegibilidade para candidatos no Brasil esteja realmente confirmada.
+ * LinkedIn, Indeed e demais fontes continuam preservados para a futura
+ * resolução até a página oficial, desde que pareçam vagas individuais.
  */
 export async function processarVagasWeb(
   opcoes: OpcoesProcessamentoWeb = {}
@@ -114,16 +385,76 @@ export async function processarVagasWeb(
   const paginas =
     await descobrirPaginasVagas()
 
-  const paginasSelecionadas =
+  const paginasRelacionadas =
     paginas.filter(
-      ehProvedorSuportado
+      (pagina) =>
+        tituloPareceRelacionado(
+          pagina.titulo
+        )
     )
+
+  const descartadasPorTitulo =
+    paginas.length -
+    paginasRelacionadas.length
+
+  const paginasDeListagem =
+    paginasRelacionadas.filter(
+      paginaEhListagem
+    ).length
+
+  const paginasIndividuais =
+    paginasRelacionadas.filter(
+      (pagina) =>
+        !paginaEhListagem(
+          pagina
+        )
+    )
+
+  const paginasSelecionadas =
+    paginasIndividuais
+      .filter(
+        ehProvedorProcessavel
+      )
+      .map(
+        normalizarPaginaParaInspecao
+      )
+
+  const somenteDescoberta:
+    PaginaSomenteDescoberta[] =
+    paginasIndividuais
+      .filter(
+        (pagina) =>
+          !ehProvedorProcessavel(
+            pagina
+          )
+      )
+      .map(
+        (pagina) => ({
+          provedor:
+            pagina.provedor,
+
+          titulo:
+            pagina.titulo,
+
+          url:
+            pagina.url,
+
+          descricao:
+            pagina.descricao,
+
+          consulta:
+            pagina.consulta
+        })
+      )
 
   const resultadosPorProvedor =
     new Map<
       ProvedorPagina,
       ResultadoFonteProcessada
     >()
+
+  const pendencias:
+    PendenciaProcessamentoWeb[] = []
 
   let vagasExtraidas = 0
   let compativeisBrasil = 0
@@ -135,8 +466,8 @@ export async function processarVagasWeb(
   let falhas = 0
 
   /**
-   * Processo sequencialmente para não disparar muitas requisições
-   * simultâneas contra os ATS.
+   * Processo os ATS sequencialmente para manter um comportamento
+   * controlado durante a coleta.
    */
   for (
     const pagina
@@ -159,12 +490,21 @@ export async function processarVagasWeb(
       resumo.falhas++
       falhas++
 
-      console.error(
-        `[${pagina.provedor}] Falha ao inspecionar: ${pagina.url}`
-      )
-
-      console.error(
-        `Motivo: ${resultado.erro}`
+      registrarPendencia(
+        pendencias,
+        {
+          tipo: "acesso",
+          provedor:
+            pagina.provedor,
+          titulo:
+            pagina.titulo,
+          url:
+            pagina.url,
+          localizacao:
+            null,
+          motivo:
+            resultado.erro
+        }
       )
 
       continue
@@ -175,6 +515,40 @@ export async function processarVagasWeb(
       !resultado.ehPublicacaoVaga
     ) {
       resumo.ignoradas++
+
+      const indisponivel =
+        paginaEstaIndisponivel(
+          resultado.urlFinal,
+          resultado.codigoStatus
+        )
+
+      registrarPendencia(
+        pendencias,
+        {
+          tipo:
+            indisponivel
+              ? "indisponivel"
+              : "extracao",
+
+          provedor:
+            pagina.provedor,
+
+          titulo:
+            pagina.titulo,
+
+          url:
+            resultado.urlFinal,
+
+          localizacao:
+            null,
+
+          motivo:
+            indisponivel
+              ? "A publicação não está mais disponível no ATS."
+              : "A página foi acessada, mas nenhum extrator conseguiu confirmar uma vaga válida."
+        }
+      )
+
       continue
     }
 
@@ -184,9 +558,39 @@ export async function processarVagasWeb(
     const elegibilidade =
       resultado.elegibilidadeBrasil
 
-    if (!elegibilidade) {
+    if (
+      !elegibilidade ||
+      elegibilidade.situacao ===
+        "indefinida"
+    ) {
       resumo.indefinidas++
       indefinidas++
+
+      registrarPendencia(
+        pendencias,
+        {
+          tipo:
+            "localizacao",
+
+          provedor:
+            resultado.provedor,
+
+          titulo:
+            resultado.vaga.titulo ??
+            pagina.titulo,
+
+          url:
+            resultado.urlFinal,
+
+          localizacao:
+            resultado.vaga.localizacao,
+
+          motivo:
+            elegibilidade?.motivo ??
+            "A elegibilidade para o Brasil não foi avaliada."
+        }
+      )
+
       continue
     }
 
@@ -196,43 +600,6 @@ export async function processarVagasWeb(
     ) {
       resumo.incompativeisBrasil++
       incompativeisBrasil++
-
-      console.log("")
-      console.log(
-        `[IGNORADA - FORA DO BRASIL] ${
-          resultado.vaga.titulo ??
-          pagina.titulo
-        }`
-      )
-
-      console.log(
-        `Local: ${
-          resultado.vaga.localizacao ??
-          "não informado"
-        }`
-      )
-
-      console.log(
-        `Motivo: ${elegibilidade.motivo}`
-      )
-
-      continue
-    }
-
-    if (
-      elegibilidade.situacao ===
-      "indefinida"
-    ) {
-      resumo.indefinidas++
-      indefinidas++
-
-      console.log("")
-      console.log(
-        `[PENDENTE - LOCALIZAÇÃO INDEFINIDA] ${
-          resultado.vaga.titulo ??
-          pagina.titulo
-        }`
-      )
 
       continue
     }
@@ -254,15 +621,6 @@ export async function processarVagasWeb(
     if (!novaVaga) {
       resumo.semDadosObrigatorios++
       semDadosObrigatorios++
-
-      console.log("")
-      console.log(
-        `[NÃO IMPORTADA - DADOS INCOMPLETOS] ${
-          resultado.vaga.titulo ??
-          pagina.titulo
-        }`
-      )
-
       continue
     }
 
@@ -292,8 +650,15 @@ export async function processarVagasWeb(
     paginasDescobertas:
       paginas.length,
 
+    descartadasPorTitulo,
+
+    paginasDeListagem,
+
     paginasSelecionadas:
       paginasSelecionadas.length,
+
+    paginasSomenteDescoberta:
+      somenteDescoberta.length,
 
     vagasExtraidas,
     compativeisBrasil,
@@ -306,6 +671,10 @@ export async function processarVagasWeb(
 
     porProvedor: [
       ...resultadosPorProvedor.values()
-    ]
+    ],
+
+    pendencias,
+
+    somenteDescoberta
   }
 }

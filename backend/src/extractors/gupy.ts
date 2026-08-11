@@ -4,7 +4,13 @@ import type {
   VagaExtraida
 } from "../types/page-inspection.js"
 
-type RaizCheerio = ReturnType<typeof cheerio.load>
+type RaizCheerio =
+  ReturnType<typeof cheerio.load>
+
+type ContextoGupy = {
+  idVaga: string
+  urlCarreiras: string
+}
 
 const rotulosSecoes = {
   descricao: [
@@ -37,29 +43,25 @@ const rotulosSecoes = {
   ]
 }
 
-/**
- * Normalizo pequenos trechos de texto sem retirar informações que
- * ainda podem ser úteis para analisar a vaga posteriormente.
- */
-function normalizarTextoCurto(valor: string) {
+function normalizarTextoCurto(
+  valor: string
+) {
   return valor
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ")
     .trim()
 }
 
-/**
- * Transformo o conteúdo visível da página em linhas porque a Gupy
- * organiza a vaga em seções com títulos relativamente previsíveis.
- *
- * Prefiro usar o conteúdo da página em vez de depender de classes CSS
- * internas da plataforma, que podem mudar sem aviso.
- */
-function extrairLinhasPagina($: RaizCheerio) {
-  const corpo = $("body").clone()
+function extrairLinhasPagina(
+  $: RaizCheerio
+) {
+  const corpo =
+    $("body").clone()
 
   corpo
-    .find("script, style, noscript, svg")
+    .find(
+      "script, style, noscript, svg"
+    )
     .remove()
 
   corpo
@@ -67,89 +69,105 @@ function extrairLinhasPagina($: RaizCheerio) {
     .replaceWith("\n")
 
   corpo
-    .find("h1, h2, h3, p, li")
-    .each((_indice, elemento) => {
-      corpo.find(elemento).append("\n")
-    })
+    .find(
+      "h1, h2, h3, p, li"
+    )
+    .each(
+      (_indice, elemento) => {
+        $(elemento)
+          .append("\n")
+      }
+    )
 
   return corpo
     .text()
     .replace(/\r/g, "")
     .replace(/\u00a0/g, " ")
     .split("\n")
-    .map(normalizarTextoCurto)
+    .map(
+      normalizarTextoCurto
+    )
     .filter(Boolean)
 }
 
-/**
- * Comparo os títulos sem diferenciar letras maiúsculas e minúsculas.
- */
 function correspondeRotulo(
   valor: string,
   rotulos: string[]
 ) {
-  const valorNormalizado = valor.toLowerCase()
+  const valorNormalizado =
+    valor.toLowerCase()
 
   return rotulos.some(
     (rotulo) =>
-      valorNormalizado === rotulo.toLowerCase()
+      valorNormalizado ===
+      rotulo.toLowerCase()
   )
 }
 
-/**
- * Reúno todos os títulos conhecidos para identificar quando uma
- * seção termina e a próxima começa.
- */
 function obterTodosRotulos() {
-  return Object.values(rotulosSecoes).flat()
+  return Object
+    .values(rotulosSecoes)
+    .flat()
 }
 
-/**
- * Extraio uma seção usando seu título como ponto inicial.
- *
- * Paro quando encontro outro título conhecido para não misturar
- * requisitos, responsabilidades e outras partes da vaga.
- */
 function extrairSecao(
   linhas: string[],
   rotulos: string[]
 ): string | null {
-  const indiceInicial = linhas.findIndex(
-    (linha) => correspondeRotulo(linha, rotulos)
-  )
+  const indiceInicial =
+    linhas.findIndex(
+      (linha) =>
+        correspondeRotulo(
+          linha,
+          rotulos
+        )
+    )
 
-  if (indiceInicial === -1) {
+  if (
+    indiceInicial === -1
+  ) {
     return null
   }
 
-  const todosRotulos = obterTodosRotulos()
+  const todosRotulos =
+    obterTodosRotulos()
+
   const conteudo: string[] = []
 
   for (
-    let indice = indiceInicial + 1;
-    indice < linhas.length;
+    let indice =
+      indiceInicial + 1;
+
+    indice <
+    linhas.length;
+
     indice++
   ) {
-    const linha = linhas[indice]
+    const linha =
+      linhas[indice]
 
-    if (correspondeRotulo(linha, todosRotulos)) {
+    if (
+      correspondeRotulo(
+        linha,
+        todosRotulos
+      )
+    ) {
       break
     }
 
-    conteudo.push(linha)
+    conteudo.push(
+      linha
+    )
   }
 
-  const texto = conteudo.join("\n").trim()
+  const texto =
+    conteudo
+      .join("\n")
+      .trim()
 
   return texto || null
 }
 
-/**
- * Tento encontrar primeiro o nome informado pelos metadados da página.
- *
- * Quando a Gupy não informa a empresa claramente, uso o subdomínio
- * como último recurso para não perder completamente essa informação.
- */
 function extrairEmpresa(
   $: RaizCheerio,
   urlFinal: string
@@ -159,41 +177,59 @@ function extrairEmpresa(
     'meta[name="application-name"]'
   ]
 
-  for (const seletor of seletoresMetadados) {
-    const conteudo = normalizarTextoCurto(
-      $(seletor).first().attr("content") ?? ""
-    )
+  for (
+    const seletor
+    of seletoresMetadados
+  ) {
+    const conteudo =
+      normalizarTextoCurto(
+        $(seletor)
+          .first()
+          .attr("content") ??
+        ""
+      )
 
     if (
       conteudo &&
-      conteudo.toLowerCase() !== "gupy"
+      conteudo.toLowerCase() !==
+        "gupy"
     ) {
       return conteudo
     }
   }
 
   try {
-    const hostname = new URL(urlFinal)
-      .hostname
-      .toLowerCase()
+    const hostname =
+      new URL(
+        urlFinal
+      ).hostname.toLowerCase()
 
-    if (!hostname.endsWith(".gupy.io")) {
+    if (
+      !hostname.endsWith(
+        ".gupy.io"
+      )
+    ) {
       return null
     }
 
     const identificadorEmpresa =
       hostname.split(".")[0]
 
-    if (!identificadorEmpresa) {
+    if (
+      !identificadorEmpresa
+    ) {
       return null
     }
 
     return identificadorEmpresa
       .split("-")
       .filter(Boolean)
-      .map((parte) =>
-        parte.charAt(0).toUpperCase() +
-        parte.slice(1)
+      .map(
+        (parte) =>
+          parte
+            .charAt(0)
+            .toUpperCase() +
+          parte.slice(1)
       )
       .join(" ")
   } catch {
@@ -201,19 +237,14 @@ function extrairEmpresa(
   }
 }
 
-/**
- * Procuro valores estruturados que possam existir diretamente no HTML.
- *
- * Quando a página não disponibiliza a informação, retorno null em vez
- * de tentar deduzir um valor que não consigo confirmar.
- */
 function extrairValorEstruturado(
   $: RaizCheerio,
   propriedade: string
 ): string | null {
-  const elemento = $(
-    `[itemprop="${propriedade}"]`
-  ).first()
+  const elemento =
+    $(
+      `[itemprop="${propriedade}"]`
+    ).first()
 
   if (!elemento.length) {
     return null
@@ -225,27 +256,31 @@ function extrairValorEstruturado(
     elemento.text()
 
   const valorNormalizado =
-    normalizarTextoCurto(valor)
+    normalizarTextoCurto(
+      valor
+    )
 
-  return valorNormalizado || null
+  return (
+    valorNormalizado ||
+    null
+  )
 }
 
-/**
- * Considero a vaga remota somente quando encontro uma indicação
- * explícita no conteúdo que consegui extrair.
- */
-function detectarRemoto(texto: string) {
+function detectarRemoto(
+  texto: string
+) {
   return /\b(remote|remoto|remota|100%\s*remot[oa]|home\s*office)\b/i.test(
     texto
   )
 }
 
-/**
- * Verifico se o texto do link representa uma ação de candidatura.
- */
-function ehLinkCandidatura(texto: string) {
+function ehLinkCandidatura(
+  texto: string
+) {
   const textoNormalizado =
-    normalizarTextoCurto(texto).toLowerCase()
+    normalizarTextoCurto(
+      texto
+    ).toLowerCase()
 
   return (
     textoNormalizado === "apply" ||
@@ -257,28 +292,29 @@ function ehLinkCandidatura(texto: string) {
   )
 }
 
-/**
- * Tento localizar o botão de candidatura da própria vaga.
- *
- * Se o botão apenas aponta para uma seção interna da página, mantenho
- * a URL atual porque o processo começa no mesmo endereço.
- */
 function extrairUrlCandidatura(
   $: RaizCheerio,
   urlFinal: string
 ): string {
-  const elementoCandidatura = $("a")
-    .toArray()
-    .find((elemento) =>
-      ehLinkCandidatura($(elemento).text())
-    )
+  const elementoCandidatura =
+    $("a")
+      .toArray()
+      .find(
+        (elemento) =>
+          ehLinkCandidatura(
+            $(elemento).text()
+          )
+      )
 
-  if (!elementoCandidatura) {
+  if (
+    !elementoCandidatura
+  ) {
     return urlFinal
   }
 
   const href =
-    $(elementoCandidatura).attr("href")
+    $(elementoCandidatura)
+      .attr("href")
 
   if (
     !href ||
@@ -297,10 +333,6 @@ function extrairUrlCandidatura(
   }
 }
 
-/**
- * Junto somente as partes que realmente ajudam a entender a oportunidade
- * e comparar seus requisitos com o meu perfil profissional.
- */
 function montarDescricao(
   descricao: string | null,
   responsabilidades: string | null,
@@ -334,57 +366,248 @@ function montarDescricao(
 }
 
 /**
- * Extraio os dados disponíveis diretamente do HTML de uma vaga da Gupy.
- *
- * Uso este caminho quando a plataforma não disponibiliza um JSON-LD
- * do tipo JobPosting na página acessada.
+ * Recupero o identificador da vaga e a página oficial de carreiras
+ * usando somente a própria URL da Gupy.
  */
-export function extrairVagaGupy(
+function interpretarContextoGupy(
+  urlFinal: string
+): ContextoGupy | null {
+  try {
+    const url =
+      new URL(urlFinal)
+
+    const hostname =
+      url.hostname.toLowerCase()
+
+    if (
+      !hostname.endsWith(
+        ".gupy.io"
+      )
+    ) {
+      return null
+    }
+
+    const partes =
+      url.pathname
+        .split("/")
+        .filter(Boolean)
+
+    const indiceVaga =
+      partes.findIndex(
+        (parte) => {
+          const valor =
+            parte.toLowerCase()
+
+          return (
+            valor === "job" ||
+            valor === "jobs"
+          )
+        }
+      )
+
+    const idVaga =
+      partes[
+        indiceVaga + 1
+      ]
+
+    if (!idVaga) {
+      return null
+    }
+
+    return {
+      idVaga,
+      urlCarreiras:
+        `${url.protocol}//${hostname}/`
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Quando a página individual não informa localização, consulto a
+ * página oficial de carreiras da mesma empresa.
+ *
+ * Só uso informações pertencentes à própria Gupy da empresa.
+ */
+async function enriquecerPelaPaginaCarreiras(
+  vaga: VagaExtraida,
+  urlFinal: string
+): Promise<VagaExtraida> {
+  const contexto =
+    interpretarContextoGupy(
+      urlFinal
+    )
+
+  if (!contexto) {
+    return vaga
+  }
+
+  const controlador =
+    new AbortController()
+
+  const temporizador =
+    setTimeout(
+      () =>
+        controlador.abort(),
+      12000
+    )
+
+  try {
+    const resposta =
+      await fetch(
+        contexto.urlCarreiras,
+        {
+          signal:
+            controlador.signal,
+
+          headers: {
+            Accept:
+              "text/html,application/xhtml+xml",
+
+            "Accept-Language":
+              "pt-BR,pt;q=0.9,en;q=0.8"
+          }
+        }
+      )
+
+    if (!resposta.ok) {
+      return vaga
+    }
+
+    const html =
+      await resposta.text()
+
+    const $ =
+      cheerio.load(html)
+
+    const linkVaga =
+      $("a")
+        .toArray()
+        .find(
+          (elemento) => {
+            const href =
+              $(elemento)
+                .attr("href")
+
+            if (!href) {
+              return false
+            }
+
+            return href.includes(
+              `/jobs/${contexto.idVaga}`
+            )
+          }
+        )
+
+    if (!linkVaga) {
+      return vaga
+    }
+
+    const textoCartao =
+      normalizarTextoCurto(
+        $(linkVaga).text()
+      )
+
+    const textoPagina =
+      normalizarTextoCurto(
+        $("body").text()
+      )
+
+    const remoto =
+      vaga.remoto ||
+      /\b(remote work|trabalho remoto|remoto|home office)\b/i.test(
+        textoCartao
+      )
+
+    let localizacao =
+      vaga.localizacao
+
+    /**
+     * Só assumo Brasil quando a própria página oficial da empresa
+     * declara que as oportunidades são oferecidas em todo o país.
+     */
+    if (
+      !localizacao &&
+      /\b(em todo o brasil|todo o brasil|throughout brazil)\b/i.test(
+        textoPagina
+      )
+    ) {
+      localizacao =
+        "Brasil"
+    }
+
+    return {
+      ...vaga,
+      localizacao,
+      remoto
+    }
+  } catch {
+    return vaga
+  } finally {
+    clearTimeout(
+      temporizador
+    )
+  }
+}
+
+/**
+ * Extraio os dados públicos da vaga individual e depois tento
+ * complementar localização e modalidade pela página oficial da empresa.
+ */
+export async function extrairVagaGupy(
   html: string,
   urlFinal: string
-): VagaExtraida | null {
-  const $ = cheerio.load(html)
+): Promise<VagaExtraida | null> {
+  const $ =
+    cheerio.load(html)
 
-  const titulo = normalizarTextoCurto(
-    $("h1").first().text()
-  )
+  const titulo =
+    normalizarTextoCurto(
+      $("h1")
+        .first()
+        .text()
+    )
 
-  // Sem um título principal eu não considero a página uma vaga válida.
   if (!titulo) {
     return null
   }
 
-  const linhas = extrairLinhasPagina($)
+  const linhas =
+    extrairLinhasPagina($)
 
-  const descricao = extrairSecao(
-    linhas,
-    rotulosSecoes.descricao
-  )
+  const descricao =
+    extrairSecao(
+      linhas,
+      rotulosSecoes.descricao
+    )
 
-  const responsabilidades = extrairSecao(
-    linhas,
-    rotulosSecoes.responsabilidades
-  )
+  const responsabilidades =
+    extrairSecao(
+      linhas,
+      rotulosSecoes.responsabilidades
+    )
 
-  const requisitos = extrairSecao(
-    linhas,
-    rotulosSecoes.requisitos
-  )
+  const requisitos =
+    extrairSecao(
+      linhas,
+      rotulosSecoes.requisitos
+    )
 
-  const informacoesAdicionais = extrairSecao(
-    linhas,
-    rotulosSecoes.informacoesAdicionais
-  )
+  const informacoesAdicionais =
+    extrairSecao(
+      linhas,
+      rotulosSecoes.informacoesAdicionais
+    )
 
-  const descricaoCompleta = montarDescricao(
-    descricao,
-    responsabilidades,
-    requisitos,
-    informacoesAdicionais
-  )
+  const descricaoCompleta =
+    montarDescricao(
+      descricao,
+      responsabilidades,
+      requisitos,
+      informacoesAdicionais
+    )
 
-  // Exijo pelo menos uma seção típica de vaga além do título para
-  // reduzir falsos positivos dentro da própria plataforma.
   if (
     !descricao &&
     !responsabilidades &&
@@ -403,26 +626,48 @@ export function extrairVagaGupy(
     )
     .join(" ")
 
-  return {
+  const vaga: VagaExtraida = {
     titulo,
-    empresa: extrairEmpresa($, urlFinal),
-    descricao: descricaoCompleta,
+
+    empresa:
+      extrairEmpresa(
+        $,
+        urlFinal
+      ),
+
+    descricao:
+      descricaoCompleta,
+
     localizacao: null,
+
     tipoContratacao: null,
-    dataPublicacao: extrairValorEstruturado(
-      $,
-      "datePosted"
-    ),
-    validaAte: extrairValorEstruturado(
-      $,
-      "validThrough"
-    ),
-    remoto: detectarRemoto(
-      textoParaAnalise
-    ),
-    urlCandidatura: extrairUrlCandidatura(
-      $,
-      urlFinal
-    )
+
+    dataPublicacao:
+      extrairValorEstruturado(
+        $,
+        "datePosted"
+      ),
+
+    validaAte:
+      extrairValorEstruturado(
+        $,
+        "validThrough"
+      ),
+
+    remoto:
+      detectarRemoto(
+        textoParaAnalise
+      ),
+
+    urlCandidatura:
+      extrairUrlCandidatura(
+        $,
+        urlFinal
+      )
   }
+
+  return enriquecerPelaPaginaCarreiras(
+    vaga,
+    urlFinal
+  )
 }

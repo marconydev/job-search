@@ -5,104 +5,123 @@ import type {
 } from "../types/discovery.js"
 
 /**
- * Mantenho aqui os domínios que funcionam como agregadores de vagas.
- *
- * Não descarto esses resultados porque ainda podem ajudar na descoberta.
- * Apenas separo agregadores de ATS e páginas que ainda preciso inspecionar.
+ * Mantenho aqui portais e agregadores que podem ser úteis para descobrir
+ * uma oportunidade, mas que não considero automaticamente a fonte oficial.
  */
-const dominiosAgregadores = new Set([
-  "4dayweek.io",
-  "bebee.com",
-  "catho.com.br",
-  "dailyremote.com",
-  "dice.com",
-  "dynamitejobs.com",
-  "empregos.com.br",
-  "helpfulremote.com",
-  "himalayas.app",
-  "infojobs.com.br",
-  "jobleads.com",
-  "jobtoday.com",
-  "nijobs.com",
-  "remoteanywherejob.com",
-  "remoteclickjobs-production.up.railway.app",
-  "remoterocketship.com",
-  "remotezest.up.railway.app",
-  "remotar.com.br",
-  "simplyhired.com.br",
-  "simplify.jobs",
-  "talent.com",
-  "tealhq.com",
-  "topcsjobs.com",
-  "trabajo.org",
-  "tryremotely.com",
-  "vacancyglobalpro.up.railway.app",
-  "weworkremotely.com"
-])
+const dominiosAgregadores =
+  new Set([
+    "4dayweek.io",
+    "bebee.com",
+    "catho.com.br",
+    "dailyremote.com",
+    "dice.com",
+    "dynamitejobs.com",
+    "empregos.com.br",
+    "geekhunter.com.br",
+    "helpfulremote.com",
+    "himalayas.app",
+    "infojobs.com.br",
+    "jobleads.com",
+    "jobtoday.com",
+    "nijobs.com",
+    "programathor.com.br",
+    "remoteanywherejob.com",
+    "remoteclickjobs-production.up.railway.app",
+    "remoterocketship.com",
+    "remotezest.up.railway.app",
+    "remotar.com.br",
+    "simplyhired.com.br",
+    "simplify.jobs",
+    "talent.com",
+    "tealhq.com",
+    "topcsjobs.com",
+    "trabajo.org",
+    "trampos.co",
+    "tryremotely.com",
+    "vacancyglobalpro.up.railway.app",
+    "vagas.com.br",
+    "weworkremotely.com"
+  ])
 
-/**
- * Verifico se o domínio pertence a um site que já identifiquei
- * como agregador ou republicador de oportunidades.
- */
 function ehDominioAgregador(
   hostname: string
 ) {
-  return [...dominiosAgregadores].some(
+  return [
+    ...dominiosAgregadores
+  ].some(
     (dominio) =>
       hostname === dominio ||
-      hostname.endsWith(`.${dominio}`)
+      hostname.endsWith(
+        `.${dominio}`
+      )
   )
 }
 
 /**
- * Identifico a origem provável da página usando o domínio da URL.
+ * Identifico a origem provável usando somente domínios conhecidos.
  *
- * Nesta etapa ainda não confirmo se existe uma vaga válida. Uso esta
- * classificação para decidir qual estratégia de extração vou utilizar.
+ * Uma URL desconhecida continua desconhecida até conseguirmos confirmar
+ * o conteúdo. Não considero "/jobs" ou "/careers" prova suficiente de
+ * que o endereço pertence à página oficial de uma empresa.
  */
 export function identificarProvedorPagina(
   url: string
 ): ProvedorPagina {
   try {
-    const urlAnalisada = new URL(url)
+    const urlAnalisada =
+      new URL(url)
 
     const hostname =
       urlAnalisada.hostname
         .toLowerCase()
-        .replace(/^www\./, "")
+        .replace(
+          /^www\./,
+          ""
+        )
 
     if (
       hostname === "gupy.io" ||
-      hostname.endsWith(".gupy.io")
+      hostname.endsWith(
+        ".gupy.io"
+      )
     ) {
       return "gupy"
     }
 
     if (
       hostname === "linkedin.com" ||
-      hostname.endsWith(".linkedin.com")
+      hostname.endsWith(
+        ".linkedin.com"
+      )
     ) {
       return "linkedin"
     }
 
     if (
       hostname === "jobs.lever.co" ||
-      hostname === "jobs.eu.lever.co"
+      hostname ===
+        "jobs.eu.lever.co"
     ) {
       return "lever"
     }
 
     if (
-      hostname === "boards.greenhouse.io" ||
-      hostname === "job-boards.greenhouse.io" ||
-      hostname.endsWith(".greenhouse.io")
+      hostname ===
+        "boards.greenhouse.io" ||
+      hostname ===
+        "job-boards.greenhouse.io" ||
+      hostname.endsWith(
+        ".greenhouse.io"
+      )
     ) {
       return "greenhouse"
     }
 
     if (
-      hostname === "apply.workable.com" ||
-      hostname === "jobs.workable.com"
+      hostname ===
+        "apply.workable.com" ||
+      hostname ===
+        "jobs.workable.com"
     ) {
       return "workable"
     }
@@ -116,49 +135,54 @@ export function identificarProvedorPagina(
 
     if (
       hostname === "indeed.com" ||
-      hostname.endsWith(".indeed.com")
+      hostname.endsWith(
+        ".indeed.com"
+      )
     ) {
       return "indeed"
     }
 
     if (
-      hostname === "remoteok.com"
+      hostname ===
+      "remoteok.com"
     ) {
       return "remote-ok"
     }
 
     if (
-      hostname === "remotive.com" ||
-      hostname.endsWith(".remotive.com")
+      hostname ===
+        "remotive.com" ||
+      hostname.endsWith(
+        ".remotive.com"
+      )
     ) {
       return "remotive"
     }
 
     if (
-      ehDominioAgregador(hostname)
+      ehDominioAgregador(
+        hostname
+      )
     ) {
       return "agregador"
     }
 
-    // Se ainda não reconheço o domínio, deixo a decisão para a inspeção.
-    // A URL sozinha não é suficiente para afirmar que é uma página oficial.
     return "desconhecido"
   } catch {
-    // Mantenho URLs inválidas como desconhecidas para não interromper
-    // toda a descoberta por causa de um único resultado malformado.
     return "desconhecido"
   }
 }
 
 /**
- * Acrescento a classificação sem alterar os demais dados encontrados
- * durante a busca.
+ * Acrescento a origem identificada mantendo todos os dados encontrados
+ * pelo mecanismo de busca.
  */
 export function classificarPagina(
   pagina: PaginaDescoberta
 ): PaginaClassificada {
   return {
     ...pagina,
+
     provedor:
       identificarProvedorPagina(
         pagina.url
