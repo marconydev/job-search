@@ -1,10 +1,11 @@
 /**
- * Consultas usadas para descobrir oportunidades fora dos agregadores.
+ * Mantenho aqui as consultas que uso para descobrir oportunidades
+ * relacionadas ao meu perfil profissional.
  *
- * Mantemos termos em português e inglês porque muitas empresas
- * contratam no Brasil usando títulos internacionais.
+ * Uso termos em português e inglês porque muitas empresas que contratam
+ * no Brasil publicam as vagas com títulos internacionais.
  */
-export const jobSearchQueries = [
+export const consultasBuscaVagas = [
   '"Technical Support" remote Brazil',
   '"Technical Support Analyst" remote Brazil',
   '"Application Support" remote Brazil',
@@ -24,3 +25,11 @@ export const jobSearchQueries = [
   'site:gupy.io "Analista de Suporte"',
   'site:linkedin.com/jobs "Technical Support" "Brazil"'
 ]
+
+/**
+ * Mantenho este alias temporariamente enquanto os outros arquivos
+ * ainda usam o nome antigo.
+ *
+ * Removo essa compatibilidade quando concluir a migração.
+ */
+export const jobSearchQueries = consultasBuscaVagas

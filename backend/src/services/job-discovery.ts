@@ -1,26 +1,43 @@
-import { jobSearchQueries } from "../config/search-queries.js"
-import { searchWeb } from "../discovery/brave-search.js"
+import { consultasBuscaVagas } from "../config/search-queries.js"
+import { buscarNaWeb } from "../discovery/brave-search.js"
+import { classificarPagina } from "../discovery/page-classifier.js"
 
-import type { DiscoveredPage } from "../types/discovery.js"
+import type { PaginaClassificada } from "../types/discovery.js"
 
 /**
- * Executa as pesquisas configuradas e reúne as páginas encontradas.
+ * Executo as pesquisas configuradas e classifico cada página encontrada.
  *
- * Uma mesma vaga pode aparecer em consultas diferentes, então usamos
- * a URL como chave para evitar repetir o mesmo resultado nesta etapa.
+ * Uso a URL como chave porque a mesma oportunidade pode aparecer em
+ * consultas diferentes. Dessa forma evito devolver a mesma página
+ * mais de uma vez nesta etapa.
  */
-export async function discoverJobPages() {
-  const discoveredPages = new Map<string, DiscoveredPage>()
+export async function descobrirPaginasVagas(): Promise<
+  PaginaClassificada[]
+> {
+  const paginasDescobertas = new Map<string, PaginaClassificada>()
 
-  for (const query of jobSearchQueries) {
-    const result = await searchWeb(query)
+  for (const consulta of consultasBuscaVagas) {
+    const resultado = await buscarNaWeb(consulta)
 
-    for (const page of result.pages) {
-      if (!discoveredPages.has(page.url)) {
-        discoveredPages.set(page.url, page)
+    for (const pagina of resultado.pages) {
+      if (paginasDescobertas.has(pagina.url)) {
+        continue
       }
+
+      const paginaClassificada = classificarPagina(pagina)
+
+      paginasDescobertas.set(
+        pagina.url,
+        paginaClassificada
+      )
     }
   }
 
-  return [...discoveredPages.values()]
+  return [...paginasDescobertas.values()]
 }
+
+/**
+ * Mantenho este alias temporariamente porque o script de descoberta
+ * ainda usa o nome antigo. Removo assim que migrar esse script.
+ */
+export const discoverJobPages = descobrirPaginasVagas
