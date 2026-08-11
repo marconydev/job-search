@@ -1,9 +1,17 @@
 import "dotenv/config"
 
-import { descobrirPaginasVagas } from "../services/job-discovery.js"
-import type { ProvedorPagina } from "../types/discovery.js"
+import {
+  descobrirPaginasVagas
+} from "../services/job-discovery.js"
 
-const rotulosProvedores: Record<ProvedorPagina, string> = {
+import type {
+  ProvedorPagina
+} from "../types/discovery.js"
+
+const rotulosProvedores: Record<
+  ProvedorPagina,
+  string
+> = {
   gupy: "Gupy",
   linkedin: "LinkedIn",
   lever: "Lever",
@@ -13,67 +21,87 @@ const rotulosProvedores: Record<ProvedorPagina, string> = {
   indeed: "Indeed",
   "remote-ok": "Remote OK",
   remotive: "Remotive",
-  "career-page": "Páginas próprias",
-  aggregator: "Agregadores",
-  unknown: "Desconhecidas"
+  "pagina-propria": "Páginas próprias",
+  agregador: "Agregadores",
+  desconhecido: "Desconhecidas"
 }
 
 /**
- * Crio o contador a partir da própria lista de provedores para não
- * precisar manter duas estruturas separadas sempre que adicionar
- * uma nova fonte.
+ * Crio o contador usando a própria lista de provedores para não
+ * manter duas estruturas diferentes sempre que adicionar uma fonte.
  */
-function criarContadorProvedores(): Record<ProvedorPagina, number> {
+function criarContadorProvedores(): Record<
+  ProvedorPagina,
+  number
+> {
   return Object.fromEntries(
-    Object.keys(rotulosProvedores).map((provedor) => [
-      provedor,
-      0
-    ])
+    Object.keys(rotulosProvedores).map(
+      (provedor) => [
+        provedor,
+        0
+      ]
+    )
   ) as Record<ProvedorPagina, number>
 }
 
 /**
- * Agrupo as páginas por origem para entender melhor de onde estão
- * vindo os resultados encontrados nas buscas.
+ * Agrupo os resultados por origem para entender de onde estão vindo
+ * as páginas encontradas nas pesquisas.
  */
 function contarPorProvedor(
-  paginas: Awaited<ReturnType<typeof descobrirPaginasVagas>>
+  paginas: Awaited<
+    ReturnType<typeof descobrirPaginasVagas>
+  >
 ) {
-  const contagens = criarContadorProvedores()
+  const contagens =
+    criarContadorProvedores()
 
   for (const pagina of paginas) {
-    contagens[pagina.provider]++
+    contagens[pagina.provedor]++
   }
 
   return contagens
 }
 
 /**
- * Executo a descoberta pela web e mostro primeiro um resumo das fontes.
+ * Executo a descoberta pela web e mostro um resumo antes dos resultados.
  *
- * Ainda não salvo essas páginas no banco. Primeiro quero confirmar
- * a origem e a qualidade dos resultados encontrados.
+ * Ainda não salvo essas páginas no banco porque primeiro preciso
+ * confirmar que realmente representam oportunidades válidas.
  */
 async function executar() {
-  console.log("Buscando páginas de vagas na web...")
+  console.log(
+    "Buscando páginas de vagas na web..."
+  )
 
   try {
-    const paginas = await descobrirPaginasVagas()
-    const contagens = contarPorProvedor(paginas)
+    const paginas =
+      await descobrirPaginasVagas()
+
+    const contagens =
+      contarPorProvedor(paginas)
 
     console.log("")
-    console.log(`Páginas encontradas: ${paginas.length}`)
+    console.log(
+      `Páginas encontradas: ${paginas.length}`
+    )
     console.log("")
 
     console.log("Fontes identificadas")
     console.log("--------------------")
 
     for (
-      const [provedor, rotulo] of Object.entries(rotulosProvedores)
+      const [provedor, rotulo]
+      of Object.entries(rotulosProvedores)
     ) {
-      const quantidade = contagens[provedor as ProvedorPagina]
+      const quantidade =
+        contagens[
+          provedor as ProvedorPagina
+        ]
 
-      console.log(`${rotulo.padEnd(18)} ${quantidade}`)
+      console.log(
+        `${rotulo.padEnd(18)} ${quantidade}`
+      )
     }
 
     console.log("")
@@ -82,16 +110,24 @@ async function executar() {
 
     for (const pagina of paginas) {
       console.log("")
+
       console.log(
-        `[${rotulosProvedores[pagina.provider]}] ${pagina.title}`
+        `[${rotulosProvedores[pagina.provedor]}] ${pagina.titulo}`
       )
+
       console.log(pagina.url)
-      console.log(`Busca: ${pagina.query}`)
+
+      console.log(
+        `Busca: ${pagina.consulta}`
+      )
     }
   } catch (erro) {
-    console.error("Falha durante a busca na web:", erro)
+    console.error(
+      "Falha durante a busca na web:",
+      erro
+    )
 
-    // Deixo um código de saída diferente de zero para conseguir detectar
+    // Deixo o código de saída diferente de zero para conseguir detectar
     // falhas quando essa execução passar a rodar automaticamente.
     process.exitCode = 1
   }

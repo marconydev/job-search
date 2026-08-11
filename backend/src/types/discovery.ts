@@ -1,9 +1,8 @@
 /**
- * Identifico aqui as plataformas que consigo reconhecer diretamente
- * pela URL encontrada durante a descoberta.
+ * Identifico as plataformas que consigo reconhecer diretamente pela URL.
  *
- * Uso "pagina-propria" apenas quando eu conseguir confirmar que a
- * oportunidade pertence ao site oficial da empresa.
+ * Mantenho os nomes comerciais das plataformas como são conhecidos
+ * publicamente e uso português apenas nos valores que pertencem ao projeto.
  */
 export type ProvedorPagina =
   | "gupy"
@@ -15,48 +14,36 @@ export type ProvedorPagina =
   | "indeed"
   | "remote-ok"
   | "remotive"
-  | "career-page"
-  | "aggregator"
-  | "unknown"
+  | "pagina-propria"
+  | "agregador"
+  | "desconhecido"
 
 /**
  * Represento uma página encontrada durante a busca na internet.
  *
- * Ainda não considero esse resultado uma vaga válida. Primeiro preciso
+ * Ainda não considero este resultado uma vaga válida. Primeiro preciso
  * identificar a origem e depois confirmar o conteúdo da página.
  */
 export type PaginaDescoberta = {
-  source: string
-  query: string
-  title: string
+  origem: string
+  consulta: string
+  titulo: string
   url: string
-  description: string | null
+  descricao: string | null
 }
 
 /**
- * Acrescento a origem identificada sem perder os dados retornados
- * originalmente pela busca.
+ * Acrescento o provedor identificado sem perder as informações
+ * originalmente encontradas durante a pesquisa.
  */
 export type PaginaClassificada = PaginaDescoberta & {
-  provider: ProvedorPagina
+  provedor: ProvedorPagina
 }
 
 /**
- * Represento o resultado bruto devolvido pelo mecanismo de busca.
+ * Represento o resultado bruto devolvido por um mecanismo de busca.
  */
 export type ResultadoDescobertaWeb = {
-  provider: string
-  pages: PaginaDescoberta[]
+  provedor: string
+  paginas: PaginaDescoberta[]
 }
-
-/**
- * Mantenho estes aliases temporariamente enquanto migro os arquivos
- * existentes para os nomes em português.
- *
- * Depois que toda a aplicação estiver usando os novos nomes, removo
- * esta camada de compatibilidade.
- */
-export type PageProvider = ProvedorPagina
-export type DiscoveredPage = PaginaDescoberta
-export type ClassifiedPage = PaginaClassificada
-export type WebDiscoveryResult = ResultadoDescobertaWeb

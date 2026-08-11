@@ -1,7 +1,15 @@
-import { identificarProvedorPagina } from "./page-classifier.js"
-import { extrairVagaGupy } from "../extractors/gupy.js"
+import {
+  identificarProvedorPagina
+} from "./page-classifier.js"
 
-import type { PaginaClassificada } from "../types/discovery.js"
+import {
+  extrairVagaGupy
+} from "../extractors/gupy.js"
+
+import type {
+  PaginaClassificada
+} from "../types/discovery.js"
+
 import type {
   ResultadoInspecaoPagina,
   VagaExtraida
@@ -16,7 +24,9 @@ const TEMPO_LIMITE_REQUISICAO_MS = 15000
 /**
  * Confirmo se o valor recebido pode ser tratado como um objeto.
  */
-function ehObjeto(valor: unknown): valor is ObjetoJsonLd {
+function ehObjeto(
+  valor: unknown
+): valor is ObjetoJsonLd {
   return (
     typeof valor === "object" &&
     valor !== null &&
@@ -25,10 +35,11 @@ function ehObjeto(valor: unknown): valor is ObjetoJsonLd {
 }
 
 /**
- * Leio um valor textual sem assumir que o campo recebido sempre
- * será uma string válida.
+ * Leio um valor textual sem assumir que o campo sempre será uma string.
  */
-function lerTexto(valor: unknown): string | null {
+function lerTexto(
+  valor: unknown
+): string | null {
   if (typeof valor !== "string") {
     return null
   }
@@ -39,10 +50,12 @@ function lerTexto(valor: unknown): string | null {
 }
 
 /**
- * Alguns campos externos podem chegar como texto ou como uma lista.
+ * Alguns campos externos podem chegar como texto ou lista.
  * Transformo os dois formatos em uma representação única.
  */
-function lerListaTexto(valor: unknown): string | null {
+function lerListaTexto(
+  valor: unknown
+): string | null {
   if (typeof valor === "string") {
     return lerTexto(valor)
   }
@@ -65,8 +78,8 @@ function lerListaTexto(valor: unknown): string | null {
 }
 
 /**
- * Retiro marcações HTML básicas da descrição para manter um texto
- * mais limpo para a análise de compatibilidade.
+ * Retiro marcações HTML básicas para manter a descrição legível
+ * durante a análise de compatibilidade.
  */
 function limparDescricao(
   valor: unknown
@@ -96,7 +109,7 @@ function limparDescricao(
 
 /**
  * Verifico o campo externo "@type" para identificar especificamente
- * um objeto JobPosting dentro dos dados estruturados da página.
+ * um JobPosting dentro dos dados estruturados.
  */
 function ehPublicacaoDeVaga(
   valor: ObjetoJsonLd
@@ -104,14 +117,18 @@ function ehPublicacaoDeVaga(
   const tipo = valor["@type"]
 
   if (typeof tipo === "string") {
-    return tipo.toLowerCase() === "jobposting"
+    return (
+      tipo.toLowerCase() ===
+      "jobposting"
+    )
   }
 
   if (Array.isArray(tipo)) {
     return tipo.some(
       (item) =>
         typeof item === "string" &&
-        item.toLowerCase() === "jobposting"
+        item.toLowerCase() ===
+          "jobposting"
     )
   }
 
@@ -146,7 +163,10 @@ function encontrarPublicacaoVaga(
     return valor
   }
 
-  for (const filho of Object.values(valor)) {
+  for (
+    const filho
+    of Object.values(valor)
+  ) {
     const publicacao =
       encontrarPublicacaoVaga(filho)
 
@@ -159,8 +179,7 @@ function encontrarPublicacaoVaga(
 }
 
 /**
- * Procuro blocos application/ld+json no HTML até encontrar um
- * JobPosting válido.
+ * Procuro blocos application/ld+json até encontrar um JobPosting válido.
  */
 function extrairPublicacaoVagaDoHtml(
   html: string
@@ -168,10 +187,12 @@ function extrairPublicacaoVagaDoHtml(
   const padraoScript =
     /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
 
-  let correspondencia: RegExpExecArray | null
+  let correspondencia:
+    RegExpExecArray | null
 
   while (
-    (correspondencia = padraoScript.exec(html)) !== null
+    (correspondencia =
+      padraoScript.exec(html)) !== null
   ) {
     const conteudo =
       correspondencia[1]?.trim()
@@ -191,8 +212,8 @@ function extrairPublicacaoVagaDoHtml(
         return publicacao
       }
     } catch {
-      // Ignoro apenas o bloco inválido para continuar procurando
-      // outros dados estruturados existentes na mesma página.
+      // Ignoro somente o bloco inválido e continuo procurando porque
+      // outros scripts da mesma página ainda podem estar corretos.
       continue
     }
   }
@@ -201,8 +222,7 @@ function extrairPublicacaoVagaDoHtml(
 }
 
 /**
- * Extraio o nome da empresa informado no campo externo
- * hiringOrganization do Schema.org.
+ * Extraio a empresa a partir do campo externo hiringOrganization.
  */
 function extrairEmpresa(
   publicacao: ObjetoJsonLd
@@ -214,7 +234,9 @@ function extrairEmpresa(
     return null
   }
 
-  return lerTexto(organizacao.name)
+  return lerTexto(
+    organizacao.name
+  )
 }
 
 /**
@@ -242,7 +264,9 @@ function extrairEndereco(
 
   const endereco = valor.address
 
-  if (typeof endereco === "string") {
+  if (
+    typeof endereco === "string"
+  ) {
     return lerTexto(endereco)
   }
 
@@ -251,21 +275,28 @@ function extrairEndereco(
   }
 
   const cidade =
-    lerTexto(endereco.addressLocality)
+    lerTexto(
+      endereco.addressLocality
+    )
 
   const estado =
-    lerTexto(endereco.addressRegion)
+    lerTexto(
+      endereco.addressRegion
+    )
 
   let pais: string | null = null
 
   if (
-    typeof endereco.addressCountry === "string"
+    typeof endereco.addressCountry ===
+    "string"
   ) {
     pais = lerTexto(
       endereco.addressCountry
     )
   } else if (
-    ehObjeto(endereco.addressCountry)
+    ehObjeto(
+      endereco.addressCountry
+    )
   ) {
     pais =
       lerTexto(
@@ -291,8 +322,7 @@ function extrairEndereco(
 }
 
 /**
- * Para vagas remotas, procuro também a região permitida para
- * candidatos quando ela estiver disponível.
+ * Para vagas remotas, procuro também a região permitida para candidatos.
  */
 function extrairLocalCandidato(
   valor: unknown
@@ -322,19 +352,22 @@ function extrairLocalCandidato(
 
 /**
  * Confirmo trabalho remoto primeiro pelos campos estruturados e uso
- * título, localização e descrição apenas como apoio.
+ * o conteúdo textual somente como apoio.
  */
 function detectarRemoto(
   publicacao: ObjetoJsonLd,
   localizacao: string | null
 ) {
-  const tipoLocal = lerListaTexto(
-    publicacao.jobLocationType
-  )
+  const tipoLocal =
+    lerListaTexto(
+      publicacao.jobLocationType
+    )
 
   if (
     tipoLocal &&
-    tipoLocal.toLowerCase().includes("telecommute")
+    tipoLocal
+      .toLowerCase()
+      .includes("telecommute")
   ) {
     return true
   }
@@ -359,10 +392,10 @@ function detectarRemoto(
 }
 
 /**
- * Converto um JobPosting externo para o formato interno em português.
+ * Converto o JobPosting externo para o modelo interno em português.
  *
- * Mantenho os nomes externos somente no momento em que leio o
- * Schema.org e traduzo imediatamente para o modelo da aplicação.
+ * Os nomes em inglês permanecem apenas no ponto em que leio os
+ * campos definidos pelo Schema.org.
  */
 function normalizarPublicacaoVaga(
   publicacao: ObjetoJsonLd,
@@ -383,9 +416,8 @@ function normalizarPublicacaoVaga(
     localCandidato
 
   return {
-    titulo: lerTexto(
-      publicacao.title
-    ),
+    titulo:
+      lerTexto(publicacao.title),
 
     empresa:
       extrairEmpresa(publicacao),
@@ -425,14 +457,14 @@ function normalizarPublicacaoVaga(
 }
 
 /**
- * Tento extrair a vaga usando primeiro o padrão estruturado da web.
+ * Tento primeiro o padrão estruturado da web.
  *
  * Quando não encontro JobPosting, uso um extrator específico apenas
  * para plataformas que já possuem suporte próprio no projeto.
  */
 function extrairVaga(
   html: string,
-  provedor: PaginaClassificada["provider"],
+  provedor: PaginaClassificada["provedor"],
   urlFinal: string
 ): VagaExtraida | null {
   const publicacao =
@@ -456,11 +488,11 @@ function extrairVaga(
 }
 
 /**
- * Abro a página encontrada e tento confirmar se ela representa
+ * Abro uma página encontrada e tento confirmar se ela representa
  * realmente uma oportunidade de emprego.
  *
- * Sigo redirecionamentos normais, mas não tento contornar autenticação,
- * CAPTCHA ou qualquer outro bloqueio aplicado pelo site.
+ * Sigo redirecionamentos normais, mas não tento contornar CAPTCHA,
+ * autenticação ou qualquer outro bloqueio aplicado pelo site.
  */
 export async function inspecionarPaginaVaga(
   pagina: PaginaClassificada
@@ -468,24 +500,26 @@ export async function inspecionarPaginaVaga(
   const controlador =
     new AbortController()
 
-  const temporizador = setTimeout(() => {
-    controlador.abort()
-  }, TEMPO_LIMITE_REQUISICAO_MS)
+  const temporizador =
+    setTimeout(() => {
+      controlador.abort()
+    }, TEMPO_LIMITE_REQUISICAO_MS)
 
   try {
-    const resposta = await fetch(
-      pagina.url,
-      {
-        redirect: "follow",
-        signal: controlador.signal,
-        headers: {
-          Accept:
-            "text/html,application/xhtml+xml",
-          "Accept-Language":
-            "pt-BR,pt;q=0.9,en;q=0.8"
+    const resposta =
+      await fetch(
+        pagina.url,
+        {
+          redirect: "follow",
+          signal: controlador.signal,
+          headers: {
+            Accept:
+              "text/html,application/xhtml+xml",
+            "Accept-Language":
+              "pt-BR,pt;q=0.9,en;q=0.8"
+          }
         }
-      }
-    )
+      )
 
     const urlFinal =
       resposta.url ||
@@ -501,7 +535,8 @@ export async function inspecionarPaginaVaga(
         pagina,
         urlFinal,
         provedor,
-        codigoStatus: resposta.status,
+        codigoStatus:
+          resposta.status,
         ehPublicacaoVaga: false,
         vaga: null
       }
@@ -521,7 +556,8 @@ export async function inspecionarPaginaVaga(
         pagina,
         urlFinal,
         provedor,
-        codigoStatus: resposta.status,
+        codigoStatus:
+          resposta.status,
         ehPublicacaoVaga: false,
         vaga: null
       }
@@ -530,18 +566,21 @@ export async function inspecionarPaginaVaga(
     const html =
       await resposta.text()
 
-    const vaga = extrairVaga(
-      html,
-      provedor,
-      urlFinal
-    )
+    const vaga =
+      extrairVaga(
+        html,
+        provedor,
+        urlFinal
+      )
 
     return {
       pagina,
       urlFinal,
       provedor,
-      codigoStatus: resposta.status,
-      ehPublicacaoVaga: Boolean(vaga),
+      codigoStatus:
+        resposta.status,
+      ehPublicacaoVaga:
+        Boolean(vaga),
       vaga
     }
   } catch (erro) {
@@ -555,6 +594,8 @@ export async function inspecionarPaginaVaga(
       erro: mensagem
     }
   } finally {
-    clearTimeout(temporizador)
+    clearTimeout(
+      temporizador
+    )
   }
 }

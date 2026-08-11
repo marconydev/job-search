@@ -7,11 +7,8 @@ const URL_BRAVE_SEARCH =
   "https://api.search.brave.com/res/v1/web/search"
 
 /**
- * Mantenho estes tipos com os nomes dos campos exatamente como a
- * Brave Search devolve na API.
- *
- * Aqui não traduzo "web", "results", "title" ou "description" porque
- * esses nomes pertencem ao contrato externo da plataforma.
+ * Mantenho os nomes dos campos da resposta exatamente como a Brave
+ * Search os fornece, porque eles fazem parte do contrato externo da API.
  */
 type ResultadoWebBrave = {
   title: string
@@ -28,8 +25,8 @@ type RespostaBraveSearch = {
 /**
  * Faço uma busca na internet usando a Brave Search API.
  *
- * Nesta etapa ainda não considero os resultados como vagas válidas.
- * Apenas descubro páginas que podem conter oportunidades relevantes.
+ * Nesta etapa apenas descubro páginas que podem conter oportunidades.
+ * A confirmação de que existe uma vaga acontece posteriormente.
  */
 export async function buscarNaWeb(
   consulta: string,
@@ -46,13 +43,14 @@ export async function buscarNaWeb(
   const url = new URL(URL_BRAVE_SEARCH)
 
   url.searchParams.set("q", consulta)
+
   url.searchParams.set(
     "count",
     String(Math.min(quantidade, 20))
   )
 
   // Para busca de emprego, resultados muito antigos têm pouco valor.
-  // Uso uma janela de um mês para priorizar oportunidades mais recentes.
+  // Uso uma janela de um mês para priorizar oportunidades recentes.
   url.searchParams.set("freshness", "pm")
 
   const resposta = await fetch(url, {
@@ -68,25 +66,20 @@ export async function buscarNaWeb(
     )
   }
 
-  const dados = (await resposta.json()) as RespostaBraveSearch
+  const dados =
+    (await resposta.json()) as RespostaBraveSearch
 
   const paginas: PaginaDescoberta[] =
     dados.web?.results?.map((resultado) => ({
-      source: "brave-search",
-      query: consulta,
-      title: resultado.title,
+      origem: "brave-search",
+      consulta,
+      titulo: resultado.title,
       url: resultado.url,
-      description: resultado.description || null
+      descricao: resultado.description || null
     })) ?? []
 
   return {
-    provider: "brave-search",
-    pages: paginas
+    provedor: "brave-search",
+    paginas
   }
 }
-
-/**
- * Mantenho este alias apenas enquanto os arquivos restantes ainda usam
- * o nome antigo. Removo quando concluir toda a migração para português.
- */
-export const searchWeb = buscarNaWeb

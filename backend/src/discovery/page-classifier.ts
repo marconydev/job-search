@@ -7,8 +7,8 @@ import type {
 /**
  * Mantenho aqui os domínios que funcionam como agregadores de vagas.
  *
- * Não descarto esses resultados, porque ainda podem ajudar na descoberta.
- * Apenas separo de páginas oficiais e ATS conhecidos.
+ * Não descarto esses resultados porque ainda podem ajudar na descoberta.
+ * Apenas separo agregadores de ATS e páginas que ainda preciso inspecionar.
  */
 const dominiosAgregadores = new Set([
   "4dayweek.io",
@@ -41,7 +41,7 @@ const dominiosAgregadores = new Set([
 ])
 
 /**
- * Verifico se o domínio informado pertence a um site que já identifiquei
+ * Verifico se o domínio pertence a um site que já identifiquei
  * como agregador ou republicador de oportunidades.
  */
 function ehDominioAgregador(hostname: string) {
@@ -53,11 +53,10 @@ function ehDominioAgregador(hostname: string) {
 }
 
 /**
- * Identifico a origem provável da página usando apenas o domínio.
+ * Identifico a origem provável da página usando o domínio da URL.
  *
- * Nesta etapa eu ainda não confirmo se existe uma vaga válida.
- * Uso essa classificação apenas para decidir como a página será
- * analisada depois.
+ * Nesta etapa ainda não confirmo se existe uma vaga válida. Uso essa
+ * informação apenas para definir como vou analisar a página depois.
  */
 export function identificarProvedorPagina(
   url: string
@@ -125,36 +124,30 @@ export function identificarProvedorPagina(
     }
 
     if (ehDominioAgregador(hostname)) {
-      return "aggregator"
+      return "agregador"
     }
 
-    // Se eu ainda não reconheço o domínio, deixo a decisão para a
-    // inspeção da página. O caminho da URL sozinho não é suficiente
-    // para afirmar que estou no site oficial de uma empresa.
-    return "unknown"
+    // Se ainda não reconheço o domínio, deixo a decisão para a inspeção.
+    // A URL sozinha não é suficiente para afirmar que é uma página oficial.
+    return "desconhecido"
   } catch {
     // Mantenho URLs inválidas como desconhecidas para não interromper
     // toda a descoberta por causa de um único resultado malformado.
-    return "unknown"
+    return "desconhecido"
   }
 }
 
 /**
- * Acrescento a classificação sem alterar os dados originais encontrados
- * na busca, porque ainda vou precisar deles nas próximas etapas.
+ * Acrescento a classificação sem alterar os demais dados encontrados
+ * durante a busca.
  */
 export function classificarPagina(
   pagina: PaginaDescoberta
 ): PaginaClassificada {
   return {
     ...pagina,
-    provider: identificarProvedorPagina(pagina.url)
+    provedor: identificarProvedorPagina(
+      pagina.url
+    )
   }
 }
-
-/**
- * Mantenho estes aliases temporariamente porque outros arquivos ainda
- * usam os nomes antigos. Removo quando terminar a migração.
- */
-export const identifyPageProvider = identificarProvedorPagina
-export const classifyPage = classificarPagina

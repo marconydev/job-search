@@ -13,11 +13,8 @@ import type {
 } from "../types/discovery.js"
 
 /**
- * Uso este script para testar uma única página antes de conectar
- * o inspetor ao fluxo completo de descoberta.
- *
- * Recebo a URL pelo terminal para conseguir testar plataformas
- * diferentes sem precisar modificar o código.
+ * Uso este script para testar uma única página sem executar uma
+ * descoberta completa pela Brave Search.
  */
 async function executar() {
   const url = process.argv[2]
@@ -28,6 +25,7 @@ async function executar() {
       "Informe uma URL de vaga para testar."
     )
     console.error("")
+
     console.error(
       'Exemplo: npx tsx src/scripts/test-page-inspector.ts "https://empresa.com/vaga"'
     )
@@ -40,31 +38,38 @@ async function executar() {
     identificarProvedorPagina(url)
 
   const pagina: PaginaClassificada = {
-    source: "manual-test",
-    query: "manual-test",
-    title: "Teste manual",
+    origem: "teste-manual",
+    consulta: "teste-manual",
+    titulo: "Teste manual",
     url,
-    description: null,
-    provider: provedor
+    descricao: null,
+    provedor
   }
 
   console.log("")
-  console.log("Inspecionando página...")
-  console.log(`URL: ${url}`)
+  console.log(
+    "Inspecionando página..."
+  )
+  console.log(
+    `URL: ${url}`
+  )
   console.log(
     `Origem identificada: ${provedor}`
   )
   console.log("")
 
   const resultado =
-    await inspecionarPaginaVaga(pagina)
+    await inspecionarPaginaVaga(
+      pagina
+    )
 
-  // Trato falha de acesso separadamente de uma página que foi
-  // acessada normalmente mas não apresentou uma vaga reconhecível.
+  // Trato falha de acesso separadamente de uma página acessada
+  // normalmente que apenas não apresentou uma vaga reconhecível.
   if ("erro" in resultado) {
     console.error(
       "Não consegui inspecionar a página."
     )
+
     console.error(
       `Erro: ${resultado.erro}`
     )
@@ -95,32 +100,48 @@ async function executar() {
 
   if (!resultado.vaga) {
     console.log("")
+
     console.log(
       "A página foi acessada, mas não consegui extrair uma vaga válida."
     )
+
     return
   }
 
-  const vaga = resultado.vaga
+  const vaga =
+    resultado.vaga
 
   console.log("")
   console.log("Dados extraídos")
   console.log("---------------")
 
   console.log(
-    `Título: ${vaga.titulo ?? "não informado"}`
+    `Título: ${
+      vaga.titulo ??
+      "não informado"
+    }`
   )
 
   console.log(
-    `Empresa: ${vaga.empresa ?? "não informada"}`
+    `Empresa: ${
+      vaga.empresa ??
+      "não informada"
+    }`
   )
 
   console.log(
-    `Local: ${vaga.localizacao ?? "não informado"}`
+    `Local: ${
+      vaga.localizacao ??
+      "não informado"
+    }`
   )
 
   console.log(
-    `Remoto: ${vaga.remoto ? "sim" : "não"}`
+    `Remoto: ${
+      vaga.remoto
+        ? "sim"
+        : "não"
+    }`
   )
 
   console.log(
@@ -156,7 +177,7 @@ async function executar() {
     console.log("Descrição")
     console.log("---------")
 
-    // Mostro somente uma parte para manter o teste legível no terminal.
+    // Mostro somente o começo da descrição para manter o teste legível.
     console.log(
       vaga.descricao.length > 800
         ? `${vaga.descricao.slice(0, 800)}...`
