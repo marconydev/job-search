@@ -6,6 +6,14 @@ import {
   extrairVagaGupy
 } from "../extractors/gupy.js"
 
+import {
+  extrairVagaLever
+} from "../extractors/lever.js"
+
+import {
+  extrairVagaGreenhouse
+} from "../extractors/greenhouse.js"
+
 import type {
   PaginaClassificada
 } from "../types/discovery.js"
@@ -56,7 +64,9 @@ function lerTexto(
 function lerListaTexto(
   valor: unknown
 ): string | null {
-  if (typeof valor === "string") {
+  if (
+    typeof valor === "string"
+  ) {
     return lerTexto(valor)
   }
 
@@ -69,7 +79,9 @@ function lerListaTexto(
       (item): item is string =>
         typeof item === "string"
     )
-    .map((item) => item.trim())
+    .map(
+      (item) => item.trim()
+    )
     .filter(Boolean)
 
   return valores.length > 0
@@ -84,7 +96,8 @@ function lerListaTexto(
 function limparDescricao(
   valor: unknown
 ): string | null {
-  const descricao = lerTexto(valor)
+  const descricao =
+    lerTexto(valor)
 
   if (!descricao) {
     return null
@@ -116,7 +129,9 @@ function ehPublicacaoDeVaga(
 ) {
   const tipo = valor["@type"]
 
-  if (typeof tipo === "string") {
+  if (
+    typeof tipo === "string"
+  ) {
     return (
       tipo.toLowerCase() ===
       "jobposting"
@@ -145,7 +160,9 @@ function encontrarPublicacaoVaga(
   if (Array.isArray(valor)) {
     for (const item of valor) {
       const publicacao =
-        encontrarPublicacaoVaga(item)
+        encontrarPublicacaoVaga(
+          item
+        )
 
       if (publicacao) {
         return publicacao
@@ -159,7 +176,9 @@ function encontrarPublicacaoVaga(
     return null
   }
 
-  if (ehPublicacaoDeVaga(valor)) {
+  if (
+    ehPublicacaoDeVaga(valor)
+  ) {
     return valor
   }
 
@@ -168,7 +187,9 @@ function encontrarPublicacaoVaga(
     of Object.values(valor)
   ) {
     const publicacao =
-      encontrarPublicacaoVaga(filho)
+      encontrarPublicacaoVaga(
+        filho
+      )
 
     if (publicacao) {
       return publicacao
@@ -191,8 +212,10 @@ function extrairPublicacaoVagaDoHtml(
     RegExpExecArray | null
 
   while (
-    (correspondencia =
-      padraoScript.exec(html)) !== null
+    (
+      correspondencia =
+        padraoScript.exec(html)
+    ) !== null
   ) {
     const conteudo =
       correspondencia[1]?.trim()
@@ -203,10 +226,14 @@ function extrairPublicacaoVagaDoHtml(
 
     try {
       const dados =
-        JSON.parse(conteudo) as unknown
+        JSON.parse(
+          conteudo
+        ) as unknown
 
       const publicacao =
-        encontrarPublicacaoVaga(dados)
+        encontrarPublicacaoVaga(
+          dados
+        )
 
       if (publicacao) {
         return publicacao
@@ -230,7 +257,9 @@ function extrairEmpresa(
   const organizacao =
     publicacao.hiringOrganization
 
-  if (!ehObjeto(organizacao)) {
+  if (
+    !ehObjeto(organizacao)
+  ) {
     return null
   }
 
@@ -262,7 +291,8 @@ function extrairEndereco(
     return lerTexto(valor)
   }
 
-  const endereco = valor.address
+  const endereco =
+    valor.address
 
   if (
     typeof endereco === "string"
@@ -271,7 +301,9 @@ function extrairEndereco(
   }
 
   if (!ehObjeto(endereco)) {
-    return lerTexto(valor.name)
+    return lerTexto(
+      valor.name
+    )
   }
 
   const cidade =
@@ -290,9 +322,10 @@ function extrairEndereco(
     typeof endereco.addressCountry ===
     "string"
   ) {
-    pais = lerTexto(
-      endereco.addressCountry
-    )
+    pais =
+      lerTexto(
+        endereco.addressCountry
+      )
   } else if (
     ehObjeto(
       endereco.addressCountry
@@ -329,7 +362,9 @@ function extrairLocalCandidato(
 ): string | null {
   if (Array.isArray(valor)) {
     const locais = valor
-      .map(extrairLocalCandidato)
+      .map(
+        extrairLocalCandidato
+      )
       .filter(
         (item): item is string =>
           Boolean(item)
@@ -373,7 +408,9 @@ function detectarRemoto(
   }
 
   const textoParaAnalise = [
-    lerTexto(publicacao.title),
+    lerTexto(
+      publicacao.title
+    ),
     localizacao,
     limparDescricao(
       publicacao.description
@@ -393,9 +430,6 @@ function detectarRemoto(
 
 /**
  * Converto o JobPosting externo para o modelo interno em português.
- *
- * Os nomes em inglês permanecem apenas no ponto em que leio os
- * campos definidos pelo Schema.org.
  */
 function normalizarPublicacaoVaga(
   publicacao: ObjetoJsonLd,
@@ -417,10 +451,14 @@ function normalizarPublicacaoVaga(
 
   return {
     titulo:
-      lerTexto(publicacao.title),
+      lerTexto(
+        publicacao.title
+      ),
 
     empresa:
-      extrairEmpresa(publicacao),
+      extrairEmpresa(
+        publicacao
+      ),
 
     descricao:
       limparDescricao(
@@ -451,24 +489,55 @@ function normalizarPublicacaoVaga(
       ),
 
     urlCandidatura:
-      lerTexto(publicacao.url) ??
+      lerTexto(
+        publicacao.url
+      ) ??
       urlFinal
   }
 }
 
 /**
- * Tento primeiro o padrão estruturado da web.
+ * Para plataformas que disponibilizam uma API pública de vagas,
+ * tento primeiro essa fonte estruturada.
  *
- * Quando não encontro JobPosting, uso um extrator específico apenas
- * para plataformas que já possuem suporte próprio no projeto.
+ * Se a consulta não retornar uma vaga válida, continuo com os métodos
+ * genéricos e específicos baseados no HTML.
  */
-function extrairVaga(
+async function extrairVaga(
   html: string,
   provedor: PaginaClassificada["provedor"],
   urlFinal: string
-): VagaExtraida | null {
+): Promise<VagaExtraida | null> {
+  if (
+    provedor === "lever"
+  ) {
+    const vagaLever =
+      await extrairVagaLever(
+        urlFinal
+      )
+
+    if (vagaLever) {
+      return vagaLever
+    }
+  }
+
+  if (
+    provedor === "greenhouse"
+  ) {
+    const vagaGreenhouse =
+      await extrairVagaGreenhouse(
+        urlFinal
+      )
+
+    if (vagaGreenhouse) {
+      return vagaGreenhouse
+    }
+  }
+
   const publicacao =
-    extrairPublicacaoVagaDoHtml(html)
+    extrairPublicacaoVagaDoHtml(
+      html
+    )
 
   if (publicacao) {
     return normalizarPublicacaoVaga(
@@ -477,7 +546,9 @@ function extrairVaga(
     )
   }
 
-  if (provedor === "gupy") {
+  if (
+    provedor === "gupy"
+  ) {
     return extrairVagaGupy(
       html,
       urlFinal
@@ -501,9 +572,12 @@ export async function inspecionarPaginaVaga(
     new AbortController()
 
   const temporizador =
-    setTimeout(() => {
-      controlador.abort()
-    }, TEMPO_LIMITE_REQUISICAO_MS)
+    setTimeout(
+      () => {
+        controlador.abort()
+      },
+      TEMPO_LIMITE_REQUISICAO_MS
+    )
 
   try {
     const resposta =
@@ -511,7 +585,8 @@ export async function inspecionarPaginaVaga(
         pagina.url,
         {
           redirect: "follow",
-          signal: controlador.signal,
+          signal:
+            controlador.signal,
           headers: {
             Accept:
               "text/html,application/xhtml+xml",
@@ -567,7 +642,7 @@ export async function inspecionarPaginaVaga(
       await resposta.text()
 
     const vaga =
-      extrairVaga(
+      await extrairVaga(
         html,
         provedor,
         urlFinal

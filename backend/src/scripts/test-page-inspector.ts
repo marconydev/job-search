@@ -8,6 +8,10 @@ import {
   inspecionarPaginaVaga
 } from "../discovery/page-inspector.js"
 
+import {
+  avaliarElegibilidadeBrasil
+} from "../services/elegibilidade-localizacao.js"
+
 import type {
   PaginaClassificada
 } from "../types/discovery.js"
@@ -47,12 +51,8 @@ async function executar() {
   }
 
   console.log("")
-  console.log(
-    "Inspecionando página..."
-  )
-  console.log(
-    `URL: ${url}`
-  )
+  console.log("Inspecionando página...")
+  console.log(`URL: ${url}`)
   console.log(
     `Origem identificada: ${provedor}`
   )
@@ -108,8 +108,13 @@ async function executar() {
     return
   }
 
-  const vaga =
-    resultado.vaga
+  const vaga = resultado.vaga
+
+  const elegibilidade =
+    avaliarElegibilidadeBrasil(
+      vaga.localizacao,
+      vaga.descricao
+    )
 
   console.log("")
   console.log("Dados extraídos")
@@ -170,6 +175,18 @@ async function executar() {
       vaga.urlCandidatura ??
       "não informada"
     }`
+  )
+
+  console.log("")
+  console.log("Elegibilidade")
+  console.log("-------------")
+
+  console.log(
+    `Brasil: ${elegibilidade.situacao}`
+  )
+
+  console.log(
+    `Motivo: ${elegibilidade.motivo}`
   )
 
   if (vaga.descricao) {

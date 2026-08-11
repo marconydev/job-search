@@ -44,7 +44,9 @@ const dominiosAgregadores = new Set([
  * Verifico se o domínio pertence a um site que já identifiquei
  * como agregador ou republicador de oportunidades.
  */
-function ehDominioAgregador(hostname: string) {
+function ehDominioAgregador(
+  hostname: string
+) {
   return [...dominiosAgregadores].some(
     (dominio) =>
       hostname === dominio ||
@@ -55,8 +57,8 @@ function ehDominioAgregador(hostname: string) {
 /**
  * Identifico a origem provável da página usando o domínio da URL.
  *
- * Nesta etapa ainda não confirmo se existe uma vaga válida. Uso essa
- * informação apenas para definir como vou analisar a página depois.
+ * Nesta etapa ainda não confirmo se existe uma vaga válida. Uso esta
+ * classificação para decidir qual estratégia de extração vou utilizar.
  */
 export function identificarProvedorPagina(
   url: string
@@ -64,9 +66,10 @@ export function identificarProvedorPagina(
   try {
     const urlAnalisada = new URL(url)
 
-    const hostname = urlAnalisada.hostname
-      .toLowerCase()
-      .replace(/^www\./, "")
+    const hostname =
+      urlAnalisada.hostname
+        .toLowerCase()
+        .replace(/^www\./, "")
 
     if (
       hostname === "gupy.io" ||
@@ -82,7 +85,10 @@ export function identificarProvedorPagina(
       return "linkedin"
     }
 
-    if (hostname === "jobs.lever.co") {
+    if (
+      hostname === "jobs.lever.co" ||
+      hostname === "jobs.eu.lever.co"
+    ) {
       return "lever"
     }
 
@@ -101,7 +107,10 @@ export function identificarProvedorPagina(
       return "workable"
     }
 
-    if (hostname === "jobs.smartrecruiters.com") {
+    if (
+      hostname ===
+      "jobs.smartrecruiters.com"
+    ) {
       return "smartrecruiters"
     }
 
@@ -112,7 +121,9 @@ export function identificarProvedorPagina(
       return "indeed"
     }
 
-    if (hostname === "remoteok.com") {
+    if (
+      hostname === "remoteok.com"
+    ) {
       return "remote-ok"
     }
 
@@ -123,7 +134,9 @@ export function identificarProvedorPagina(
       return "remotive"
     }
 
-    if (ehDominioAgregador(hostname)) {
+    if (
+      ehDominioAgregador(hostname)
+    ) {
       return "agregador"
     }
 
@@ -146,8 +159,9 @@ export function classificarPagina(
 ): PaginaClassificada {
   return {
     ...pagina,
-    provedor: identificarProvedorPagina(
-      pagina.url
-    )
+    provedor:
+      identificarProvedorPagina(
+        pagina.url
+      )
   }
 }
