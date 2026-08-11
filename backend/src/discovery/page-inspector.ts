@@ -149,7 +149,7 @@ function ehPublicacaoDeVaga(
       (item) =>
         typeof item === "string" &&
         item.toLowerCase() ===
-          "jobposting"
+        "jobposting"
     )
   }
 
@@ -214,7 +214,7 @@ function extrairPublicacaoVagaDoHtml(
   while (
     (
       correspondencia =
-        padraoScript.exec(html)
+      padraoScript.exec(html)
     ) !== null
   ) {
     const conteudo =
@@ -523,7 +523,7 @@ async function extrairVaga(
     }
   }
 
-      if (
+  if (
     provedor === "workable"
   ) {
     const vaga =
@@ -663,9 +663,10 @@ export async function inspecionarPaginaVaga(
     const elegibilidadeBrasil =
       vaga
         ? avaliarElegibilidadeBrasil(
-            vaga.localizacao,
-            vaga.descricao
-          )
+          vaga.localizacao,
+          vaga.descricao,
+          vaga.titulo
+        )
         : null
 
     return {
