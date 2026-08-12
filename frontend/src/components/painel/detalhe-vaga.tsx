@@ -2,7 +2,11 @@ import {
   ArrowUpRight,
   Building2,
   Check,
+  CheckCircle2,
+  Circle,
   CircleDot,
+  Clock3,
+  Eye,
   House,
   LoaderCircle,
   MapPin,
@@ -33,6 +37,21 @@ type Propriedades = {
       status:
         StatusVaga
     ) => Promise<void>
+}
+
+type EtapaAcompanhamento = {
+  titulo: string
+
+  data:
+    string | null
+
+  concluida:
+    boolean
+
+  tipo:
+    "encontrada"
+    | "vista"
+    | "aplicada"
 }
 
 function obterRotuloStatus(
@@ -102,6 +121,146 @@ function obterNomeFonte(
   )
 }
 
+function formatarDataHora(
+  valor:
+    string | null
+) {
+  if (!valor) {
+    return null
+  }
+
+  const data =
+    new Date(valor)
+
+  if (
+    Number.isNaN(
+      data.getTime()
+    )
+  ) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      day:
+        "2-digit",
+
+      month:
+        "2-digit",
+
+      year:
+        "numeric",
+
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit"
+    }
+  ).format(data)
+}
+
+function criarEtapasAcompanhamento(
+  vaga:
+    VagaPainel
+): EtapaAcompanhamento[] {
+  return [
+    {
+      titulo:
+        "Encontrada",
+
+      data:
+        formatarDataHora(
+          vaga.created_at
+        ),
+
+      concluida:
+        true,
+
+      tipo:
+        "encontrada"
+    },
+    {
+      titulo:
+        "Vista",
+
+      data:
+        formatarDataHora(
+          vaga.viewed_at
+        ),
+
+      concluida:
+        Boolean(
+          vaga.viewed_at
+        ),
+
+      tipo:
+        "vista"
+    },
+    {
+      titulo:
+        "Aplicada",
+
+      data:
+        formatarDataHora(
+          vaga.applied_at
+        ),
+
+      concluida:
+        Boolean(
+          vaga.applied_at
+        ),
+
+      tipo:
+        "aplicada"
+    }
+  ]
+}
+
+function IconeEtapa({
+  etapa
+}: {
+  etapa:
+    EtapaAcompanhamento
+}) {
+  if (
+    !etapa.concluida
+  ) {
+    return (
+      <Circle
+        size={16}
+        className="text-slate-300 dark:text-slate-700"
+      />
+    )
+  }
+
+  switch (
+    etapa.tipo
+  ) {
+    case "encontrada":
+      return (
+        <Sparkles
+          size={16}
+        />
+      )
+
+    case "vista":
+      return (
+        <Eye
+          size={16}
+        />
+      )
+
+    case "aplicada":
+      return (
+        <CheckCircle2
+          size={16}
+        />
+      )
+  }
+}
+
 export function DetalheVaga({
   vaga,
   processando,
@@ -109,6 +268,24 @@ export function DetalheVaga({
   aoAbrir,
   aoAlterarStatus
 }: Propriedades) {
+  const etapas =
+    criarEtapasAcompanhamento(
+      vaga
+    )
+
+  const candidaturaAplicada =
+    vaga.status ===
+    "applied"
+
+  const oportunidadeIgnorada =
+    vaga.status ===
+    "ignored"
+
+  const statusRetorno =
+    vaga.viewed_at
+      ? "viewed"
+      : "relevant"
+
   return (
     <aside
       className="
@@ -124,7 +301,17 @@ export function DetalheVaga({
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                className={[
+                  "rounded-full px-2.5 py-1 text-xs font-semibold",
+                  candidaturaAplicada
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                    : oportunidadeIgnorada
+                      ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                      : vaga.status ===
+                        "viewed"
+                        ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+                        : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                ].join(" ")}
               >
                 {obterRotuloStatus(
                   vaga.status
@@ -228,6 +415,124 @@ export function DetalheVaga({
             )}
           </div>
 
+          <section className="mt-8">
+            <div className="mb-3 flex items-center gap-2">
+              <Clock3
+                size={17}
+                className="text-indigo-500"
+              />
+
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Acompanhamento
+              </h3>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+              {etapas.map(
+                (
+                  etapa,
+                  indice
+                ) => (
+                  <div
+                    key={
+                      etapa.titulo
+                    }
+                    className={[
+                      "flex items-center gap-3 px-4 py-3",
+                      indice <
+                      etapas.length -
+                        1
+                        ? "border-b border-slate-100 dark:border-slate-900"
+                        : ""
+                    ].join(" ")}
+                  >
+                    <div
+                      className={[
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                        etapa.concluida
+                          ? etapa.tipo ===
+                            "aplicada"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                            : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                          : "bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-600"
+                      ].join(" ")}
+                    >
+                      <IconeEtapa
+                        etapa={
+                          etapa
+                        }
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className={[
+                          "text-xs font-semibold",
+                          etapa.concluida
+                            ? "text-slate-800 dark:text-slate-200"
+                            : "text-slate-400 dark:text-slate-600"
+                        ].join(" ")}
+                      >
+                        {etapa.titulo}
+                      </div>
+
+                      <div className="mt-0.5 text-xs text-slate-500">
+                        {etapa.data ??
+                          "Ainda não"}
+                      </div>
+                    </div>
+
+                    {etapa.concluida && (
+                      <Check
+                        size={15}
+                        className="shrink-0 text-emerald-500"
+                      />
+                    )}
+                  </div>
+                )
+              )}
+            </div>
+
+            {oportunidadeIgnorada && (
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+                Oportunidade ignorada em{" "}
+                <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                  {formatarDataHora(
+                    vaga.status_updated_at
+                  ) ??
+                    "data não registrada"}
+                </strong>
+                .
+              </div>
+            )}
+          </section>
+
+          {candidaturaAplicada && (
+            <section className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                  <CheckCircle2
+                    size={18}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                    Candidatura registrada
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-emerald-700/80 dark:text-emerald-300/80">
+                    Você marcou esta oportunidade como aplicada
+                    {vaga.applied_at
+                      ? ` em ${formatarDataHora(vaga.applied_at)}`
+                      : ""}
+                    .
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
           {vaga.matched_skills.length >
             0 && (
             <section className="mt-8">
@@ -246,9 +551,7 @@ export function DetalheVaga({
                 {vaga
                   .matched_skills
                   .map(
-                    (
-                      competencia
-                    ) => (
+                    competencia => (
                       <span
                         key={
                           competencia
@@ -272,9 +575,7 @@ export function DetalheVaga({
 
               <div className="mt-3 space-y-2.5">
                 {vaga.reasons.map(
-                  (
-                    motivo
-                  ) => (
+                  motivo => (
                     <div
                       key={
                         motivo
@@ -327,8 +628,8 @@ export function DetalheVaga({
               />
             </a>
 
-            {vaga.status !==
-              "applied" && (
+            {!candidaturaAplicada &&
+              !oportunidadeIgnorada && (
               <button
                 type="button"
                 disabled={
@@ -352,12 +653,39 @@ export function DetalheVaga({
                   />
                 )}
 
-                Marcar aplicada
+                Marcar como aplicada
               </button>
             )}
 
-            {vaga.status ===
-              "ignored" ? (
+            {candidaturaAplicada && (
+              <button
+                type="button"
+                disabled={
+                  processando
+                }
+                onClick={() =>
+                  aoAlterarStatus(
+                    statusRetorno
+                  )
+                }
+                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900"
+              >
+                {processando ? (
+                  <LoaderCircle
+                    size={16}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <RotateCcw
+                    size={16}
+                  />
+                )}
+
+                Desfazer candidatura
+              </button>
+            )}
+
+            {oportunidadeIgnorada ? (
               <button
                 type="button"
                 disabled={
@@ -370,31 +698,40 @@ export function DetalheVaga({
                 }
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
               >
-                <RotateCcw
-                  size={16}
-                />
+                {processando ? (
+                  <LoaderCircle
+                    size={16}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <RotateCcw
+                    size={16}
+                  />
+                )}
 
-                Reabrir análise
+                Reabrir oportunidade
               </button>
             ) : (
-              <button
-                type="button"
-                disabled={
-                  processando
-                }
-                onClick={() =>
-                  aoAlterarStatus(
-                    "ignored"
-                  )
-                }
-                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
-              >
-                <X
-                  size={16}
-                />
+              !candidaturaAplicada && (
+                <button
+                  type="button"
+                  disabled={
+                    processando
+                  }
+                  onClick={() =>
+                    aoAlterarStatus(
+                      "ignored"
+                    )
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 sm:col-span-2"
+                >
+                  <X
+                    size={16}
+                  />
 
-                Ignorar
-              </button>
+                  Ignorar oportunidade
+                </button>
+              )
             )}
           </div>
         </footer>
