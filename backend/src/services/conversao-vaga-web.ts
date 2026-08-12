@@ -187,13 +187,52 @@ function inferirEmpresa(
     if (partes.length >= 2) {
       return (
         partes[
-          partes.length - 1
+        partes.length - 1
         ] ??
         null
       )
     }
   }
+  if (
+    pagina.provedor ===
+    "linkedin"
+  ) {
+    const ingles =
+      titulo.match(
+        /^(.*?)\s+hiring\s+/i
+      )
 
+    if (
+      ingles?.[1]
+    ) {
+      return ingles[1]
+        .trim()
+    }
+
+    const portugues =
+      titulo.match(
+        /^A empresa\s+(.+?)\s+est[aá]\s+contratando/i
+      )
+
+    if (
+      portugues?.[1]
+    ) {
+      return portugues[1]
+        .trim()
+    }
+
+    const formatoAt =
+      titulo.match(
+        /\sat\s+(.+?)(?:\s+-\s|$)/i
+      )
+
+    if (
+      formatoAt?.[1]
+    ) {
+      return formatoAt[1]
+        .trim()
+    }
+  }
   return null
 }
 

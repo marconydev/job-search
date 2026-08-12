@@ -6,10 +6,6 @@ import type {
 const URL_BRAVE_SEARCH =
   "https://api.search.brave.com/res/v1/web/search"
 
-/**
- * Mantenho os nomes dos campos da resposta exatamente como a Brave
- * Search os fornece, porque eles fazem parte do contrato externo da API.
- */
 type ResultadoWebBrave = {
   title: string
   url: string
@@ -23,16 +19,17 @@ type RespostaBraveSearch = {
 }
 
 /**
- * Faço uma busca na internet usando a Brave Search API.
+ * Faço somente uma chamada à Brave por consulta.
  *
- * Nesta etapa apenas descubro páginas que podem conter oportunidades.
- * A confirmação de que existe uma vaga acontece posteriormente.
+ * O controle de quantidade diária e o cache ficam na camada de
+ * descoberta para impedir consumo acidental da API.
  */
 export async function buscarNaWeb(
   consulta: string,
   quantidade = 20
 ): Promise<ResultadoDescobertaWeb> {
-  const chaveApi = process.env.BRAVE_SEARCH_API_KEY
+  const chaveApi =
+    process.env.BRAVE_SEARCH_API_KEY
 
   if (!chaveApi) {
     throw new Error(
@@ -40,25 +37,59 @@ export async function buscarNaWeb(
     )
   }
 
-  const url = new URL(URL_BRAVE_SEARCH)
+  const url =
+    new URL(
+      URL_BRAVE_SEARCH
+    )
 
-  url.searchParams.set("q", consulta)
+  url.searchParams.set(
+    "q",
+    consulta
+  )
 
   url.searchParams.set(
     "count",
-    String(Math.min(quantidade, 20))
+    String(
+      Math.min(
+        Math.max(
+          quantidade,
+          1
+        ),
+        20
+      )
+    )
   )
 
-  // Para busca de emprego, resultados muito antigos têm pouco valor.
-  // Uso uma janela de um mês para priorizar oportunidades recentes.
-  url.searchParams.set("freshness", "pm")
+  /**
+   * Como minha busca profissional é direcionada ao Brasil, não deixo
+   * a API utilizar a região padrão.
+   */
+  url.searchParams.set(
+    "country",
+    "BR"
+  )
 
-  const resposta = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      "X-Subscription-Token": chaveApi
-    }
-  })
+  /**
+   * Para descoberta de vagas novas continuo priorizando o último mês.
+   */
+  url.searchParams.set(
+    "freshness",
+    "pm"
+  )
+
+  const resposta =
+    await fetch(
+      url,
+      {
+        headers: {
+          Accept:
+            "application/json",
+
+          "X-Subscription-Token":
+            chaveApi
+        }
+      }
+    )
 
   if (!resposta.ok) {
     throw new Error(
@@ -67,19 +98,35 @@ export async function buscarNaWeb(
   }
 
   const dados =
-    (await resposta.json()) as RespostaBraveSearch
+    (
+      await resposta.json()
+    ) as RespostaBraveSearch
 
-  const paginas: PaginaDescoberta[] =
-    dados.web?.results?.map((resultado) => ({
-      origem: "brave-search",
-      consulta,
-      titulo: resultado.title,
-      url: resultado.url,
-      descricao: resultado.description || null
-    })) ?? []
+  const paginas:
+    PaginaDescoberta[] =
+    dados.web?.results?.map(
+      (resultado) => ({
+        origem:
+          "brave-search",
+
+        consulta,
+
+        titulo:
+          resultado.title,
+
+        url:
+          resultado.url,
+
+        descricao:
+          resultado.description ??
+          null
+      })
+    ) ?? []
 
   return {
-    provedor: "brave-search",
+    provedor:
+      "brave-search",
+
     paginas
   }
 }

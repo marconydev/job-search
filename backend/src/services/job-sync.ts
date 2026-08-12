@@ -1,87 +1,114 @@
-import { collectors } from "../collectors/index.js"
+import {
+  collectors
+} from "../collectors/index.js"
 
-import { analyzePendingJobs } from "./job-analysis.js"
+import {
+  analyzePendingJobs
+} from "./job-analysis.js"
+
 import {
   importJobs,
   type JobImportResult
 } from "./job-import.js"
 
-type SourceSyncResult = JobImportResult & {
-  error?: string
-}
+import {
+  processarVagasWeb
+} from "./processamento-vagas-web.js"
 
-/**
- * Executa todos os coletores registrados e salva as novas vagas.
- *
- * Uma falha em determinada fonte não deve impedir as demais de rodarem.
- * O erro fica registrado no resultado para sabermos qual integração falhou.
- */
-async function collectAndImportJobs(limit: number) {
-  const results: SourceSyncResult[] = []
+type ResultadoFonte =
+  JobImportResult & {
+    error?: string
+  }
 
-  for (const collector of collectors) {
+async function coletarFontesDiretas(
+  limite: number
+) {
+  const resultados:
+    ResultadoFonte[] = []
+
+  for (
+    const coletor
+    of collectors
+  ) {
     try {
-      const collection = await collector.collect(limit)
-      const imported = await importJobs(collection)
+      const coleta =
+        await coletor.collect(
+          limite
+        )
 
-      results.push(imported)
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
+      const importacao =
+        await importJobs(
+          coleta
+        )
+
+      resultados.push(
+        importacao
+      )
+    } catch (erro) {
+      const mensagem =
+        erro instanceof Error
+          ? erro.message
           : "Erro desconhecido durante a coleta"
 
-      console.error(
-        `Falha ao coletar vagas de ${collector.name}:`,
-        error
-      )
+      resultados.push({
+        source:
+          coletor.name,
 
-      results.push({
-        source: collector.name,
         found: 0,
         inserted: 0,
         duplicates: 0,
-        error: message
+        error:
+          mensagem
       })
     }
   }
 
-  return results
+  return resultados
 }
 
 /**
- * Executa o ciclo completo do Job Search.
+ * Executo todo o Job Search por um único ponto de entrada.
  *
- * Primeiro consultamos todas as fontes disponíveis. Depois analisamos
- * qualquer vaga que ainda esteja pendente no banco, inclusive cadastros
- * manuais ou importações interrompidas anteriormente.
+ * A busca web fica autorizada aqui porque este é o comando real de
+ * sincronização, mas o serviço de descoberta continua impondo o limite
+ * diário de seis chamadas Brave.
  */
-export async function syncJobs(limit = 100) {
-  const sources = await collectAndImportJobs(limit)
-  const analysis = await analyzePendingJobs()
+export async function syncJobs(
+  limite = 100
+) {
+  const fontes =
+    await coletarFontesDiretas(
+      limite
+    )
 
-  const totals = sources.reduce(
-    (total, source) => {
-      total.found += source.found
-      total.inserted += source.inserted
-      total.duplicates += source.duplicates
+  const web =
+    await processarVagasWeb({
+      salvarCompativeis:
+        true,
 
-      return total
-    },
-    {
-      found: 0,
-      inserted: 0,
-      duplicates: 0
-    }
-  )
+      permitirBuscaLive:
+        true,
+
+      limiteChamadasBrave:
+        6
+    })
+
+  const analise =
+    await analyzePendingJobs()
 
   return {
-    sources,
-    totals: {
-      ...totals,
-      analyzed: analysis.analyzed,
-      relevant: analysis.relevant,
-      discarded: analysis.discarded
+    fontes,
+    web,
+
+    analise: {
+      analisadas:
+        analise.analyzed,
+
+      relevantes:
+        analise.relevant,
+
+      descartadas:
+        analise.discarded
     }
   }
 }

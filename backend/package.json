@@ -9,8 +9,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "sync": "tsx src/scripts/sync-jobs.ts",
-    "discover": "tsx src/scripts/discover-jobs.ts",
-    "resolve": "tsx src/scripts/resolver-descobertas-web.ts"
+    "diagnose": "tsx src/scripts/diagnosticar-vagas-web.ts"
   },
   "keywords": [],
   "author": "",

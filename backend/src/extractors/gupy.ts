@@ -168,10 +168,20 @@ function extrairSecao(
   return texto || null
 }
 
+/**
+ * Tento recuperar a empresa sem aceitar como nome da organização
+ * o próprio título da vaga.
+ */
 function extrairEmpresa(
   $: RaizCheerio,
-  urlFinal: string
+  urlFinal: string,
+  tituloVaga: string
 ): string | null {
+  const tituloNormalizado =
+    normalizarTextoCurto(
+      tituloVaga
+    ).toLowerCase()
+
   const seletoresMetadados = [
     'meta[property="og:site_name"]',
     'meta[name="application-name"]'
@@ -189,10 +199,15 @@ function extrairEmpresa(
         ""
       )
 
+    const conteudoNormalizado =
+      conteudo.toLowerCase()
+
     if (
       conteudo &&
-      conteudo.toLowerCase() !==
-        "gupy"
+      conteudoNormalizado !==
+      "gupy" &&
+      conteudoNormalizado !==
+      tituloNormalizado
     ) {
       return conteudo
     }
@@ -407,7 +422,7 @@ function interpretarContextoGupy(
 
     const idVaga =
       partes[
-        indiceVaga + 1
+      indiceVaga + 1
       ]
 
     if (!idVaga) {
@@ -632,7 +647,8 @@ export async function extrairVagaGupy(
     empresa:
       extrairEmpresa(
         $,
-        urlFinal
+        urlFinal,
+        titulo
       ),
 
     descricao:

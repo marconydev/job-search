@@ -1,4 +1,14 @@
 import {
+  mkdir,
+  readFile,
+  writeFile
+} from "node:fs/promises"
+
+import {
+  resolve
+} from "node:path"
+
+import {
   consultasBuscaVagas
 } from "../config/search-queries.js"
 
@@ -11,15 +21,51 @@ import {
 } from "../discovery/page-classifier.js"
 
 import type {
-  PaginaClassificada
+  PaginaClassificada,
+  PaginaDescoberta
 } from "../types/discovery.js"
 
-/**
- * Removo somente parâmetros conhecidos de rastreamento.
- *
- * Não elimino todos os parâmetros porque algumas plataformas podem usar
- * query strings que realmente fazem parte da identificação da vaga.
- */
+type OpcoesDescoberta = {
+  permitirBuscaLive?: boolean
+  limiteChamadas?: number
+}
+
+type RegistroConsultaCache = {
+  consultadoEm: string
+  paginas: PaginaDescoberta[]
+}
+
+type CacheBuscas = {
+  versao: 1
+
+  consultas: Record<
+    string,
+    RegistroConsultaCache
+  >
+
+  chamadasPorDia: Record<
+    string,
+    number
+  >
+}
+
+type DiagnosticoAnterior = {
+  geradoEm?: string
+
+  resultado?: {
+    somenteDescoberta?: Array<{
+      titulo: string
+      url: string
+      descricao: string | null
+      consulta: string
+    }>
+  }
+}
+
+const LIMITE_DIARIO_BRAVE = 6
+
+const DIAS_MAXIMOS_CACHE = 7
+
 const parametrosRastreamento =
   new Set([
     "utm_source",
@@ -35,12 +81,267 @@ const parametrosRastreamento =
     "jobBoardSource"
   ])
 
+function caminhoCache() {
+  return resolve(
+    process.cwd(),
+    ".cache",
+    "brave-buscas.json"
+  )
+}
+
+function criarCacheVazio(): CacheBuscas {
+  return {
+    versao: 1,
+    consultas: {},
+    chamadasPorDia: {}
+  }
+}
+
+async function carregarCache() {
+  try {
+    const conteudo =
+      await readFile(
+        caminhoCache(),
+        "utf8"
+      )
+
+    const cache =
+      JSON.parse(
+        conteudo
+      ) as CacheBuscas
+
+    if (
+      cache.versao !== 1 ||
+      !cache.consultas ||
+      !cache.chamadasPorDia
+    ) {
+      return criarCacheVazio()
+    }
+
+    return cache
+  } catch {
+    return criarCacheVazio()
+  }
+}
+
+async function salvarCache(
+  cache: CacheBuscas
+) {
+  const diretorio =
+    resolve(
+      process.cwd(),
+      ".cache"
+    )
+
+  await mkdir(
+    diretorio,
+    {
+      recursive: true
+    }
+  )
+
+  await writeFile(
+    caminhoCache(),
+    JSON.stringify(
+      cache,
+      null,
+      2
+    ),
+    "utf8"
+  )
+}
+
+function obterDataLocal() {
+  const agora =
+    new Date()
+
+  const ano =
+    agora.getFullYear()
+
+  const mes =
+    String(
+      agora.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    )
+
+  const dia =
+    String(
+      agora.getDate()
+    ).padStart(
+      2,
+      "0"
+    )
+
+  return `${ano}-${mes}-${dia}`
+}
+
+function registroAindaEhUtil(
+  registro:
+    RegistroConsultaCache
+) {
+  const consultadoEm =
+    new Date(
+      registro.consultadoEm
+    ).getTime()
+
+  if (
+    !Number.isFinite(
+      consultadoEm
+    )
+  ) {
+    return false
+  }
+
+  const idade =
+    Date.now() -
+    consultadoEm
+
+  const limite =
+    DIAS_MAXIMOS_CACHE *
+    24 *
+    60 *
+    60 *
+    1000
+
+  return idade <= limite
+}
+
+function timestampConsulta(
+  cache: CacheBuscas,
+  consulta: string
+) {
+  const registro =
+    cache.consultas[
+      consulta
+    ]
+
+  if (!registro) {
+    return 0
+  }
+
+  const horario =
+    new Date(
+      registro.consultadoEm
+    ).getTime()
+
+  return Number.isFinite(
+    horario
+  )
+    ? horario
+    : 0
+}
+
 /**
- * Crio uma representação estável da URL apenas para deduplicação.
+ * Escolho primeiro consultas nunca executadas e depois as mais antigas.
  *
- * Continuo guardando a URL original encontrada para não correr o risco
- * de alterar um endereço necessário ao acesso da oportunidade.
+ * Assim as pesquisas são naturalmente rotativas sem eu precisar criar
+ * uma agenda diferente para cada plataforma.
  */
+function ordenarConsultas(
+  cache: CacheBuscas
+) {
+  return [
+    ...consultasBuscaVagas
+  ].sort(
+    (
+      primeira,
+      segunda
+    ) =>
+      timestampConsulta(
+        cache,
+        primeira
+      ) -
+      timestampConsulta(
+        cache,
+        segunda
+      )
+  )
+}
+
+/**
+ * Recupero as páginas do último diagnóstico para não jogar fora as
+ * oportunidades que já paguei para encontrar antes da criação do cache.
+ */
+async function carregarDiagnosticoAnterior(): Promise<
+  PaginaDescoberta[]
+> {
+  const arquivo =
+    resolve(
+      process.cwd(),
+      ".cache",
+      "ultimo-diagnostico-web.json"
+    )
+
+  try {
+    const conteudo =
+      await readFile(
+        arquivo,
+        "utf8"
+      )
+
+    const diagnostico =
+      JSON.parse(
+        conteudo
+      ) as DiagnosticoAnterior
+
+    if (!diagnostico.geradoEm) {
+      return []
+    }
+
+    const geradoEm =
+      new Date(
+        diagnostico.geradoEm
+      ).getTime()
+
+    const idade =
+      Date.now() -
+      geradoEm
+
+    const limite =
+      DIAS_MAXIMOS_CACHE *
+      24 *
+      60 *
+      60 *
+      1000
+
+    if (
+      !Number.isFinite(
+        geradoEm
+      ) ||
+      idade > limite
+    ) {
+      return []
+    }
+
+    return (
+      diagnostico.resultado
+        ?.somenteDescoberta ??
+      []
+    ).map(
+      (pagina) => ({
+        origem:
+          "cache-diagnostico",
+
+        consulta:
+          pagina.consulta,
+
+        titulo:
+          pagina.titulo,
+
+        url:
+          pagina.url,
+
+        descricao:
+          pagina.descricao
+      })
+    )
+  } catch {
+    return []
+  }
+}
+
 function normalizarUrlParaComparacao(
   url: string
 ) {
@@ -65,7 +366,9 @@ function normalizarUrlParaComparacao(
       ) {
         urlNormalizada
           .searchParams
-          .delete(parametro)
+          .delete(
+            parametro
+          )
       }
     }
 
@@ -74,11 +377,16 @@ function normalizarUrlParaComparacao(
       .sort()
 
     if (
-      urlNormalizada.pathname.length > 1
+      urlNormalizada
+        .pathname.length >
+      1
     ) {
       urlNormalizada.pathname =
         urlNormalizada.pathname
-          .replace(/\/+$/, "")
+          .replace(
+            /\/+$/,
+            ""
+          )
     }
 
     return urlNormalizada
@@ -92,15 +400,181 @@ function normalizarUrlParaComparacao(
 }
 
 /**
- * Executo todas as consultas configuradas e deduplico páginas que foram
- * encontradas por mais de uma busca.
+ * Faço novas buscas somente quando a execução foi explicitamente
+ * autorizada.
  *
- * Uma mesma vaga pode aparecer na pesquisa geral, na busca pela cidade
- * e novamente numa consulta específica para LinkedIn ou algum ATS.
+ * Mesmo assim respeito um limite diário persistido em disco. Reiniciar
+ * o processo ou executar novamente o comando não zera esse contador.
  */
-export async function descobrirPaginasVagas(): Promise<
+async function atualizarBuscasLive(
+  cache: CacheBuscas,
+  limiteSolicitado: number
+) {
+  const hoje =
+    obterDataLocal()
+
+  const consumidoHoje =
+    cache.chamadasPorDia[
+      hoje
+    ] ?? 0
+
+  const restanteDiario =
+    Math.max(
+      0,
+      LIMITE_DIARIO_BRAVE -
+      consumidoHoje
+    )
+
+  const limiteExecucao =
+    Math.min(
+      Math.max(
+        limiteSolicitado,
+        0
+      ),
+      restanteDiario
+    )
+
+  if (
+    limiteExecucao === 0
+  ) {
+    console.log("")
+    console.log(
+      "Brave: limite diário já atingido. Usando somente cache."
+    )
+
+    return
+  }
+
+  const consultas =
+    ordenarConsultas(
+      cache
+    ).slice(
+      0,
+      limiteExecucao
+    )
+
+  for (
+    const consulta
+    of consultas
+  ) {
+    /**
+     * Registro o consumo antes da chamada para que uma interrupção
+     * inesperada não permita ultrapassar o limite diário.
+     */
+    cache.chamadasPorDia[
+      hoje
+    ] =
+      (
+        cache.chamadasPorDia[
+          hoje
+        ] ?? 0
+      ) + 1
+
+    await salvarCache(
+      cache
+    )
+
+    console.log(
+      `Brave: pesquisando ${cache.chamadasPorDia[hoje]}/${LIMITE_DIARIO_BRAVE}`
+    )
+
+    try {
+      const resultado =
+        await buscarNaWeb(
+          consulta
+        )
+
+      cache.consultas[
+        consulta
+      ] = {
+        consultadoEm:
+          new Date()
+            .toISOString(),
+
+        paginas:
+          resultado.paginas
+      }
+
+      await salvarCache(
+        cache
+      )
+    } catch (erro) {
+      console.error(
+        `Falha na consulta Brave: ${consulta}`,
+        erro
+      )
+    }
+  }
+}
+
+/**
+ * Reúno páginas recentes já armazenadas.
+ */
+function carregarPaginasCache(
+  cache: CacheBuscas
+) {
+  const paginas:
+    PaginaDescoberta[] = []
+
+  for (
+    const registro
+    of Object.values(
+      cache.consultas
+    )
+  ) {
+    if (
+      !registroAindaEhUtil(
+        registro
+      )
+    ) {
+      continue
+    }
+
+    paginas.push(
+      ...registro.paginas
+    )
+  }
+
+  return paginas
+}
+
+/**
+ * A descoberta passa a ser cache-first.
+ *
+ * Sem permitirBuscaLive, esta função nunca chama a Brave.
+ */
+export async function descobrirPaginasVagas(
+  opcoes:
+    OpcoesDescoberta = {}
+): Promise<
   PaginaClassificada[]
 > {
+  const cache =
+    await carregarCache()
+
+  if (
+    opcoes.permitirBuscaLive
+  ) {
+    await atualizarBuscasLive(
+      cache,
+      opcoes.limiteChamadas ??
+      LIMITE_DIARIO_BRAVE
+    )
+  }
+
+  const paginasCache =
+    carregarPaginasCache(
+      cache
+    )
+
+  const paginasAnteriores =
+    await carregarDiagnosticoAnterior()
+
+  const todasPaginas = [
+    ...paginasAnteriores,
+    ...paginasCache
+  ]
+
   const paginasDescobertas =
     new Map<
       string,
@@ -108,41 +582,28 @@ export async function descobrirPaginasVagas(): Promise<
     >()
 
   for (
-    const consulta
-    of consultasBuscaVagas
+    const pagina
+    of todasPaginas
   ) {
-    const resultado =
-      await buscarNaWeb(
-        consulta
+    const chave =
+      normalizarUrlParaComparacao(
+        pagina.url
       )
 
-    for (
-      const pagina
-      of resultado.paginas
+    if (
+      paginasDescobertas.has(
+        chave
+      )
     ) {
-      const chave =
-        normalizarUrlParaComparacao(
-          pagina.url
-        )
-
-      if (
-        paginasDescobertas.has(
-          chave
-        )
-      ) {
-        continue
-      }
-
-      const paginaClassificada =
-        classificarPagina(
-          pagina
-        )
-
-      paginasDescobertas.set(
-        chave,
-        paginaClassificada
-      )
+      continue
     }
+
+    paginasDescobertas.set(
+      chave,
+      classificarPagina(
+        pagina
+      )
+    )
   }
 
   return [

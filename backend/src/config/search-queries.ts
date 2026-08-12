@@ -1,127 +1,81 @@
 /**
- * Mantenho as consultas nacionais como base da descoberta.
+ * Centralizo aqui todas as estratégias de descoberta de vagas.
  *
- * As buscas por cidades são complementares e nunca substituem a
- * cobertura de oportunidades disponíveis em qualquer região do Brasil.
+ * Mantenho cada consulta como uma string simples porque o controle de
+ * cache, rotação e limite diário de chamadas fica no serviço de
+ * descoberta.
+ *
+ * Dessa forma evito espalhar regras de consumo da Brave pela aplicação.
+ */
+
+/**
+ * Buscas nacionais mais amplas.
+ *
+ * Uso diferentes nomenclaturas porque empresas podem anunciar funções
+ * muito semelhantes com títulos diferentes.
  */
 const consultasGerais = [
-  '("Technical Support" OR "Application Support" OR "Product Support") (Brazil OR Brasil OR LATAM) -salary -salaries -course -curso',
+  '("Technical Support" OR "Application Support" OR "Product Support" OR "Support Engineer") (Brazil OR Brasil)',
 
-  '("IT Support" OR "Support Analyst" OR "Support Engineer") (Brazil OR Brasil) -salary -salaries',
+  '("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sustentação" OR "Analista de Aplicações" OR "Analista de Sistemas") Brasil',
 
-  '("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas") Brasil -curso -salário',
+  '("Service Desk" OR "Help Desk" OR "Desktop Support" OR "Field Service" OR "IT Support") Brasil',
 
-  '("Analista de Implantação" OR "Implementation Analyst" OR "Implementation Specialist") (Brazil OR Brasil)',
+  '("Analista de Infraestrutura" OR "Analista NOC" OR "NOC Analyst" OR "Monitoring Analyst" OR "Analista de Monitoramento") Brasil',
 
-  '("NOC Analyst" OR "Analista NOC" OR "Monitoring Analyst" OR "Observability Analyst") (Brazil OR Brasil)',
+  '("Analista de Implantação" OR "Implementation Analyst" OR "Implementation Specialist" OR "Customer Onboarding") (Brazil OR Brasil)',
 
-  '("Analista de Infraestrutura" OR "IT Operations" OR "Service Desk") Brasil',
-
-  '("Technical Customer Success" OR "Customer Onboarding" OR "Customer Support Engineer") (Brazil OR Brasil)'
+  '("Technical Customer Success" OR "Customer Support Engineer" OR "Production Support" OR "Application Analyst") (Brazil OR Brasil)'
 ]
 
 /**
- * Agrupo polos de tecnologia para ampliar a cobertura presencial e
- * híbrida sem criar uma consulta separada para cada cidade.
- */
-const gruposPolos = [
-  [
-    '"São Paulo"',
-    "Campinas",
-    "Barueri",
-    "Osasco",
-    '"São José dos Campos"'
-  ],
-
-  [
-    '"Rio de Janeiro"',
-    '"Belo Horizonte"',
-    "Uberlândia",
-    "Vitória"
-  ],
-
-  [
-    "Curitiba",
-    "Florianópolis",
-    "Joinville",
-    '"Porto Alegre"'
-  ],
-
-  [
-    "Recife",
-    "Fortaleza",
-    "Salvador",
-    '"João Pessoa"',
-    '"Campina Grande"'
-  ],
-
-  [
-    "Brasília",
-    "Goiânia"
-  ]
-]
-
-const cargosParaPolos = [
-  '"Analista de Suporte"',
-  '"Suporte Técnico"',
-  '"Help Desk"',
-  '"Service Desk"',
-  '"Analista de Sistemas"',
-  '"Analista de Implantação"',
-  '"Analista de Infraestrutura"',
-  '"NOC Analyst"',
-  '"IT Support"'
-].join(" OR ")
-
-const consultasPolos =
-  gruposPolos.map(
-    (cidades) =>
-      `(${cargosParaPolos}) (${cidades.join(" OR ")})`
-  )
-
-/**
- * Busco especificamente páginas individuais do LinkedIn.
+ * Também uso algumas competências fortes como entrada.
  *
- * Evito páginas genéricas de pesquisa porque meu objetivo aqui é
- * descobrir oportunidades concretas que depois possam ser relacionadas
- * à publicação oficial da empresa ou do ATS.
+ * Isso ajuda a encontrar oportunidades cujo título não segue exatamente
+ * as nomenclaturas tradicionais de suporte ou infraestrutura.
+ */
+const consultasCompetencias = [
+  '("Zabbix" OR "Grafana" OR "Active Directory" OR "Windows Server") (suporte OR analista OR NOC) Brasil',
+
+  '("SQL" OR "PostgreSQL" OR "Postman") ("Application Support" OR "Technical Support" OR "Analista de Suporte") Brazil'
+]
+
+/**
+ * Busco páginas individuais do LinkedIn.
+ *
+ * Não uso páginas genéricas de pesquisa porque quero preservar
+ * oportunidades concretas que possam ser apresentadas diretamente.
  */
 const consultasLinkedIn = [
-  'site:linkedin.com/jobs/view ("Technical Support" OR "Application Support" OR "Product Support") (Brazil OR Brasil)',
+  'site:linkedin.com/jobs/view ("Technical Support" OR "Application Support" OR "Support Engineer") Brazil',
 
-  'site:linkedin.com/jobs/view ("IT Support" OR "Service Desk" OR "NOC") (Brazil OR Brasil)',
+  'site:br.linkedin.com/jobs/view ("Analista de Suporte" OR "Suporte Técnico" OR "Service Desk" OR "Help Desk")',
 
-  'site:br.linkedin.com/jobs/view ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas")',
+  'site:br.linkedin.com/jobs/view ("Analista de Sistemas" OR "Analista de Sustentação" OR "Analista de Aplicações" OR "Analista de Implantação" OR "Analista de Infraestrutura")',
 
-  'site:br.linkedin.com/jobs/view ("Analista de Implantação" OR "Analista de Infraestrutura" OR "Service Desk")'
+  'site:br.linkedin.com/jobs/view ("NOC" OR "Monitoramento" OR "Field Service" OR "Desktop Support")'
 ]
 
 /**
- * No Indeed também busco somente páginas viewjob.
- *
- * Isso reduz resultados como páginas de salário, pesquisa por cargo
- * e listagens com dezenas de vagas.
+ * No Indeed também priorizo páginas individuais.
  */
 const consultasIndeed = [
-  'site:br.indeed.com/viewjob ("Analista de Suporte" OR "Suporte Técnico" OR "Help Desk")',
+  'site:br.indeed.com/viewjob ("Analista de Suporte" OR "Suporte Técnico" OR "Service Desk" OR "Help Desk")',
 
-  'site:br.indeed.com/viewjob ("Analista de Sistemas" OR "Analista de Implantação" OR "Analista de Infraestrutura")',
+  'site:br.indeed.com/viewjob ("Analista de Sistemas" OR "Analista de Sustentação" OR "Analista de Aplicações" OR "Analista de Implantação")',
 
-  'site:br.indeed.com/viewjob ("Technical Support" OR "Application Support" OR "IT Support")',
+  'site:br.indeed.com/viewjob ("Analista de Infraestrutura" OR "NOC" OR "Field Service" OR "Monitoramento")',
 
-  'site:br.indeed.com/viewjob ("Service Desk" OR "NOC" OR "Customer Support Engineer")'
+  'site:br.indeed.com/viewjob ("Technical Support" OR "Application Support" OR "IT Support" OR "Support Engineer")'
 ]
 
 /**
- * Faço buscas específicas nos ATS que já consigo processar.
- *
- * Evito termos excessivamente genéricos como apenas "IT", que estavam
- * trazendo vagas sem relação com meu objetivo profissional.
+ * Consulto diretamente os ATS que já possuo capacidade de extrair.
  */
 const consultasAts = [
-  'site:gupy.io ("Analista de Suporte" OR "Suporte Técnico" OR "Help Desk")',
+  'site:gupy.io ("Analista de Suporte" OR "Suporte Técnico" OR "Service Desk" OR "Help Desk")',
 
-  'site:gupy.io ("Analista de Sistemas" OR "Analista de Implantação" OR "Analista de Infraestrutura" OR "NOC")',
+  'site:gupy.io ("Analista de Sistemas" OR "Analista de Sustentação" OR "Analista de Implantação" OR "Analista de Infraestrutura" OR "NOC")',
 
   'site:jobs.lever.co (Brazil OR Brasil) ("Technical Support" OR "Application Support" OR "Support Engineer" OR "Implementation")',
 
@@ -129,25 +83,40 @@ const consultasAts = [
 
   'site:job-boards.greenhouse.io (Brazil OR Brasil) ("Technical Support" OR "Application Support" OR "Support Engineer" OR "Implementation")',
 
-  'site:apply.workable.com (Brazil OR Brasil) ("Technical Support" OR "Application Support" OR "Support Engineer" OR "Implementation Consultant")',
+  'site:apply.workable.com (Brazil OR Brasil) ("Technical Support" OR "Application Support" OR "Support Engineer" OR "Implementation")',
 
   'site:jobs.smartrecruiters.com (Brazil OR Brasil) ("Technical Support" OR "Application Support" OR "Service Desk" OR "Implementation")'
 ]
 
 /**
- * Mantenho portais brasileiros como fontes complementares de descoberta.
+ * Reforço alguns polos tecnológicos sem transformar cidade em filtro.
+ *
+ * As buscas nacionais continuam sendo a principal cobertura e qualquer
+ * oportunidade brasileira continua sendo elegível.
+ */
+const consultasPolos = [
+  '("Analista de Suporte" OR "Service Desk" OR "IT Support") ("São Paulo" OR Campinas OR Barueri OR Osasco OR "São José dos Campos")',
+
+  '("Analista de Suporte" OR "Analista de Sistemas" OR "IT Support") (Curitiba OR Florianópolis OR Joinville OR "Porto Alegre")',
+
+  '("Analista de Suporte" OR "Service Desk" OR "Analista de Sistemas") (Recife OR Fortaleza OR Salvador OR "João Pessoa" OR "Campina Grande")',
+
+  '("Analista de Suporte" OR "Analista de Infraestrutura" OR "Service Desk") ("Belo Horizonte" OR Uberlândia OR Brasília OR Goiânia)'
+]
+
+/**
+ * Mantenho portais brasileiros como fontes complementares.
  */
 const consultasPortais = [
-  'site:vagas.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas")',
+  'site:vagas.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas" OR "Analista de Infraestrutura")',
 
-  'site:infojobs.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas")',
+  'site:infojobs.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas" OR "Analista de Infraestrutura")',
 
   'site:catho.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas")'
 ]
 
 /**
- * Remotive já possui coletor próprio, mas os resultados encontrados
- * aqui continuam úteis para medir a cobertura da descoberta.
+ * Fontes voltadas a trabalho remoto continuam complementando a busca.
  */
 const consultasRemotas = [
   'site:remoteok.com/remote-jobs ("Technical Support" OR "Customer Support" OR "IT Support") Brazil',
@@ -156,15 +125,20 @@ const consultasRemotas = [
 ]
 
 /**
- * Uso Set para nunca enviar a mesma consulta duas vezes por engano.
+ * Uso Set para impedir consultas duplicadas.
+ *
+ * A rotação e o limite diário são controlados posteriormente pelo
+ * job-discovery.ts, então esta lista pode ser maior sem significar que
+ * todas as consultas serão executadas no mesmo dia.
  */
 export const consultasBuscaVagas = [
   ...new Set([
     ...consultasGerais,
-    ...consultasPolos,
+    ...consultasCompetencias,
     ...consultasLinkedIn,
     ...consultasIndeed,
     ...consultasAts,
+    ...consultasPolos,
     ...consultasPortais,
     ...consultasRemotas
   ])

@@ -39,7 +39,25 @@ export type ResultadoFonteProcessada = {
   ignoradas: number
 }
 
+export type RecomendacaoDescoberta = {
+  provedor: ProvedorPagina
+  titulo: string
+  url: string
+  descricao: string | null
+  consulta: string
+
+  pontuacao: number
+
+  competencias:
+  string[]
+
+  motivos:
+  string[]
+}
+
 export type ResultadoProcessamentoWeb = {
+  recomendacoesDescoberta:
+  RecomendacaoDescoberta[]
   paginasDescobertas: number
 
   /**
