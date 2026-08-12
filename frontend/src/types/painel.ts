@@ -84,3 +84,100 @@ export type FiltroModalidade =
 export type OrdenacaoVagas =
   | "compatibilidade"
   | "recentes"
+
+export type StatusSincronizacao = {
+  data: string
+
+  limiteDiario: number
+
+  chamadasHoje: number
+
+  chamadasRestantes: number
+
+  consultasConfiguradas: number
+
+  consultasEmCache: number
+
+  consultasAtivas: number
+
+  ultimaAtualizacao:
+    string | null
+}
+
+export type ModoSincronizacao = {
+  braveAutorizada: boolean
+
+  limiteBrave: number
+}
+
+export type ResultadoFonteSincronizacao = {
+  source: string
+
+  found: number
+
+  inserted: number
+
+  duplicates: number
+
+  error?: string
+}
+
+export type ResultadoPersistenciaDescoberta = {
+  novas: number
+
+  atualizadas: number
+
+  falhas: number
+}
+
+export type ResultadoWebSincronizacao = {
+  paginasDescobertas: number
+
+  descartadasPorTitulo: number
+
+  paginasDeListagem: number
+
+  paginasSelecionadas: number
+
+  paginasSomenteDescoberta: number
+
+  vagasExtraidas: number
+
+  compativeisBrasil: number
+
+  incompativeisBrasil: number
+
+  indefinidas: number
+
+  importadas: number
+
+  duplicadas: number
+
+  semDadosObrigatorios: number
+
+  falhas: number
+
+  persistenciaDescoberta:
+    ResultadoPersistenciaDescoberta
+}
+
+export type ResultadoAnaliseSincronizacao = {
+  analisadas: number
+
+  relevantes: number
+
+  descartadas: number
+}
+
+export type ResultadoSincronizacao = {
+  modo: ModoSincronizacao
+
+  fontes:
+    ResultadoFonteSincronizacao[]
+
+  web:
+    ResultadoWebSincronizacao
+
+  analise:
+    ResultadoAnaliseSincronizacao
+}

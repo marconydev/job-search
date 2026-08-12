@@ -20,6 +20,12 @@ type ResultadoFonte =
     error?: string
   }
 
+type OpcoesSincronizacao = {
+  usarBrave?: boolean
+
+  limiteChamadasBrave?: number
+}
+
 async function coletarFontesDiretas(
   limite: number
 ) {
@@ -55,8 +61,11 @@ async function coletarFontesDiretas(
           coletor.name,
 
         found: 0,
+
         inserted: 0,
+
         duplicates: 0,
+
         error:
           mensagem
       })
@@ -67,15 +76,68 @@ async function coletarFontesDiretas(
 }
 
 /**
- * Executo todo o Job Search por um único ponto de entrada.
+ * Eu normalizo o limite recebido antes de liberar qualquer chamada
+ * Brave.
  *
- * A busca web fica autorizada aqui porque este é o comando real de
- * sincronização, mas o serviço de descoberta continua impondo o limite
- * diário de seis chamadas Brave.
+ * Mesmo com autorização explícita, nunca permito mais que seis chamadas
+ * em uma única sincronização.
+ */
+function normalizarLimiteBrave(
+  valor:
+    number | undefined
+) {
+  if (
+    typeof valor !==
+      "number" ||
+    !Number.isFinite(
+      valor
+    )
+  ) {
+    return 6
+  }
+
+  return Math.min(
+    6,
+    Math.max(
+      0,
+      Math.floor(
+        valor
+      )
+    )
+  )
+}
+
+/**
+ * Eu executo todo o Job Search por um único ponto de entrada.
+ *
+ * A Brave permanece desativada por padrão. Uma sincronização só pode
+ * realizar novas buscas pagas quando essa autorização for recebida
+ * explicitamente.
  */
 export async function syncJobs(
-  limite = 100
+  limite = 100,
+  opcoes:
+    OpcoesSincronizacao = {}
 ) {
+  const usarBrave =
+    opcoes.usarBrave ===
+    true
+
+  const limiteBrave =
+    usarBrave
+      ? normalizarLimiteBrave(
+          opcoes.limiteChamadasBrave
+        )
+      : 0
+
+  console.log("")
+
+  console.log(
+    usarBrave
+      ? `Sincronização: Brave autorizada com limite de ${limiteBrave} chamada(s).`
+      : "Sincronização: Brave desativada. Usando fontes diretas e cache."
+  )
+
   const fontes =
     await coletarFontesDiretas(
       limite
@@ -87,17 +149,25 @@ export async function syncJobs(
         true,
 
       permitirBuscaLive:
-        true,
+        usarBrave,
 
       limiteChamadasBrave:
-        6
+        limiteBrave
     })
 
   const analise =
     await analyzePendingJobs()
 
   return {
+    modo: {
+      braveAutorizada:
+        usarBrave,
+
+      limiteBrave
+    },
+
     fontes,
+
     web,
 
     analise: {

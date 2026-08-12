@@ -36,6 +36,10 @@ import type {
   NewJob
 } from "../types/job.js"
 
+import {
+  obterStatusDescobertaWeb
+} from "../services/job-discovery.js"
+
 const jobsRouter =
   Router()
 
@@ -161,8 +165,8 @@ jobsRouter.get(
       Number.isFinite(
         requestedScore
       ) &&
-      requestedScore >= 0 &&
-      requestedScore <= 100
+        requestedScore >= 0 &&
+        requestedScore <= 100
         ? requestedScore
         : 60
 
@@ -284,10 +288,45 @@ jobsRouter.patch(
 )
 
 /**
- * Executo coleta, importação e análise.
+ * Eu exponho somente informações de consumo e cache.
  *
- * Esta rota será utilizada futuramente pelo botão de atualização do
- * dashboard e pela execução automática.
+ * Esta rota nunca executa uma busca. O frontend pode consultá-la sem
+ * risco de consumir chamadas da Brave.
+ */
+jobsRouter.get(
+  "/sync/status",
+  async (
+    _request,
+    response
+  ) => {
+    try {
+      const status =
+        await obterStatusDescobertaWeb()
+
+      return response.json(
+        status
+      )
+    } catch (error) {
+      console.error(
+        "Erro ao consultar status da descoberta:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível consultar o status da descoberta"
+        })
+    }
+  }
+)
+
+/**
+ * Eu executo a sincronização em modo seguro por padrão.
+ *
+ * A Brave somente pode ser habilitada quando o cliente envia
+ * explicitamente { "usarBrave": true }.
  */
 jobsRouter.post(
   "/sync",
@@ -300,10 +339,41 @@ jobsRouter.post(
         request.query.limit
       )
 
+    const usarBrave =
+      request.body
+        ?.usarBrave ===
+      true
+
+    const limiteSolicitado =
+      Number(
+        request.body
+          ?.limiteChamadasBrave
+      )
+
+    const limiteChamadasBrave =
+      Number.isFinite(
+        limiteSolicitado
+      )
+        ? Math.min(
+            6,
+            Math.max(
+              0,
+              Math.floor(
+                limiteSolicitado
+              )
+            )
+          )
+        : 6
+
     try {
       const result =
         await syncJobs(
-          limit
+          limit,
+          {
+            usarBrave,
+
+            limiteChamadasBrave
+          }
         )
 
       return response.json(

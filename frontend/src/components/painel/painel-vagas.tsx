@@ -32,6 +32,10 @@ import {
 } from "./cartao-vaga"
 
 import {
+  ControleSincronizacao
+} from "./controle-sincronizacao"
+
+import {
   DetalheVaga
 } from "./detalhe-vaga"
 
@@ -46,8 +50,11 @@ import type {
 
 type Propriedades = {
   dadosIniciais:
-    DadosPainel
+  DadosPainel
 }
+
+const QUANTIDADE_POR_LOTE =
+  12
 
 function normalizarTexto(
   texto: string
@@ -74,41 +81,43 @@ function vagaEhDeHoje(
 
   return (
     data.getFullYear() ===
-      hoje.getFullYear() &&
+    hoje.getFullYear() &&
     data.getMonth() ===
-      hoje.getMonth() &&
+    hoje.getMonth() &&
     data.getDate() ===
-      hoje.getDate()
+    hoje.getDate()
   )
 }
 
 /**
- * Eu atualizo os indicadores localmente depois de uma mudança de status.
- *
- * O router.refresh() ainda é executado logo depois para manter os dados
- * sincronizados com o PostgreSQL, mas desta forma a interface responde
- * imediatamente ao clique.
+ * Eu recalculo os indicadores quando existe uma alteração local de
+ * status que ainda não foi incorporada aos dados recebidos do servidor.
  */
 function atualizarResumoLocal(
-  dados: DadosPainel,
-  vagaAnterior: VagaPainel,
-  novoStatus: StatusVaga
-): DadosPainel["resumo"] {
+  resumoAtual:
+    DadosPainel["resumo"],
+
+  vagaAnterior:
+    VagaPainel,
+
+  novoStatus:
+    StatusVaga
+) {
   if (
     vagaAnterior.status ===
     novoStatus
   ) {
-    return dados.resumo
+    return resumoAtual
   }
 
   const resumo = {
-    ...dados.resumo
+    ...resumoAtual
   }
 
-  const reduzir = (
+  function reduzir(
     status:
       StatusVaga
-  ) => {
+  ) {
     switch (status) {
       case "relevant":
         resumo.novas =
@@ -144,10 +153,10 @@ function atualizarResumoLocal(
     }
   }
 
-  const aumentar = (
+  function aumentar(
     status:
       StatusVaga
-  ) => {
+  ) {
     switch (status) {
       case "relevant":
         resumo.novas++
@@ -182,23 +191,23 @@ function atualizarResumoLocal(
   ) {
     if (
       vagaAnterior.status ===
-        "relevant" &&
+      "relevant" &&
       novoStatus !==
-        "relevant"
+      "relevant"
     ) {
       resumo.novas_hoje =
         Math.max(
           0,
           resumo.novas_hoje -
-            1
+          1
         )
     }
 
     if (
       vagaAnterior.status !==
-        "relevant" &&
+      "relevant" &&
       novoStatus ===
-        "relevant"
+      "relevant"
     ) {
       resumo.novas_hoje++
     }
@@ -219,12 +228,23 @@ export function PainelVagas({
   ] =
     useTransition()
 
+  /**
+   * Eu armazeno somente mudanças feitas localmente.
+   *
+   * Os dados oficiais continuam vindo de dadosIniciais. Isso elimina a
+   * necessidade de copiar props para state usando useEffect.
+   */
   const [
-    dados,
-    setDados
+    statusLocais,
+    setStatusLocais
   ] =
-    useState(
-      dadosIniciais
+    useState<
+      Record<
+        number,
+        StatusVaga
+      >
+    >(
+      {}
     )
 
   const [
@@ -315,21 +335,98 @@ export function PainelVagas({
       null
     )
 
-  /**
-   * Quando router.refresh() entrega novos dados vindos do servidor,
-   * eu sincronizo o estado local sem perder os filtros do usuário.
-   */
-  useEffect(
-    () => {
-      setDados(
-        dadosIniciais
-      )
-    },
-    [
-      dadosIniciais
-    ]
-  )
+  const [
+    limiteVisivel,
+    setLimiteVisivel
+  ] =
+    useState(
+      QUANTIDADE_POR_LOTE
+    )
 
+  /**
+ * Eu combino os dados recebidos do servidor com alterações locais
+ * de status que ainda não apareceram na próxima resposta do backend.
+ *
+ * Primeiro monto a lista atualizada e depois recalculo o resumo de
+ * forma imutável. Não altero variáveis durante a renderização.
+ */
+  const dados =
+    useMemo(
+      () => {
+        const vagas =
+          dadosIniciais.vagas.map(
+            vaga => {
+              const statusLocal =
+                statusLocais[
+                vaga.id
+                ]
+
+              if (
+                !statusLocal ||
+                statusLocal ===
+                vaga.status
+              ) {
+                return vaga
+              }
+
+              return {
+                ...vaga,
+
+                status:
+                  statusLocal
+              }
+            }
+          )
+
+        const resumo =
+          vagas.reduce(
+            (
+              resumoAtual,
+              vagaAtual,
+              indice
+            ) => {
+              const vagaOriginal =
+                dadosIniciais.vagas[
+                indice
+                ]
+
+              if (
+                vagaAtual.status ===
+                vagaOriginal.status
+              ) {
+                return resumoAtual
+              }
+
+              return atualizarResumoLocal(
+                resumoAtual,
+                vagaOriginal,
+                vagaAtual.status
+              )
+            },
+            {
+              ...dadosIniciais.resumo
+            }
+          )
+
+        return {
+          ...dadosIniciais,
+
+          resumo,
+
+          vagas
+        }
+      },
+      [
+        dadosIniciais,
+        statusLocais
+      ]
+    )
+  /**
+   * A mensagem desaparece alguns segundos depois.
+   *
+   * A alteração de estado acontece no callback do temporizador, e não
+   * diretamente durante a execução do efeito.
+   */
   useEffect(
     () => {
       if (!mensagem) {
@@ -362,9 +459,7 @@ export function PainelVagas({
         [
           ...new Set(
             dados.vagas.map(
-              (
-                vaga
-              ) =>
+              vaga =>
                 vaga.source
             )
           )
@@ -393,9 +488,7 @@ export function PainelVagas({
 
         const filtradas =
           dados.vagas.filter(
-            (
-              vaga
-            ) => {
+            vaga => {
               if (
                 vaga.local_score <
                 pontuacaoMinima
@@ -405,25 +498,25 @@ export function PainelVagas({
 
               if (
                 filtroStatus !==
-                  "todos" &&
+                "todos" &&
                 vaga.status !==
-                  filtroStatus
+                filtroStatus
               ) {
                 return false
               }
 
               if (
                 filtroFonte !==
-                  "todas" &&
+                "todas" &&
                 vaga.source !==
-                  filtroFonte
+                filtroFonte
               ) {
                 return false
               }
 
               if (
                 filtroModalidade ===
-                  "remota" &&
+                "remota" &&
                 !vaga.remote
               ) {
                 return false
@@ -431,7 +524,7 @@ export function PainelVagas({
 
               if (
                 filtroModalidade ===
-                  "nao-remota" &&
+                "nao-remota" &&
                 vaga.remote
               ) {
                 return false
@@ -506,13 +599,41 @@ export function PainelVagas({
       ]
     )
 
+  const vagasVisiveis =
+    useMemo(
+      () =>
+        vagasFiltradas.slice(
+          0,
+          limiteVisivel
+        ),
+      [
+        vagasFiltradas,
+        limiteVisivel
+      ]
+    )
+
+  const possuiMaisVagas =
+    vagasVisiveis.length <
+    vagasFiltradas.length
+
+  const quantidadeRestante =
+    Math.max(
+      0,
+      vagasFiltradas.length -
+      vagasVisiveis.length
+    )
+
+  const quantidadeProximoLote =
+    Math.min(
+      QUANTIDADE_POR_LOTE,
+      quantidadeRestante
+    )
+
   const vagaSelecionada =
     useMemo(
       () =>
         dados.vagas.find(
-          (
-            vaga
-          ) =>
+          vaga =>
             vaga.id ===
             vagaSelecionadaId
         ) ??
@@ -523,9 +644,95 @@ export function PainelVagas({
       ]
     )
 
+  /**
+   * Eu centralizo o reset do lote nas funções que realmente alteram os
+   * filtros.
+   *
+   * Assim não preciso observar mudanças com useEffect apenas para
+   * executar outro setState.
+   */
+  function alterarBusca(
+    valor:
+      string
+  ) {
+    setBusca(
+      valor
+    )
+
+    setLimiteVisivel(
+      QUANTIDADE_POR_LOTE
+    )
+  }
+
+  function alterarFiltroStatus(
+    valor:
+      FiltroStatus
+  ) {
+    setFiltroStatus(
+      valor
+    )
+
+    setLimiteVisivel(
+      QUANTIDADE_POR_LOTE
+    )
+  }
+
+  function alterarFiltroFonte(
+    valor:
+      string
+  ) {
+    setFiltroFonte(
+      valor
+    )
+
+    setLimiteVisivel(
+      QUANTIDADE_POR_LOTE
+    )
+  }
+
+  function alterarFiltroModalidade(
+    valor:
+      FiltroModalidade
+  ) {
+    setFiltroModalidade(
+      valor
+    )
+
+    setLimiteVisivel(
+      QUANTIDADE_POR_LOTE
+    )
+  }
+
+  function alterarPontuacaoMinima(
+    valor:
+      number
+  ) {
+    setPontuacaoMinima(
+      valor
+    )
+
+    setLimiteVisivel(
+      QUANTIDADE_POR_LOTE
+    )
+  }
+
+  function alterarOrdenacao(
+    valor:
+      OrdenacaoVagas
+  ) {
+    setOrdenacao(
+      valor
+    )
+
+    setLimiteVisivel(
+      QUANTIDADE_POR_LOTE
+    )
+  }
+
   async function alterarStatus(
     vaga:
       VagaPainel,
+
     novoStatus:
       StatusVaga
   ) {
@@ -571,49 +778,13 @@ export function PainelVagas({
         )
       }
 
-      setDados(
-        (
-          dadosAtuais
-        ) => {
-          const vagaAnterior =
-            dadosAtuais.vagas.find(
-              (
-                item
-              ) =>
-                item.id ===
-                vaga.id
-            )
+      setStatusLocais(
+        atuais => ({
+          ...atuais,
 
-          if (!vagaAnterior) {
-            return dadosAtuais
-          }
-
-          return {
-            ...dadosAtuais,
-
-            resumo:
-              atualizarResumoLocal(
-                dadosAtuais,
-                vagaAnterior,
-                novoStatus
-              ),
-
-            vagas:
-              dadosAtuais.vagas.map(
-                (
-                  item
-                ) =>
-                  item.id ===
-                  vaga.id
-                    ? {
-                        ...item,
-                        status:
-                          novoStatus
-                      }
-                    : item
-              )
-          }
-        }
+          [vaga.id]:
+            novoStatus
+        })
       )
 
       if (
@@ -657,12 +828,6 @@ export function PainelVagas({
     }
   }
 
-  /**
-   * Eu marco a oportunidade como vista quando abro a publicação original.
-   *
-   * Não aguardo a resposta antes da navegação porque não quero bloquear
-   * a abertura da vaga no navegador.
-   */
   function registrarAbertura(
     vaga:
       VagaPainel
@@ -680,7 +845,17 @@ export function PainelVagas({
     )
   }
 
+  /**
+   * Este botão atualiza somente os dados existentes no banco.
+   *
+   * Eu removo os overrides locais antes da leitura para que a próxima
+   * resposta seja exibida exatamente como estiver no PostgreSQL.
+   */
   function atualizarDados() {
+    setStatusLocais(
+      {}
+    )
+
     iniciarAtualizacao(
       () => {
         router.refresh()
@@ -690,33 +865,50 @@ export function PainelVagas({
 
   function limparFiltros() {
     setBusca("")
+
     setFiltroStatus(
       "todos"
     )
+
     setFiltroModalidade(
       "todas"
     )
+
     setFiltroFonte(
       "todas"
     )
+
     setPontuacaoMinima(
       60
     )
+
     setOrdenacao(
       "compatibilidade"
+    )
+
+    setLimiteVisivel(
+      QUANTIDADE_POR_LOTE
+    )
+  }
+
+  function mostrarMaisVagas() {
+    setLimiteVisivel(
+      limiteAtual =>
+        limiteAtual +
+        QUANTIDADE_POR_LOTE
     )
   }
 
   const possuiFiltroAtivo =
     busca.length > 0 ||
     filtroStatus !==
-      "todos" ||
+    "todos" ||
     filtroModalidade !==
-      "todas" ||
+    "todas" ||
     filtroFonte !==
-      "todas" ||
+    "todas" ||
     pontuacaoMinima !==
-      60
+    60
 
   const itensMenu = [
     {
@@ -816,9 +1008,7 @@ export function PainelVagas({
 
           <nav className="mt-9 space-y-1">
             {itensMenu.map(
-              (
-                item
-              ) => {
+              item => {
                 const Icone =
                   item.icone
 
@@ -833,7 +1023,7 @@ export function PainelVagas({
                     }
                     type="button"
                     onClick={() =>
-                      setFiltroStatus(
+                      alterarFiltroStatus(
                         item.status
                       )
                     }
@@ -905,7 +1095,7 @@ export function PainelVagas({
                 <p className="mt-1 text-sm text-slate-500">
                   {dados.resumo
                     .novas_hoje >
-                  0
+                    0
                     ? `${dados.resumo.novas_hoje} novas oportunidades encontradas hoje.`
                     : "Acompanhe as vagas mais compatíveis com seu perfil."}
                 </p>
@@ -936,11 +1126,15 @@ export function PainelVagas({
               </button>
             </header>
 
+            <div className="mt-6">
+              <ControleSincronizacao />
+            </div>
+
             <section className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">
               <button
                 type="button"
                 onClick={() =>
-                  setFiltroStatus(
+                  alterarFiltroStatus(
                     "relevant"
                   )
                 }
@@ -959,7 +1153,7 @@ export function PainelVagas({
               <button
                 type="button"
                 onClick={() =>
-                  setFiltroStatus(
+                  alterarFiltroStatus(
                     "viewed"
                   )
                 }
@@ -978,7 +1172,7 @@ export function PainelVagas({
               <button
                 type="button"
                 onClick={() =>
-                  setFiltroStatus(
+                  alterarFiltroStatus(
                     "applied"
                   )
                 }
@@ -997,7 +1191,7 @@ export function PainelVagas({
               <button
                 type="button"
                 onClick={() =>
-                  setFiltroStatus(
+                  alterarFiltroStatus(
                     "ignored"
                   )
                 }
@@ -1016,7 +1210,7 @@ export function PainelVagas({
               <button
                 type="button"
                 onClick={() =>
-                  setPontuacaoMinima(
+                  alterarPontuacaoMinima(
                     80
                   )
                 }
@@ -1047,10 +1241,8 @@ export function PainelVagas({
                       busca
                     }
                     onChange={
-                      (
-                        evento
-                      ) =>
-                        setBusca(
+                      evento =>
+                        alterarBusca(
                           evento.target.value
                         )
                     }
@@ -1062,7 +1254,7 @@ export function PainelVagas({
                     <button
                       type="button"
                       onClick={() =>
-                        setBusca("")
+                        alterarBusca("")
                       }
                       aria-label="Limpar busca"
                       className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-800"
@@ -1080,12 +1272,10 @@ export function PainelVagas({
                       filtroStatus
                     }
                     onChange={
-                      (
-                        evento
-                      ) =>
-                        setFiltroStatus(
+                      evento =>
+                        alterarFiltroStatus(
                           evento.target.value as
-                            FiltroStatus
+                          FiltroStatus
                         )
                     }
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
@@ -1116,10 +1306,8 @@ export function PainelVagas({
                       filtroFonte
                     }
                     onChange={
-                      (
-                        evento
-                      ) =>
-                        setFiltroFonte(
+                      evento =>
+                        alterarFiltroFonte(
                           evento.target.value
                         )
                     }
@@ -1130,9 +1318,7 @@ export function PainelVagas({
                     </option>
 
                     {fontes.map(
-                      (
-                        fonte
-                      ) => (
+                      fonte => (
                         <option
                           key={
                             fonte
@@ -1152,12 +1338,10 @@ export function PainelVagas({
                       filtroModalidade
                     }
                     onChange={
-                      (
-                        evento
-                      ) =>
-                        setFiltroModalidade(
+                      evento =>
+                        alterarFiltroModalidade(
                           evento.target.value as
-                            FiltroModalidade
+                          FiltroModalidade
                         )
                     }
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
@@ -1180,10 +1364,8 @@ export function PainelVagas({
                       pontuacaoMinima
                     }
                     onChange={
-                      (
-                        evento
-                      ) =>
-                        setPontuacaoMinima(
+                      evento =>
+                        alterarPontuacaoMinima(
                           Number(
                             evento.target.value
                           )
@@ -1217,12 +1399,10 @@ export function PainelVagas({
                       ordenacao
                     }
                     onChange={
-                      (
-                        evento
-                      ) =>
-                        setOrdenacao(
+                      evento =>
+                        alterarOrdenacao(
                           evento.target.value as
-                            OrdenacaoVagas
+                          OrdenacaoVagas
                         )
                     }
                     className="col-span-2 h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950 md:col-span-1"
@@ -1251,7 +1431,7 @@ export function PainelVagas({
                   </strong>{" "}
                   oportunidade
                   {vagasFiltradas.length !==
-                  1
+                    1
                     ? "s"
                     : ""}
                 </span>
@@ -1273,30 +1453,50 @@ export function PainelVagas({
             <section className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
               <div className="space-y-3">
                 {vagasFiltradas.length >
-                0 ? (
-                  vagasFiltradas.map(
-                    (
-                      vaga
-                    ) => (
-                      <CartaoVaga
-                        key={
-                          vaga.id
-                        }
-                        vaga={
-                          vaga
-                        }
-                        selecionada={
-                          vaga.id ===
-                          vagaSelecionadaId
-                        }
-                        aoSelecionar={() =>
-                          setVagaSelecionadaId(
+                  0 ? (
+                  <>
+                    {vagasVisiveis.map(
+                      vaga => (
+                        <CartaoVaga
+                          key={
                             vaga.id
-                          )
-                        }
-                      />
-                    )
-                  )
+                          }
+                          vaga={
+                            vaga
+                          }
+                          selecionada={
+                            vaga.id ===
+                            vagaSelecionadaId
+                          }
+                          aoSelecionar={() =>
+                            setVagaSelecionadaId(
+                              vaga.id
+                            )
+                          }
+                        />
+                      )
+                    )}
+
+                    {possuiMaisVagas && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={
+                            mostrarMaisVagas
+                          }
+                          className="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-indigo-900 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+                        >
+                          Mostrar mais{" "}
+                          {quantidadeProximoLote}
+
+                          <span className="ml-2 text-xs font-normal opacity-60">
+                            {vagasVisiveis.length} de{" "}
+                            {vagasFiltradas.length}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-800 dark:bg-slate-900">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800">
@@ -1345,13 +1545,12 @@ export function PainelVagas({
                       vagaSelecionada
                     )
                   }
-                  aoAlterarStatus={(
-                    status
-                  ) =>
-                    alterarStatus(
-                      vagaSelecionada,
-                      status
-                    )
+                  aoAlterarStatus={
+                    status =>
+                      alterarStatus(
+                        vagaSelecionada,
+                        status
+                      )
                   }
                 />
               ) : (
