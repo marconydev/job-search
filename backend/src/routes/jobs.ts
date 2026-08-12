@@ -1,6 +1,10 @@
-import { Router } from "express"
+import {
+  Router
+} from "express"
 
-import { collectRemotiveJobs } from "../collectors/remotive.js"
+import {
+  collectRemotiveJobs
+} from "../collectors/remotive.js"
 
 import {
   createJob,
@@ -9,28 +13,50 @@ import {
 } from "../repositories/job-repository.js"
 
 import {
-  listRelevantJobMatches
+  getJobDashboardSummary,
+  isUserJobStatus,
+  listDashboardJobMatches,
+  listRelevantJobMatches,
+  updateJobMatchStatus
 } from "../repositories/job-match-repository.js"
 
-import { analyzePendingJobs } from "../services/job-analysis.js"
-import { importJobs } from "../services/job-import.js"
-import { syncJobs } from "../services/job-sync.js"
+import {
+  analyzePendingJobs
+} from "../services/job-analysis.js"
 
-import type { NewJob } from "../types/job.js"
+import {
+  importJobs
+} from "../services/job-import.js"
 
-const jobsRouter = Router()
+import {
+  syncJobs
+} from "../services/job-sync.js"
+
+import type {
+  NewJob
+} from "../types/job.js"
+
+const jobsRouter =
+  Router()
 
 /**
- * Normaliza o limite usado pelas rotas de importação.
+ * Normalizo o limite utilizado pelas rotas de importação.
  *
- * Um limite máximo evita que um valor incorreto na URL provoque
- * uma coleta muito maior do que a esperada durante os testes.
+ * Um limite máximo impede que um valor incorreto provoque uma coleta
+ * muito maior do que o esperado.
  */
-function getImportLimit(value: unknown) {
-  const requestedLimit = Number(value)
+function getImportLimit(
+  value: unknown
+) {
+  const requestedLimit =
+    Number(
+      value
+    )
 
   if (
-    Number.isInteger(requestedLimit) &&
+    Number.isInteger(
+      requestedLimit
+    ) &&
     requestedLimit > 0 &&
     requestedLimit <= 200
   ) {
@@ -41,178 +67,448 @@ function getImportLimit(value: unknown) {
 }
 
 /**
- * Lista todas as vagas armazenadas no banco.
+ * Listo todas as vagas armazenadas.
  *
- * Essa consulta é útil para administração e conferência das coletas.
- * Nem toda vaga daqui necessariamente passou pelo matcher.
+ * Esta rota continua útil para administração e conferência.
  */
-jobsRouter.get("/", async (_request, response) => {
-  try {
-    const jobs = await listJobs()
+jobsRouter.get(
+  "/",
+  async (
+    _request,
+    response
+  ) => {
+    try {
+      const jobs =
+        await listJobs()
 
-    return response.json(jobs)
-  } catch (error) {
-    console.error("Erro ao buscar vagas:", error)
+      return response.json(
+        jobs
+      )
+    } catch (error) {
+      console.error(
+        "Erro ao buscar vagas:",
+        error
+      )
 
-    return response.status(500).json({
-      message: "Não foi possível buscar as vagas"
-    })
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível buscar as vagas"
+        })
+    }
   }
-})
+)
 
 /**
- * Retorna as vagas que já foram classificadas como relevantes.
- *
- * minScore apenas filtra os resultados existentes. Ele não recalcula
- * ou modifica a análise que já está salva no banco.
+ * Entrego os dados necessários para montar o dashboard.
  */
-jobsRouter.get("/relevant", async (request, response) => {
-  const requestedScore = Number(request.query.minScore)
+jobsRouter.get(
+  "/dashboard",
+  async (
+    _request,
+    response
+  ) => {
+    try {
+      const [
+        resumo,
+        vagas
+      ] =
+        await Promise.all([
+          getJobDashboardSummary(),
+          listDashboardJobMatches()
+        ])
 
-  const minScore =
-    Number.isFinite(requestedScore) &&
-    requestedScore >= 0 &&
-    requestedScore <= 100
-      ? requestedScore
-      : 60
-
-  try {
-    const jobs = await listRelevantJobMatches(minScore)
-
-    return response.json({
-      total: jobs.length,
-      minScore,
-      jobs
-    })
-  } catch (error) {
-    console.error("Erro ao buscar vagas relevantes:", error)
-
-    return response.status(500).json({
-      message: "Não foi possível buscar as vagas relevantes"
-    })
-  }
-})
-
-/**
- * Executa coleta, importação e análise em uma única operação.
- *
- * Essa será a base da execução automática diária do Job Search.
- */
-jobsRouter.post("/sync", async (request, response) => {
-  const limit = getImportLimit(request.query.limit)
-
-  try {
-    const result = await syncJobs(limit)
-
-    return response.json(result)
-  } catch (error) {
-    console.error("Erro ao sincronizar vagas:", error)
-
-    return response.status(500).json({
-      message: "Não foi possível sincronizar as vagas"
-    })
-  }
-})
-
-/**
- * Analisa somente vagas que ainda não possuem um match salvo.
- *
- * Mantemos essa rota separada para facilitar testes e ajustes
- * no matcher sem precisar executar uma nova coleta.
- */
-jobsRouter.post("/analyze", async (_request, response) => {
-  try {
-    const result = await analyzePendingJobs()
-
-    return response.json(result)
-  } catch (error) {
-    console.error("Erro ao analisar vagas pendentes:", error)
-
-    return response.status(500).json({
-      message: "Não foi possível analisar as vagas"
-    })
-  }
-})
-
-/**
- * Executa somente a coleta e importação da Remotive.
- *
- * Essa rota ajuda a testar uma fonte isoladamente, sem disparar
- * o restante do processo de sincronização.
- */
-jobsRouter.post("/import/remotive", async (request, response) => {
-  const limit = getImportLimit(request.query.limit)
-
-  try {
-    const collection = await collectRemotiveJobs(limit)
-    const result = await importJobs(collection)
-
-    return response.json(result)
-  } catch (error) {
-    console.error("Erro ao importar vagas da Remotive:", error)
-
-    return response.status(500).json({
-      message: "Não foi possível importar as vagas da Remotive"
-    })
-  }
-})
-
-/**
- * Permite cadastrar manualmente uma vaga encontrada fora das
- * fontes que o sistema consulta automaticamente.
- */
-jobsRouter.post("/", async (request, response) => {
-  const {
-    source,
-    externalId,
-    company,
-    title,
-    description,
-    location,
-    remote,
-    url,
-    publishedAt
-  } = request.body
-
-  // Esses dados formam o mínimo necessário para identificar
-  // e posteriormente analisar uma oportunidade.
-  if (!source || !externalId || !company || !title || !description || !url) {
-    return response.status(400).json({
-      message: "Preencha os campos obrigatórios"
-    })
-  }
-
-  const job: NewJob = {
-    source,
-    externalId,
-    company,
-    title,
-    description,
-    location: location || null,
-    remote: remote ?? false,
-    url,
-    publishedAt: publishedAt || null
-  }
-
-  try {
-    const savedJob = await createJob(job)
-
-    return response.status(201).json(savedJob)
-  } catch (error) {
-    // source + externalId formam uma chave única. Repetição significa
-    // que a vaga já foi importada anteriormente.
-    if (isDuplicateJobError(error)) {
-      return response.status(409).json({
-        message: "Essa vaga já foi cadastrada"
+      return response.json({
+        resumo,
+        total:
+          vagas.length,
+        vagas
       })
+    } catch (error) {
+      console.error(
+        "Erro ao carregar dashboard:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível carregar o dashboard"
+        })
+    }
+  }
+)
+
+/**
+ * Retorno oportunidades que continuam disponíveis para análise.
+ *
+ * Incluo tanto novas quanto as que já foram vistas.
+ */
+jobsRouter.get(
+  "/relevant",
+  async (
+    request,
+    response
+  ) => {
+    const requestedScore =
+      Number(
+        request.query.minScore
+      )
+
+    const minScore =
+      Number.isFinite(
+        requestedScore
+      ) &&
+      requestedScore >= 0 &&
+      requestedScore <= 100
+        ? requestedScore
+        : 60
+
+    try {
+      const jobs =
+        await listRelevantJobMatches(
+          minScore
+        )
+
+      return response.json({
+        total:
+          jobs.length,
+
+        minScore,
+
+        jobs
+      })
+    } catch (error) {
+      console.error(
+        "Erro ao buscar vagas relevantes:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível buscar as vagas relevantes"
+        })
+    }
+  }
+)
+
+/**
+ * Atualizo o estado de uma vaga pelo dashboard.
+ *
+ * Exemplos:
+ *
+ * PATCH /jobs/15/status
+ * { "status": "viewed" }
+ *
+ * PATCH /jobs/15/status
+ * { "status": "applied" }
+ */
+jobsRouter.patch(
+  "/:id/status",
+  async (
+    request,
+    response
+  ) => {
+    const jobId =
+      Number(
+        request.params.id
+      )
+
+    if (
+      !Number.isInteger(
+        jobId
+      ) ||
+      jobId <= 0
+    ) {
+      return response
+        .status(400)
+        .json({
+          message:
+            "Identificador da vaga inválido"
+        })
     }
 
-    console.error("Erro ao cadastrar vaga:", error)
+    const status =
+      request.body?.status
 
-    return response.status(500).json({
-      message: "Não foi possível cadastrar a vaga"
-    })
+    if (
+      !isUserJobStatus(
+        status
+      )
+    ) {
+      return response
+        .status(400)
+        .json({
+          message:
+            "Status inválido"
+        })
+    }
+
+    try {
+      const atualizado =
+        await updateJobMatchStatus(
+          jobId,
+          status
+        )
+
+      if (!atualizado) {
+        return response
+          .status(404)
+          .json({
+            message:
+              "Vaga analisada não encontrada"
+          })
+      }
+
+      return response.json(
+        atualizado
+      )
+    } catch (error) {
+      console.error(
+        "Erro ao atualizar status da vaga:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível atualizar o status da vaga"
+        })
+    }
   }
-})
+)
 
-export { jobsRouter }
+/**
+ * Executo coleta, importação e análise.
+ *
+ * Esta rota será utilizada futuramente pelo botão de atualização do
+ * dashboard e pela execução automática.
+ */
+jobsRouter.post(
+  "/sync",
+  async (
+    request,
+    response
+  ) => {
+    const limit =
+      getImportLimit(
+        request.query.limit
+      )
+
+    try {
+      const result =
+        await syncJobs(
+          limit
+        )
+
+      return response.json(
+        result
+      )
+    } catch (error) {
+      console.error(
+        "Erro ao sincronizar vagas:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível sincronizar as vagas"
+        })
+    }
+  }
+)
+
+/**
+ * Analiso somente oportunidades que ainda não possuem match.
+ */
+jobsRouter.post(
+  "/analyze",
+  async (
+    _request,
+    response
+  ) => {
+    try {
+      const result =
+        await analyzePendingJobs()
+
+      return response.json(
+        result
+      )
+    } catch (error) {
+      console.error(
+        "Erro ao analisar vagas pendentes:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível analisar as vagas"
+        })
+    }
+  }
+)
+
+/**
+ * Mantenho a importação isolada da Remotive para diagnóstico da fonte.
+ */
+jobsRouter.post(
+  "/import/remotive",
+  async (
+    request,
+    response
+  ) => {
+    const limit =
+      getImportLimit(
+        request.query.limit
+      )
+
+    try {
+      const collection =
+        await collectRemotiveJobs(
+          limit
+        )
+
+      const result =
+        await importJobs(
+          collection
+        )
+
+      return response.json(
+        result
+      )
+    } catch (error) {
+      console.error(
+        "Erro ao importar vagas da Remotive:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível importar as vagas da Remotive"
+        })
+    }
+  }
+)
+
+/**
+ * Permito cadastrar manualmente uma oportunidade.
+ */
+jobsRouter.post(
+  "/",
+  async (
+    request,
+    response
+  ) => {
+    const {
+      source,
+      externalId,
+      company,
+      title,
+      description,
+      location,
+      remote,
+      url,
+      publishedAt
+    } =
+      request.body
+
+    if (
+      !source ||
+      !externalId ||
+      !company ||
+      !title ||
+      !description ||
+      !url
+    ) {
+      return response
+        .status(400)
+        .json({
+          message:
+            "Preencha os campos obrigatórios"
+        })
+    }
+
+    const job:
+      NewJob = {
+      source,
+
+      externalId,
+
+      company,
+
+      title,
+
+      description,
+
+      location:
+        location ||
+        null,
+
+      remote:
+        remote ??
+        false,
+
+      url,
+
+      publishedAt:
+        publishedAt ||
+        null,
+
+      partial:
+        false
+    }
+
+    try {
+      const savedJob =
+        await createJob(
+          job
+        )
+
+      return response
+        .status(201)
+        .json(
+          savedJob
+        )
+    } catch (error) {
+      if (
+        isDuplicateJobError(
+          error
+        )
+      ) {
+        return response
+          .status(409)
+          .json({
+            message:
+              "Essa vaga já foi cadastrada"
+          })
+      }
+
+      console.error(
+        "Erro ao cadastrar vaga:",
+        error
+      )
+
+      return response
+        .status(500)
+        .json({
+          message:
+            "Não foi possível cadastrar a vaga"
+        })
+    }
+  }
+)
+
+export {
+  jobsRouter
+}
