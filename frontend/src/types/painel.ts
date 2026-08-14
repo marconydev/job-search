@@ -1,8 +1,4 @@
-export type StatusVaga =
-  | "relevant"
-  | "viewed"
-  | "applied"
-  | "ignored"
+export type StatusVaga = "relevant" | "viewed" | "applied" | "ignored"
 
 export type ResumoPainel = {
   novas: number
@@ -72,18 +68,11 @@ export type DadosPainel = {
   vagas: VagaPainel[]
 }
 
-export type FiltroStatus =
-  | "todos"
-  | StatusVaga
+export type FiltroStatus = "todos" | StatusVaga
 
-export type FiltroModalidade =
-  | "todas"
-  | "remota"
-  | "nao-remota"
+export type FiltroModalidade = "todas" | "remota" | "nao-remota"
 
-export type OrdenacaoVagas =
-  | "compatibilidade"
-  | "recentes"
+export type OrdenacaoVagas = "compatibilidade" | "recentes"
 
 export type StatusSincronizacao = {
   data: string
@@ -100,8 +89,7 @@ export type StatusSincronizacao = {
 
   consultasAtivas: number
 
-  ultimaAtualizacao:
-    string | null
+  ultimaAtualizacao: string | null
 }
 
 export type ModoSincronizacao = {
@@ -157,8 +145,7 @@ export type ResultadoWebSincronizacao = {
 
   falhas: number
 
-  persistenciaDescoberta:
-    ResultadoPersistenciaDescoberta
+  persistenciaDescoberta: ResultadoPersistenciaDescoberta
 }
 
 export type ResultadoAnaliseSincronizacao = {
@@ -172,12 +159,9 @@ export type ResultadoAnaliseSincronizacao = {
 export type ResultadoSincronizacao = {
   modo: ModoSincronizacao
 
-  fontes:
-    ResultadoFonteSincronizacao[]
+  fontes: ResultadoFonteSincronizacao[]
 
-  web:
-    ResultadoWebSincronizacao
+  web: ResultadoWebSincronizacao
 
-  analise:
-    ResultadoAnaliseSincronizacao
+  analise: ResultadoAnaliseSincronizacao
 }

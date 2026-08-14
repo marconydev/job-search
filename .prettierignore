@@ -1,0 +1,26 @@
+# Dependências
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+**/dist/
+.next/
+**/.next/
+out/
+build/
+
+# Cobertura
+coverage/
+
+# Cache
+.cache/
+**/.cache/
+
+# Arquivos gerados
+*.tsbuildinfo
+package-lock.json
+
+# Arquivos gerados pelo Next
+frontend/AGENTS.md
+frontend/next-env.d.ts

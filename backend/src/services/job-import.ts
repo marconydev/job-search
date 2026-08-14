@@ -1,7 +1,4 @@
-import {
-  createJob,
-  isDuplicateJobError
-} from "../repositories/job-repository.js"
+import { createJob, isDuplicateJobError } from "../repositories/job-repository.js"
 
 import type { JobCollection } from "../types/collector.js"
 
@@ -18,9 +15,7 @@ export type JobImportResult = {
  * O coletor cuida apenas de buscar e normalizar os dados. A partir daqui
  * o processo de persistência é o mesmo, independentemente da fonte.
  */
-export async function importJobs(
-  collection: JobCollection
-): Promise<JobImportResult> {
+export async function importJobs(collection: JobCollection): Promise<JobImportResult> {
   let inserted = 0
   let duplicates = 0
 

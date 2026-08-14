@@ -1,12 +1,6 @@
-import {
-  db
-} from "../database/connection.js"
+import { db } from "../database/connection.js"
 
-import type {
-  JobMatchStatus,
-  NewJobMatch,
-  UserJobStatus
-} from "../types/job.js"
+import type { JobMatchStatus, NewJobMatch, UserJobStatus } from "../types/job.js"
 
 /**
  * Salvo ou atualizo o resultado produzido pelo matcher.
@@ -14,12 +8,9 @@ import type {
  * Se eu já tiver tomado uma decisão manual sobre a oportunidade,
  * preservo essa decisão quando o matcher for executado novamente.
  */
-export async function saveJobMatch(
-  match: NewJobMatch
-) {
-  const result =
-    await db.query(
-      `
+export async function saveJobMatch(match: NewJobMatch) {
+  const result = await db.query(
+    `
         INSERT INTO job_matches (
           job_id,
           local_score,
@@ -83,18 +74,14 @@ export async function saveJobMatch(
 
         RETURNING *
       `,
-      [
-        match.jobId,
-        match.localScore,
-        JSON.stringify(
-          match.matchedSkills
-        ),
-        JSON.stringify(
-          match.reasons
-        ),
-        match.status
-      ]
-    )
+    [
+      match.jobId,
+      match.localScore,
+      JSON.stringify(match.matchedSkills),
+      JSON.stringify(match.reasons),
+      match.status
+    ]
+  )
 
   return result.rows[0]
 }
@@ -105,12 +92,9 @@ export async function saveJobMatch(
  * Isso evita que ela desapareça da lista principal apenas porque eu
  * abri o anúncio uma vez.
  */
-export async function listRelevantJobMatches(
-  minScore: number
-) {
-  const result =
-    await db.query(
-      `
+export async function listRelevantJobMatches(minScore: number) {
+  const result = await db.query(
+    `
         SELECT
           j.id,
           j.source,
@@ -160,10 +144,8 @@ export async function listRelevantJobMatches(
 
           j.created_at DESC
       `,
-      [
-        minScore
-      ]
-    )
+    [minScore]
+  )
 
   return result.rows
 }
@@ -175,8 +157,7 @@ export async function listRelevantJobMatches(
  * ocupar espaço no dashboard operacional.
  */
 export async function listDashboardJobMatches() {
-  const result =
-    await db.query(`
+  const result = await db.query(`
       SELECT
         j.id,
         j.source,
@@ -230,8 +211,7 @@ export async function listDashboardJobMatches() {
  * dashboard.
  */
 export async function getJobDashboardSummary() {
-  const result =
-    await db.query(`
+  const result = await db.query(`
       SELECT
         COUNT(*) FILTER (
           WHERE jm.status = 'relevant'
@@ -292,13 +272,9 @@ export async function getJobDashboardSummary() {
  * Quando uma vaga é vista ou aplicada pela primeira vez, preservo a
  * respectiva data mesmo que o status seja alterado novamente depois.
  */
-export async function updateJobMatchStatus(
-  jobId: number,
-  status: UserJobStatus
-) {
-  const result =
-    await db.query(
-      `
+export async function updateJobMatchStatus(jobId: number, status: UserJobStatus) {
+  const result = await db.query(
+    `
         UPDATE job_matches
         SET
           status =
@@ -344,38 +320,18 @@ export async function updateJobMatchStatus(
           viewed_at,
           applied_at
       `,
-      [
-        jobId,
-        status
-      ]
-    )
-
-  return (
-    result.rows[0] ??
-    null
+    [jobId, status]
   )
+
+  return result.rows[0] ?? null
 }
 
 /**
  * Uso esta validação também na rota para não aceitar qualquer texto
  * recebido do frontend.
  */
-export function isUserJobStatus(
-  value: unknown
-): value is UserJobStatus {
-  const statuses:
-    JobMatchStatus[] = [
-      "relevant",
-      "viewed",
-      "applied",
-      "ignored"
-    ]
+export function isUserJobStatus(value: unknown): value is UserJobStatus {
+  const statuses: JobMatchStatus[] = ["relevant", "viewed", "applied", "ignored"]
 
-  return (
-    typeof value ===
-      "string" &&
-    statuses.includes(
-      value as JobMatchStatus
-    )
-  )
+  return typeof value === "string" && statuses.includes(value as JobMatchStatus)
 }

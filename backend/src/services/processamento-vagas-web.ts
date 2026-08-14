@@ -13,18 +13,11 @@ import {
   isDuplicateJobError as ehErroVagaDuplicada
 } from "../repositories/job-repository.js"
 
-import {
-  saveJobMatch as salvarCorrespondenciaVaga
-} from "../repositories/job-match-repository.js"
+import { saveJobMatch as salvarCorrespondenciaVaga } from "../repositories/job-match-repository.js"
 
-import type {
-  PaginaClassificada,
-  ProvedorPagina
-} from "../types/discovery.js"
+import type { PaginaClassificada, ProvedorPagina } from "../types/discovery.js"
 
-import type {
-  StoredJob as VagaArmazenada
-} from "../types/job.js"
+import type { StoredJob as VagaArmazenada } from "../types/job.js"
 
 import type {
   PaginaSomenteDescoberta,
@@ -107,23 +100,16 @@ function normalizarTexto(valor: string) {
     .trim()
 }
 
-function contemExpressao(
-  texto: string,
-  termo: string
-) {
-  const textoNormalizado =
-    ` ${normalizarTexto(texto)} `
+function contemExpressao(texto: string, termo: string) {
+  const textoNormalizado = ` ${normalizarTexto(texto)} `
 
-  const termoNormalizado =
-    normalizarTexto(termo)
+  const termoNormalizado = normalizarTexto(termo)
 
   if (!termoNormalizado) {
     return false
   }
 
-  return textoNormalizado.includes(
-    ` ${termoNormalizado} `
-  )
+  return textoNormalizado.includes(` ${termoNormalizado} `)
 }
 
 /**
@@ -134,19 +120,9 @@ function contemExpressao(
  * é somente evitar processamento desnecessário de páginas claramente
  * fora do perfil.
  */
-function paginaPareceRelacionada(
-  pagina: PaginaClassificada
-) {
-  const contexto = [
-    pagina.titulo,
-    pagina.descricao
-  ]
-    .filter(
-      (
-        valor
-      ): valor is string =>
-        Boolean(valor)
-    )
+function paginaPareceRelacionada(pagina: PaginaClassificada) {
+  const contexto = [pagina.titulo, pagina.descricao]
+    .filter((valor): valor is string => Boolean(valor))
     .join(" ")
 
   const cargos = [
@@ -155,15 +131,7 @@ function paginaPareceRelacionada(
     ...termosComplementaresTitulo
   ]
 
-  if (
-    cargos.some(
-      (cargo) =>
-        contemExpressao(
-          contexto,
-          cargo
-        )
-    )
-  ) {
+  if (cargos.some(cargo => contemExpressao(contexto, cargo))) {
     return true
   }
 
@@ -188,30 +156,15 @@ function paginaPareceRelacionada(
     "operações"
   ]
 
-  const possuiIndicador =
-    indicadoresCargo.some(
-      (indicador) =>
-        contemExpressao(
-          contexto,
-          indicador
-        )
-    )
+  const possuiIndicador = indicadoresCargo.some(indicador => contemExpressao(contexto, indicador))
 
   if (!possuiIndicador) {
     return false
   }
 
-  const competencias =
-    perfilBusca.competencias.filter(
-      (competencia) =>
-        competencia.termos.some(
-          (termo) =>
-            contemExpressao(
-              contexto,
-              termo
-            )
-        )
-    )
+  const competencias = perfilBusca.competencias.filter(competencia =>
+    competencia.termos.some(termo => contemExpressao(contexto, termo))
+  )
 
   return competencias.length >= 2
 }
@@ -222,119 +175,51 @@ function paginaPareceRelacionada(
  * Quero priorizar URLs que representem uma oportunidade individual,
  * principalmente quando estou trabalhando com plataformas de vagas.
  */
-function paginaEhListagem(
-  pagina: PaginaClassificada
-) {
+function paginaEhListagem(pagina: PaginaClassificada) {
   try {
-    const url = new URL(
-      pagina.url
-    )
+    const url = new URL(pagina.url)
 
-    const caminho =
-      url.pathname.toLowerCase()
+    const caminho = url.pathname.toLowerCase()
 
-    if (
-      pagina.provedor ===
-      "indeed"
-    ) {
-      return (
-        !caminho.includes(
-          "/viewjob"
-        ) ||
-        !url.searchParams.has(
-          "jk"
-        )
-      )
+    if (pagina.provedor === "indeed") {
+      return !caminho.includes("/viewjob") || !url.searchParams.has("jk")
     }
 
-    if (
-      pagina.provedor ===
-      "linkedin"
-    ) {
-      return !caminho.includes(
-        "/jobs/view/"
-      )
+    if (pagina.provedor === "linkedin") {
+      return !caminho.includes("/jobs/view/")
     }
 
-    if (
-      pagina.provedor ===
-      "greenhouse"
-    ) {
-      return !/\/jobs\/\d+/i.test(
-        caminho
-      )
+    if (pagina.provedor === "greenhouse") {
+      return !/\/jobs\/\d+/i.test(caminho)
     }
 
-    if (
-      pagina.provedor ===
-      "workable"
-    ) {
-      return !/\/j\/[a-z0-9]+/i.test(
-        caminho
-      )
+    if (pagina.provedor === "workable") {
+      return !/\/j\/[a-z0-9]+/i.test(caminho)
     }
 
-    if (
-      pagina.provedor ===
-      "smartrecruiters"
-    ) {
-      const partes =
-        caminho
-          .split("/")
-          .filter(Boolean)
+    if (pagina.provedor === "smartrecruiters") {
+      const partes = caminho.split("/").filter(Boolean)
 
-      return (
-        partes.length < 2 ||
-        !/^\d+/.test(
-          partes[1] ?? ""
-        )
-      )
+      return partes.length < 2 || !/^\d+/.test(partes[1] ?? "")
     }
 
-    if (
-      pagina.provedor ===
-      "lever"
-    ) {
-      const partes =
-        caminho
-          .split("/")
-          .filter(Boolean)
+    if (pagina.provedor === "lever") {
+      const partes = caminho.split("/").filter(Boolean)
 
       return partes.length < 2
     }
 
-    if (
-      pagina.provedor ===
-      "gupy"
-    ) {
-      return !(
-        caminho.includes(
-          "/jobs/"
-        ) ||
-        caminho.includes(
-          "/job/"
-        )
-      )
+    if (pagina.provedor === "gupy") {
+      return !(caminho.includes("/jobs/") || caminho.includes("/job/"))
     }
 
-    if (
-      pagina.provedor ===
-      "remote-ok"
-    ) {
+    if (pagina.provedor === "remote-ok") {
       return (
         caminho === "/" ||
-        caminho.includes(
-          "customer-support-jobs"
-        ) ||
-        caminho.includes(
-          "technical-jobs"
-        ) ||
-        caminho.includes(
-          "jobs-in-brazil"
-        ) ||
-        caminho.includes(
-          "product-manager-jobs"
-        )
+        caminho.includes("customer-support-jobs") ||
+        caminho.includes("technical-jobs") ||
+        caminho.includes("jobs-in-brazil") ||
+        caminho.includes("product-manager-jobs")
       )
     }
 
@@ -350,27 +235,15 @@ function paginaEhListagem(
  * Para a inspeção estruturada preciso trabalhar com a página principal
  * da oportunidade.
  */
-function normalizarPaginaParaInspecao(
-  pagina: PaginaClassificada
-): PaginaClassificada {
-  if (
-    pagina.provedor !==
-    "workable"
-  ) {
+function normalizarPaginaParaInspecao(pagina: PaginaClassificada): PaginaClassificada {
+  if (pagina.provedor !== "workable") {
     return pagina
   }
 
   try {
-    const url =
-      new URL(
-        pagina.url
-      )
+    const url = new URL(pagina.url)
 
-    url.pathname =
-      url.pathname.replace(
-        /\/apply\/?$/i,
-        "/"
-      )
+    url.pathname = url.pathname.replace(/\/apply\/?$/i, "/")
 
     return {
       ...pagina,
@@ -381,17 +254,11 @@ function normalizarPaginaParaInspecao(
   }
 }
 
-function ehProvedorProcessavel(
-  pagina: PaginaClassificada
-) {
-  return provedoresProcessaveis.has(
-    pagina.provedor
-  )
+function ehProvedorProcessavel(pagina: PaginaClassificada) {
+  return provedoresProcessaveis.has(pagina.provedor)
 }
 
-function criarResultadoProvedor(
-  provedor: ProvedorPagina
-): ResultadoFonteProcessada {
+function criarResultadoProvedor(provedor: ProvedorPagina): ResultadoFonteProcessada {
   return {
     provedor,
     encontradas: 0,
@@ -408,68 +275,40 @@ function criarResultadoProvedor(
 }
 
 function obterResultadoProvedor(
-  resultados: Map<
-    ProvedorPagina,
-    ResultadoFonteProcessada
-  >,
+  resultados: Map<ProvedorPagina, ResultadoFonteProcessada>,
   provedor: ProvedorPagina
 ) {
-  const existente =
-    resultados.get(
-      provedor
-    )
+  const existente = resultados.get(provedor)
 
   if (existente) {
     return existente
   }
 
-  const novo =
-    criarResultadoProvedor(
-      provedor
-    )
+  const novo = criarResultadoProvedor(provedor)
 
-  resultados.set(
-    provedor,
-    novo
-  )
+  resultados.set(provedor, novo)
 
   return novo
 }
 
 function registrarPendencia(
-  pendencias:
-    PendenciaProcessamentoWeb[],
-  pendencia:
-    PendenciaProcessamentoWeb
+  pendencias: PendenciaProcessamentoWeb[],
+  pendencia: PendenciaProcessamentoWeb
 ) {
-  pendencias.push(
-    pendencia
-  )
+  pendencias.push(pendencia)
 }
 
-function paginaEstaIndisponivel(
-  url: string,
-  codigoStatus: number
-) {
-  if (
-    codigoStatus >= 400
-  ) {
+function paginaEstaIndisponivel(url: string, codigoStatus: number) {
+  if (codigoStatus >= 400) {
     return true
   }
 
   try {
-    const urlAnalisada =
-      new URL(url)
+    const urlAnalisada = new URL(url)
 
     return (
-      urlAnalisada
-        .searchParams
-        .get("not_found") ===
-        "true" ||
-      urlAnalisada
-        .searchParams
-        .get("error") ===
-        "true"
+      urlAnalisada.searchParams.get("not_found") === "true" ||
+      urlAnalisada.searchParams.get("error") === "true"
     )
   } catch {
     return false
@@ -480,14 +319,8 @@ function paginaEstaIndisponivel(
  * Elimino conteúdos claramente informativos que podem aparecer nas
  * buscas por utilizarem os mesmos termos técnicos das vagas.
  */
-function paginaPareceConteudoInformativo(
-  titulo: string,
-  url: string
-) {
-  const texto =
-    normalizarTexto(
-      titulo
-    )
+function paginaPareceConteudoInformativo(titulo: string, url: string) {
+  const texto = normalizarTexto(titulo)
 
   const padroesFortes = [
     "salary",
@@ -509,16 +342,7 @@ function paginaPareceConteudoInformativo(
     "como funciona"
   ]
 
-  if (
-    padroesFortes.some(
-      (padrao) =>
-        texto.includes(
-          normalizarTexto(
-            padrao
-          )
-        )
-    )
-  ) {
+  if (padroesFortes.some(padrao => texto.includes(normalizarTexto(padrao)))) {
     return true
   }
 
@@ -528,74 +352,29 @@ function paginaPareceConteudoInformativo(
    * Um artigo sobre "Best Service Desk Software", por exemplo, contém
    * exatamente o nome de um cargo que procuro, mas não representa vaga.
    */
-  const falaDeSoftware =
-    contemExpressao(
-      texto,
-      "software"
-    )
+  const falaDeSoftware = contemExpressao(texto, "software")
 
-  const pareceRanking =
-    [
-      "best",
-      "melhores",
-      "top",
-      "tools",
-      "ferramentas"
-    ].some(
-      (termo) =>
-        contemExpressao(
-          texto,
-          termo
-        )
-    )
+  const pareceRanking = ["best", "melhores", "top", "tools", "ferramentas"].some(termo =>
+    contemExpressao(texto, termo)
+  )
 
-  if (
-    falaDeSoftware &&
-    pareceRanking
-  ) {
+  if (falaDeSoftware && pareceRanking) {
     return true
   }
 
   try {
-    const urlAnalisada =
-      new URL(url)
+    const urlAnalisada = new URL(url)
 
-    const hostname =
-      urlAnalisada
-        .hostname
-        .toLowerCase()
+    const hostname = urlAnalisada.hostname.toLowerCase()
 
-    const caminho =
-      urlAnalisada
-        .pathname
-        .toLowerCase()
+    const caminho = urlAnalisada.pathname.toLowerCase()
 
-    const dominiosConteudo = [
-      "learn.g2.com",
-      "zendesk.com",
-      "capterra.com"
-    ]
+    const dominiosConteudo = ["learn.g2.com", "zendesk.com", "capterra.com"]
 
     const pareceArtigo =
-      caminho.includes(
-        "/blog/"
-      ) ||
-      caminho.includes(
-        "/artigos/"
-      ) ||
-      caminho.includes(
-        "/reviews/"
-      )
+      caminho.includes("/blog/") || caminho.includes("/artigos/") || caminho.includes("/reviews/")
 
-    if (
-      dominiosConteudo.some(
-        (dominio) =>
-          hostname.endsWith(
-            dominio
-          )
-      ) &&
-      pareceArtigo
-    ) {
+    if (dominiosConteudo.some(dominio => hostname.endsWith(dominio)) && pareceArtigo) {
       return true
     }
   } catch {
@@ -612,49 +391,24 @@ function paginaPareceConteudoInformativo(
  * Por isso só considero sinais que vieram da própria oportunidade.
  * Não uso a consulta que fiz à Brave como evidência.
  */
-function linkedinTemSinalBrasil(
-  pagina:
-    PaginaSomenteDescoberta
-) {
+function linkedinTemSinalBrasil(pagina: PaginaSomenteDescoberta) {
   try {
-    const url =
-      new URL(
-        pagina.url
-      )
+    const url = new URL(pagina.url)
 
-    const hostname =
-      url.hostname.toLowerCase()
+    const hostname = url.hostname.toLowerCase()
 
-    if (
-      hostname ===
-        "br.linkedin.com" ||
-      hostname.endsWith(
-        ".br.linkedin.com"
-      )
-    ) {
+    if (hostname === "br.linkedin.com" || hostname.endsWith(".br.linkedin.com")) {
       return true
     }
   } catch {
     // Se não consegui interpretar a URL, continuo pela análise do texto.
   }
 
-  const contexto =
-    normalizarTexto(
-      [
-        pagina.titulo,
-        pagina.descricao
-      ]
-        .filter(
-          (
-            valor
-          ): valor is string =>
-            Boolean(valor)
-        )
-        .join(" ")
-    )
+  const contexto = normalizarTexto(
+    [pagina.titulo, pagina.descricao].filter((valor): valor is string => Boolean(valor)).join(" ")
+  )
 
-  const contextoComEspacos =
-    ` ${contexto} `
+  const contextoComEspacos = ` ${contexto} `
 
   const sinaisBrasil = [
     " brazil ",
@@ -689,37 +443,18 @@ function linkedinTemSinalBrasil(
     " go "
   ]
 
-  return sinaisBrasil.some(
-    (sinal) =>
-      contextoComEspacos.includes(
-        sinal
-      )
-  )
+  return sinaisBrasil.some(sinal => contextoComEspacos.includes(sinal))
 }
 
 /**
  * No Indeed considero o domínio brasileiro um sinal válido para esta
  * etapa inicial de triagem.
  */
-function indeedEhBrasileiro(
-  pagina:
-    PaginaSomenteDescoberta
-) {
+function indeedEhBrasileiro(pagina: PaginaSomenteDescoberta) {
   try {
-    const hostname =
-      new URL(
-        pagina.url
-      )
-        .hostname
-        .toLowerCase()
+    const hostname = new URL(pagina.url).hostname.toLowerCase()
 
-    return (
-      hostname ===
-        "br.indeed.com" ||
-      hostname.endsWith(
-        ".br.indeed.com"
-      )
-    )
+    return hostname === "br.indeed.com" || hostname.endsWith(".br.indeed.com")
   } catch {
     return false
   }
@@ -731,37 +466,19 @@ function indeedEhBrasileiro(
  * Não utilizo pagina.consulta porque ela representa aquilo que eu pedi
  * ao mecanismo de busca, e não uma informação fornecida pela vaga.
  */
-function paginaTemSinalBrasil(
-  pagina:
-    PaginaSomenteDescoberta
-) {
-  if (
-    pagina.provedor ===
-    "linkedin"
-  ) {
-    return linkedinTemSinalBrasil(
-      pagina
-    )
+function paginaTemSinalBrasil(pagina: PaginaSomenteDescoberta) {
+  if (pagina.provedor === "linkedin") {
+    return linkedinTemSinalBrasil(pagina)
   }
 
-  if (
-    pagina.provedor ===
-    "indeed"
-  ) {
-    return indeedEhBrasileiro(
-      pagina
-    )
+  if (pagina.provedor === "indeed") {
+    return indeedEhBrasileiro(pagina)
   }
 
   let hostname = ""
 
   try {
-    hostname =
-      new URL(
-        pagina.url
-      )
-        .hostname
-        .toLowerCase()
+    hostname = new URL(pagina.url).hostname.toLowerCase()
   } catch {
     hostname = ""
   }
@@ -770,28 +487,13 @@ function paginaTemSinalBrasil(
    * Um domínio brasileiro é um sinal inicial forte o suficiente para
    * continuar a avaliação.
    */
-  if (
-    hostname.endsWith(
-      ".br"
-    )
-  ) {
+  if (hostname.endsWith(".br")) {
     return true
   }
 
-  const contexto =
-    normalizarTexto(
-      [
-        pagina.titulo,
-        pagina.descricao
-      ]
-        .filter(
-          (
-            valor
-          ): valor is string =>
-            Boolean(valor)
-        )
-        .join(" ")
-    )
+  const contexto = normalizarTexto(
+    [pagina.titulo, pagina.descricao].filter((valor): valor is string => Boolean(valor)).join(" ")
+  )
 
   const sinais = [
     "brasil",
@@ -814,12 +516,7 @@ function paginaTemSinalBrasil(
     "uberlandia"
   ]
 
-  return sinais.some(
-    (sinal) =>
-      contexto.includes(
-        sinal
-      )
-  )
+  return sinais.some(sinal => contexto.includes(sinal))
 }
 
 /**
@@ -830,15 +527,10 @@ function paginaTemSinalBrasil(
  * descrição pode dizer "prestar suporte remoto aos usuários" mesmo que
  * a vaga seja presencial.
  */
-function detectarTrabalhoRemoto(
-  pagina:
-    PaginaSomenteDescoberta
-) {
-  const titulo =
-    pagina.titulo
+function detectarTrabalhoRemoto(pagina: PaginaSomenteDescoberta) {
+  const titulo = pagina.titulo
 
-  const descricao =
-    pagina.descricao ?? ""
+  const descricao = pagina.descricao ?? ""
 
   const expressoesTitulo = [
     /\bremote\b/i,
@@ -848,14 +540,7 @@ function detectarTrabalhoRemoto(
     /\b100%\s*remot[oa]\b/i
   ]
 
-  if (
-    expressoesTitulo.some(
-      (padrao) =>
-        padrao.test(
-          titulo
-        )
-    )
-  ) {
+  if (expressoesTitulo.some(padrao => padrao.test(titulo))) {
     return true
   }
 
@@ -870,12 +555,7 @@ function detectarTrabalhoRemoto(
     /\bfully\s+remote\b/i
   ]
 
-  return expressoesDescricao.some(
-    (padrao) =>
-      padrao.test(
-        descricao
-      )
-  )
+  return expressoesDescricao.some(padrao => padrao.test(descricao))
 }
 
 /**
@@ -884,31 +564,16 @@ function detectarTrabalhoRemoto(
  *
  * Assim não preciso manter dois algoritmos diferentes de pontuação.
  */
-function avaliarPaginaDescoberta(
-  pagina:
-    PaginaSomenteDescoberta
-): RecomendacaoDescoberta | null {
-  if (
-    paginaPareceConteudoInformativo(
-      pagina.titulo,
-      pagina.url
-    )
-  ) {
+function avaliarPaginaDescoberta(pagina: PaginaSomenteDescoberta): RecomendacaoDescoberta | null {
+  if (paginaPareceConteudoInformativo(pagina.titulo, pagina.url)) {
     return null
   }
 
-  if (
-    !paginaTemSinalBrasil(
-      pagina
-    )
-  ) {
+  if (!paginaTemSinalBrasil(pagina)) {
     return null
   }
 
-  const remoto =
-    detectarTrabalhoRemoto(
-      pagina
-    )
+  const remoto = detectarTrabalhoRemoto(pagina)
 
   /**
    * Crio esta vaga apenas em memória para conseguir reutilizar o matcher.
@@ -917,82 +582,54 @@ function avaliarPaginaDescoberta(
    * localização temporária durante a pontuação. Na persistência parcial
    * não invento uma cidade ou estado e salvo a localização como nula.
    */
-  const vagaTemporaria:
-    VagaArmazenada = {
+  const vagaTemporaria: VagaArmazenada = {
     id: 0,
 
-    source:
-      pagina.provedor,
+    source: pagina.provedor,
 
-    external_id:
-      pagina.url,
+    external_id: pagina.url,
 
-    company:
-      "",
+    company: "",
 
-    title:
-      pagina.titulo,
+    title: pagina.titulo,
 
-    description:
-      pagina.descricao ?? "",
+    description: pagina.descricao ?? "",
 
-    location:
-      "Brasil",
+    location: "Brasil",
 
-    remote:
-      remoto,
+    remote: remoto,
 
-    url:
-      pagina.url,
+    url: pagina.url,
 
-    published_at:
-      null,
+    published_at: null,
 
-    partial:
-      true,
+    partial: true,
 
-    created_at:
-      new Date(0)
-        .toISOString()
+    created_at: new Date(0).toISOString()
   }
 
-  const correspondencia =
-    avaliarVaga(
-      vagaTemporaria
-    )
+  const correspondencia = avaliarVaga(vagaTemporaria)
 
-  if (
-    correspondencia.score < 60
-  ) {
+  if (correspondencia.score < 60) {
     return null
   }
 
   return {
-    provedor:
-      pagina.provedor,
+    provedor: pagina.provedor,
 
-    titulo:
-      pagina.titulo,
+    titulo: pagina.titulo,
 
-    url:
-      pagina.url,
+    url: pagina.url,
 
-    descricao:
-      pagina.descricao,
+    descricao: pagina.descricao,
 
-    consulta:
-      pagina.consulta,
+    consulta: pagina.consulta,
 
-    pontuacao:
-      correspondencia.score,
+    pontuacao: correspondencia.score,
 
-    competencias:
-      correspondencia
-        .matchedSkills,
+    competencias: correspondencia.matchedSkills,
 
-    motivos:
-      correspondencia
-        .reasons
+    motivos: correspondencia.reasons
   }
 }
 
@@ -1002,42 +639,17 @@ function avaliarPaginaDescoberta(
  *
  * Esta operação não realiza nenhuma nova chamada externa.
  */
-function criarRecomendacoesDescoberta(
-  paginas:
-    PaginaSomenteDescoberta[]
-) {
+function criarRecomendacoesDescoberta(paginas: PaginaSomenteDescoberta[]) {
   return paginas
-    .map(
-      avaliarPaginaDescoberta
-    )
-    .filter(
-      (
-        recomendacao
-      ): recomendacao is RecomendacaoDescoberta =>
-        recomendacao !== null
-    )
-    .sort(
-      (
-        primeira,
-        segunda
-      ) => {
-        if (
-          segunda.pontuacao !==
-          primeira.pontuacao
-        ) {
-          return (
-            segunda.pontuacao -
-            primeira.pontuacao
-          )
-        }
-
-        return primeira.titulo
-          .localeCompare(
-            segunda.titulo,
-            "pt-BR"
-          )
+    .map(avaliarPaginaDescoberta)
+    .filter((recomendacao): recomendacao is RecomendacaoDescoberta => recomendacao !== null)
+    .sort((primeira, segunda) => {
+      if (segunda.pontuacao !== primeira.pontuacao) {
+        return segunda.pontuacao - primeira.pontuacao
       }
-    )
+
+      return primeira.titulo.localeCompare(segunda.titulo, "pt-BR")
+    })
 }
 
 /**
@@ -1049,17 +661,8 @@ function criarRecomendacoesDescoberta(
  * Como o hash sempre será o mesmo para a mesma URL, consigo deduplicar a
  * oportunidade nas execuções futuras.
  */
-function criarIdExternoDescoberta(
-  recomendacao:
-    RecomendacaoDescoberta
-) {
-  const hash =
-    createHash("sha256")
-      .update(
-        recomendacao.url
-      )
-      .digest("hex")
-      .slice(0, 48)
+function criarIdExternoDescoberta(recomendacao: RecomendacaoDescoberta) {
+  const hash = createHash("sha256").update(recomendacao.url).digest("hex").slice(0, 48)
 
   return `web_${hash}`
 }
@@ -1071,13 +674,8 @@ function criarIdExternoDescoberta(
  * Prefiro deixar a empresa como não identificada quando não tenho
  * segurança em vez de salvar um nome incorreto.
  */
-function identificarEmpresaDescoberta(
-  recomendacao:
-    RecomendacaoDescoberta
-) {
-  const titulo =
-    recomendacao.titulo
-      .trim()
+function identificarEmpresaDescoberta(recomendacao: RecomendacaoDescoberta) {
+  const titulo = recomendacao.titulo.trim()
 
   const padroes = [
     /^A empresa (.+?) está contratando/i,
@@ -1091,24 +689,12 @@ function identificarEmpresaDescoberta(
     /\s[-–—]\s*([^|]+?)\s*\|\s*BeBee$/i
   ]
 
-  for (
-    const padrao
-    of padroes
-  ) {
-    const resultado =
-      titulo.match(
-        padrao
-      )
+  for (const padrao of padroes) {
+    const resultado = titulo.match(padrao)
 
-    const empresa =
-      resultado?.[1]
-        ?.trim()
+    const empresa = resultado?.[1]?.trim()
 
-    if (
-      empresa &&
-      empresa.length >= 2 &&
-      empresa.length <= 150
-    ) {
+    if (empresa && empresa.length >= 2 && empresa.length <= 150) {
       return empresa
     }
   }
@@ -1123,13 +709,8 @@ function identificarEmpresaDescoberta(
  * Deixo explícito no banco que este registro veio da descoberta para
  * não confundir com uma descrição completa extraída do anúncio.
  */
-function obterDescricaoDescoberta(
-  recomendacao:
-    RecomendacaoDescoberta
-) {
-  const descricao =
-    recomendacao.descricao
-      ?.trim()
+function obterDescricaoDescoberta(recomendacao: RecomendacaoDescoberta) {
+  const descricao = recomendacao.descricao?.trim()
 
   if (descricao) {
     return descricao
@@ -1145,8 +726,7 @@ function obterDescricaoDescoberta(
  * Crio um objeto vazio para facilitar os caminhos em que a persistência
  * está desativada, como acontece no diagnóstico.
  */
-function criarResultadoPersistenciaVazio():
-  ResultadoPersistenciaDescoberta {
+function criarResultadoPersistenciaVazio(): ResultadoPersistenciaDescoberta {
   return {
     novas: 0,
     atualizadas: 0,
@@ -1165,100 +745,59 @@ function criarResultadoPersistenciaVazio():
  * publicação original.
  */
 async function persistirRecomendacoesDescoberta(
-  recomendacoes:
-    RecomendacaoDescoberta[]
-): Promise<
-  ResultadoPersistenciaDescoberta
-> {
-  const resultado =
-    criarResultadoPersistenciaVazio()
+  recomendacoes: RecomendacaoDescoberta[]
+): Promise<ResultadoPersistenciaDescoberta> {
+  const resultado = criarResultadoPersistenciaVazio()
 
-  for (
-    const recomendacao
-    of recomendacoes
-  ) {
+  for (const recomendacao of recomendacoes) {
     try {
-      const idExterno =
-        criarIdExternoDescoberta(
-          recomendacao
-        )
+      const idExterno = criarIdExternoDescoberta(recomendacao)
 
-      let vaga =
-        await buscarVagaPorOrigemEIdExterno(
-          recomendacao.provedor,
-          idExterno
-        )
+      let vaga = await buscarVagaPorOrigemEIdExterno(recomendacao.provedor, idExterno)
 
-      let criadaAgora =
-        false
+      let criadaAgora = false
 
       if (!vaga) {
         try {
-          vaga =
-            await criarVaga({
-              source:
-                recomendacao.provedor,
+          vaga = await criarVaga({
+            source: recomendacao.provedor,
 
-              externalId:
-                idExterno,
+            externalId: idExterno,
 
-              company:
-                identificarEmpresaDescoberta(
-                  recomendacao
-                ),
+            company: identificarEmpresaDescoberta(recomendacao),
 
-              title:
-                recomendacao.titulo,
+            title: recomendacao.titulo,
 
-              description:
-                obterDescricaoDescoberta(
-                  recomendacao
-                ),
+            description: obterDescricaoDescoberta(recomendacao),
 
-              /**
-               * Sei que a recomendação passou pelo filtro de Brasil, mas
-               * não invento cidade ou estado quando o dado não veio de
-               * forma estruturada.
-               */
-              location:
-                null,
+            /**
+             * Sei que a recomendação passou pelo filtro de Brasil, mas
+             * não invento cidade ou estado quando o dado não veio de
+             * forma estruturada.
+             */
+            location: null,
 
-              remote:
-                detectarTrabalhoRemoto(
-                  recomendacao
-                ),
+            remote: detectarTrabalhoRemoto(recomendacao),
 
-              url:
-                recomendacao.url,
+            url: recomendacao.url,
 
-              publishedAt:
-                null,
+            publishedAt: null,
 
-              partial:
-                true
-            })
+            partial: true
+          })
 
-          criadaAgora =
-            true
+          criadaAgora = true
         } catch (erro) {
           /**
            * Mesmo trabalhando sequencialmente, mantenho esta proteção
            * porque a vaga pode ter sido criada por outra execução entre
            * a consulta e o INSERT.
            */
-          if (
-            !ehErroVagaDuplicada(
-              erro
-            )
-          ) {
+          if (!ehErroVagaDuplicada(erro)) {
             throw erro
           }
 
-          vaga =
-            await buscarVagaPorOrigemEIdExterno(
-              recomendacao.provedor,
-              idExterno
-            )
+          vaga = await buscarVagaPorOrigemEIdExterno(recomendacao.provedor, idExterno)
 
           if (!vaga) {
             throw new Error(
@@ -1275,20 +814,15 @@ async function persistirRecomendacoesDescoberta(
        * ignored caso esta oportunidade já tenha sido tratada no dashboard.
        */
       await salvarCorrespondenciaVaga({
-        jobId:
-          vaga.id,
+        jobId: vaga.id,
 
-        localScore:
-          recomendacao.pontuacao,
+        localScore: recomendacao.pontuacao,
 
-        matchedSkills:
-          recomendacao.competencias,
+        matchedSkills: recomendacao.competencias,
 
-        reasons:
-          recomendacao.motivos,
+        reasons: recomendacao.motivos,
 
-        status:
-          "relevant"
+        status: "relevant"
       })
 
       if (criadaAgora) {
@@ -1303,10 +837,7 @@ async function persistirRecomendacoesDescoberta(
        * Uma falha individual não precisa interromper toda a sincronização.
        * Registro o problema e continuo processando as demais oportunidades.
        */
-      console.error(
-        `Erro ao persistir descoberta "${recomendacao.titulo}":`,
-        erro
-      )
+      console.error(`Erro ao persistir descoberta "${recomendacao.titulo}":`, erro)
     }
   }
 
@@ -1321,62 +852,35 @@ async function persistirRecomendacoesDescoberta(
  * possuem extração estruturada.
  */
 export async function processarVagasWeb(
-  opcoes:
-    OpcoesProcessamentoWeb = {}
-): Promise<
-  ResultadoProcessamentoWeb
-> {
-  const salvarCompativeis =
-    opcoes.salvarCompativeis ??
-    false
+  opcoes: OpcoesProcessamentoWeb = {}
+): Promise<ResultadoProcessamentoWeb> {
+  const salvarCompativeis = opcoes.salvarCompativeis ?? false
 
   /**
    * Quando permitirBuscaLive não está ativo, o serviço de descoberta
    * trabalha somente com o conteúdo disponível no cache.
    */
-  const paginas =
-    await descobrirPaginasVagas({
-      permitirBuscaLive:
-        opcoes.permitirBuscaLive,
+  const paginas = await descobrirPaginasVagas({
+    permitirBuscaLive: opcoes.permitirBuscaLive,
 
-      limiteChamadas:
-        opcoes.limiteChamadasBrave
-    })
+    limiteChamadas: opcoes.limiteChamadasBrave
+  })
 
-  const paginasRelacionadas =
-    paginas.filter(
-      paginaPareceRelacionada
-    )
+  const paginasRelacionadas = paginas.filter(paginaPareceRelacionada)
 
-  const descartadasPorTitulo =
-    paginas.length -
-    paginasRelacionadas.length
+  const descartadasPorTitulo = paginas.length - paginasRelacionadas.length
 
-  const paginasDeListagem =
-    paginasRelacionadas.filter(
-      paginaEhListagem
-    ).length
+  const paginasDeListagem = paginasRelacionadas.filter(paginaEhListagem).length
 
-  const paginasIndividuais =
-    paginasRelacionadas.filter(
-      (pagina) =>
-        !paginaEhListagem(
-          pagina
-        )
-    )
+  const paginasIndividuais = paginasRelacionadas.filter(pagina => !paginaEhListagem(pagina))
 
   /**
    * Somente os provedores que possuem extratores validados são abertos
    * para processamento estruturado.
    */
-  const paginasSelecionadas =
-    paginasIndividuais
-      .filter(
-        ehProvedorProcessavel
-      )
-      .map(
-        normalizarPaginaParaInspecao
-      )
+  const paginasSelecionadas = paginasIndividuais
+    .filter(ehProvedorProcessavel)
+    .map(normalizarPaginaParaInspecao)
 
   /**
    * Não descarto as demais fontes.
@@ -1384,38 +888,21 @@ export async function processarVagasWeb(
    * Elas permanecem disponíveis para classificação pelo matcher usando
    * os dados que a descoberta já trouxe.
    */
-  const somenteDescoberta:
-    PaginaSomenteDescoberta[] =
-    paginasIndividuais
-      .filter(
-        (pagina) =>
-          !ehProvedorProcessavel(
-            pagina
-          )
-      )
-      .map(
-        (pagina) => ({
-          provedor:
-            pagina.provedor,
+  const somenteDescoberta: PaginaSomenteDescoberta[] = paginasIndividuais
+    .filter(pagina => !ehProvedorProcessavel(pagina))
+    .map(pagina => ({
+      provedor: pagina.provedor,
 
-          titulo:
-            pagina.titulo,
+      titulo: pagina.titulo,
 
-          url:
-            pagina.url,
+      url: pagina.url,
 
-          descricao:
-            pagina.descricao,
+      descricao: pagina.descricao,
 
-          consulta:
-            pagina.consulta
-        })
-      )
+      consulta: pagina.consulta
+    }))
 
-  const recomendacoesDescoberta =
-    criarRecomendacoesDescoberta(
-      somenteDescoberta
-    )
+  const recomendacoesDescoberta = criarRecomendacoesDescoberta(somenteDescoberta)
 
   /**
    * No diagnóstico salvarCompativeis é false.
@@ -1423,21 +910,13 @@ export async function processarVagasWeb(
    * Isso garante que npm run diagnose continue sendo uma operação de
    * leitura e análise, sem alterar jobs ou job_matches.
    */
-  const persistenciaDescoberta =
-    salvarCompativeis
-      ? await persistirRecomendacoesDescoberta(
-          recomendacoesDescoberta
-        )
-      : criarResultadoPersistenciaVazio()
+  const persistenciaDescoberta = salvarCompativeis
+    ? await persistirRecomendacoesDescoberta(recomendacoesDescoberta)
+    : criarResultadoPersistenciaVazio()
 
-  const resultadosPorProvedor =
-    new Map<
-      ProvedorPagina,
-      ResultadoFonteProcessada
-    >()
+  const resultadosPorProvedor = new Map<ProvedorPagina, ResultadoFonteProcessada>()
 
-  const pendencias:
-    PendenciaProcessamentoWeb[] = []
+  const pendencias: PendenciaProcessamentoWeb[] = []
 
   let vagasExtraidas = 0
   let compativeisBrasil = 0
@@ -1454,93 +933,54 @@ export async function processarVagasWeb(
    * Prefiro evitar várias conexões simultâneas contra os ATS e manter a
    * execução mais previsível.
    */
-  for (
-    const pagina
-    of paginasSelecionadas
-  ) {
-    const resumo =
-      obterResultadoProvedor(
-        resultadosPorProvedor,
-        pagina.provedor
-      )
+  for (const pagina of paginasSelecionadas) {
+    const resumo = obterResultadoProvedor(resultadosPorProvedor, pagina.provedor)
 
     resumo.encontradas++
 
-    const resultado =
-      await inspecionarPaginaVaga(
-        pagina
-      )
+    const resultado = await inspecionarPaginaVaga(pagina)
 
-    if (
-      "erro" in resultado
-    ) {
+    if ("erro" in resultado) {
       resumo.falhas++
       falhas++
 
-      registrarPendencia(
-        pendencias,
-        {
-          tipo:
-            "acesso",
+      registrarPendencia(pendencias, {
+        tipo: "acesso",
 
-          provedor:
-            pagina.provedor,
+        provedor: pagina.provedor,
 
-          titulo:
-            pagina.titulo,
+        titulo: pagina.titulo,
 
-          url:
-            pagina.url,
+        url: pagina.url,
 
-          localizacao:
-            null,
+        localizacao: null,
 
-          motivo:
-            resultado.erro
-        }
-      )
+        motivo: resultado.erro
+      })
 
       continue
     }
 
-    if (
-      !resultado.vaga ||
-      !resultado.ehPublicacaoVaga
-    ) {
+    if (!resultado.vaga || !resultado.ehPublicacaoVaga) {
       resumo.ignoradas++
 
-      const indisponivel =
-        paginaEstaIndisponivel(
-          resultado.urlFinal,
-          resultado.codigoStatus
-        )
+      const indisponivel = paginaEstaIndisponivel(resultado.urlFinal, resultado.codigoStatus)
 
-      registrarPendencia(
-        pendencias,
-        {
-          tipo:
-            indisponivel
-              ? "indisponivel"
-              : "extracao",
+      registrarPendencia(pendencias, {
+        tipo: indisponivel ? "indisponivel" : "extracao",
 
-          provedor:
-            pagina.provedor,
+        provedor: pagina.provedor,
 
-          titulo:
-            pagina.titulo,
+        titulo: pagina.titulo,
 
-          url:
-            resultado.urlFinal,
+        url: resultado.urlFinal,
 
-          localizacao:
-            null,
+        localizacao: null,
 
-          motivo:
-            indisponivel
-              ? "A publicação não está mais disponível no ATS."
-              : "A página foi acessada, mas nenhum extrator conseguiu confirmar uma vaga válida."
-        }
-      )
+        motivo: indisponivel
+          ? "A publicação não está mais disponível no ATS."
+          : "A página foi acessada, mas nenhum extrator conseguiu confirmar uma vaga válida."
+      })
 
       continue
     }
@@ -1548,54 +988,31 @@ export async function processarVagasWeb(
     resumo.vagasValidas++
     vagasExtraidas++
 
-    const elegibilidade =
-      resultado.elegibilidadeBrasil
+    const elegibilidade = resultado.elegibilidadeBrasil
 
-    if (
-      !elegibilidade ||
-      elegibilidade.situacao ===
-        "indefinida"
-    ) {
+    if (!elegibilidade || elegibilidade.situacao === "indefinida") {
       resumo.indefinidas++
       indefinidas++
 
-      registrarPendencia(
-        pendencias,
-        {
-          tipo:
-            "localizacao",
+      registrarPendencia(pendencias, {
+        tipo: "localizacao",
 
-          provedor:
-            resultado.provedor,
+        provedor: resultado.provedor,
 
-          titulo:
-            resultado.vaga
-              .titulo ??
-            pagina.titulo,
+        titulo: resultado.vaga.titulo ?? pagina.titulo,
 
-          url:
-            resultado.urlFinal,
+        url: resultado.urlFinal,
 
-          localizacao:
-            resultado.vaga
-              .localizacao,
+        localizacao: resultado.vaga.localizacao,
 
-          motivo:
-            elegibilidade
-              ?.motivo ??
-            "A elegibilidade para o Brasil não foi avaliada."
-        }
-      )
+        motivo: elegibilidade?.motivo ?? "A elegibilidade para o Brasil não foi avaliada."
+      })
 
       continue
     }
 
-    if (
-      elegibilidade.situacao ===
-      "incompativel"
-    ) {
-      resumo
-        .incompativeisBrasil++
+    if (elegibilidade.situacao === "incompativel") {
+      resumo.incompativeisBrasil++
 
       incompativeisBrasil++
 
@@ -1610,22 +1027,14 @@ export async function processarVagasWeb(
      *
      * A vaga já foi validada, mas não faço alteração no banco.
      */
-    if (
-      !salvarCompativeis
-    ) {
+    if (!salvarCompativeis) {
       continue
     }
 
-    const novaVaga =
-      converterVagaWebParaNovaVaga(
-        pagina,
-        resultado.vaga,
-        resultado.urlFinal
-      )
+    const novaVaga = converterVagaWebParaNovaVaga(pagina, resultado.vaga, resultado.urlFinal)
 
     if (!novaVaga) {
-      resumo
-        .semDadosObrigatorios++
+      resumo.semDadosObrigatorios++
 
       semDadosObrigatorios++
 
@@ -1633,18 +1042,12 @@ export async function processarVagasWeb(
     }
 
     try {
-      await criarVaga(
-        novaVaga
-      )
+      await criarVaga(novaVaga)
 
       resumo.importadas++
       importadas++
     } catch (erro) {
-      if (
-        ehErroVagaDuplicada(
-          erro
-        )
-      ) {
+      if (ehErroVagaDuplicada(erro)) {
         resumo.duplicadas++
         duplicadas++
 
@@ -1656,18 +1059,15 @@ export async function processarVagasWeb(
   }
 
   return {
-    paginasDescobertas:
-      paginas.length,
+    paginasDescobertas: paginas.length,
 
     descartadasPorTitulo,
 
     paginasDeListagem,
 
-    paginasSelecionadas:
-      paginasSelecionadas.length,
+    paginasSelecionadas: paginasSelecionadas.length,
 
-    paginasSomenteDescoberta:
-      somenteDescoberta.length,
+    paginasSomenteDescoberta: somenteDescoberta.length,
 
     vagasExtraidas,
 
@@ -1687,10 +1087,7 @@ export async function processarVagasWeb(
 
     persistenciaDescoberta,
 
-    porProvedor: [
-      ...resultadosPorProvedor
-        .values()
-    ],
+    porProvedor: [...resultadosPorProvedor.values()],
 
     pendencias,
 

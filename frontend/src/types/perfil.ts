@@ -41,17 +41,13 @@ export type PerfilProfissional = {
 
   cargosDesvio: string[]
 
-  competencias:
-    CompetenciaPerfil[]
+  competencias: CompetenciaPerfil[]
 
-  experiencias:
-    ExperienciaProfissional[]
+  experiencias: ExperienciaProfissional[]
 
-  formacoes:
-    FormacaoProfissional[]
+  formacoes: FormacaoProfissional[]
 
-  cursos:
-    CursoProfissional[]
+  cursos: CursoProfissional[]
 
   localizacoesAceitas: string[]
 
@@ -59,12 +55,9 @@ export type PerfilProfissional = {
 }
 
 export type PerfilProfissionalComMetadados = {
-  perfil:
-    PerfilProfissional
+  perfil: PerfilProfissional
 
-  nomeArquivoOrigem:
-    string | null
+  nomeArquivoOrigem: string | null
 
-  atualizadoEm:
-    string | null
+  atualizadoEm: string | null
 }

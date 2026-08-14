@@ -1,11 +1,8 @@
 import * as cheerio from "cheerio"
 
-import type {
-  VagaExtraida
-} from "../types/page-inspection.js"
+import type { VagaExtraida } from "../types/page-inspection.js"
 
-type RaizCheerio =
-  ReturnType<typeof cheerio.load>
+type RaizCheerio = ReturnType<typeof cheerio.load>
 
 type ContextoGupy = {
   idVaga: string
@@ -13,11 +10,7 @@ type ContextoGupy = {
 }
 
 const rotulosSecoes = {
-  descricao: [
-    "job description",
-    "descrição da vaga",
-    "descricao da vaga"
-  ],
+  descricao: ["job description", "descrição da vaga", "descricao da vaga"],
 
   responsabilidades: [
     "responsibilities and assignments",
@@ -37,133 +30,68 @@ const rotulosSecoes = {
     "informacoes adicionais"
   ],
 
-  etapasProcesso: [
-    "process stages",
-    "etapas do processo"
-  ]
+  etapasProcesso: ["process stages", "etapas do processo"]
 }
 
-function normalizarTextoCurto(
-  valor: string
-) {
+function normalizarTextoCurto(valor: string) {
   return valor
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ")
     .trim()
 }
 
-function extrairLinhasPagina(
-  $: RaizCheerio
-) {
-  const corpo =
-    $("body").clone()
+function extrairLinhasPagina($: RaizCheerio) {
+  const corpo = $("body").clone()
 
-  corpo
-    .find(
-      "script, style, noscript, svg"
-    )
-    .remove()
+  corpo.find("script, style, noscript, svg").remove()
 
-  corpo
-    .find("br")
-    .replaceWith("\n")
+  corpo.find("br").replaceWith("\n")
 
-  corpo
-    .find(
-      "h1, h2, h3, p, li"
-    )
-    .each(
-      (_indice, elemento) => {
-        $(elemento)
-          .append("\n")
-      }
-    )
+  corpo.find("h1, h2, h3, p, li").each((_indice, elemento) => {
+    $(elemento).append("\n")
+  })
 
   return corpo
     .text()
     .replace(/\r/g, "")
     .replace(/\u00a0/g, " ")
     .split("\n")
-    .map(
-      normalizarTextoCurto
-    )
+    .map(normalizarTextoCurto)
     .filter(Boolean)
 }
 
-function correspondeRotulo(
-  valor: string,
-  rotulos: string[]
-) {
-  const valorNormalizado =
-    valor.toLowerCase()
+function correspondeRotulo(valor: string, rotulos: string[]) {
+  const valorNormalizado = valor.toLowerCase()
 
-  return rotulos.some(
-    (rotulo) =>
-      valorNormalizado ===
-      rotulo.toLowerCase()
-  )
+  return rotulos.some(rotulo => valorNormalizado === rotulo.toLowerCase())
 }
 
 function obterTodosRotulos() {
-  return Object
-    .values(rotulosSecoes)
-    .flat()
+  return Object.values(rotulosSecoes).flat()
 }
 
-function extrairSecao(
-  linhas: string[],
-  rotulos: string[]
-): string | null {
-  const indiceInicial =
-    linhas.findIndex(
-      (linha) =>
-        correspondeRotulo(
-          linha,
-          rotulos
-        )
-    )
+function extrairSecao(linhas: string[], rotulos: string[]): string | null {
+  const indiceInicial = linhas.findIndex(linha => correspondeRotulo(linha, rotulos))
 
-  if (
-    indiceInicial === -1
-  ) {
+  if (indiceInicial === -1) {
     return null
   }
 
-  const todosRotulos =
-    obterTodosRotulos()
+  const todosRotulos = obterTodosRotulos()
 
   const conteudo: string[] = []
 
-  for (
-    let indice =
-      indiceInicial + 1;
+  for (let indice = indiceInicial + 1; indice < linhas.length; indice++) {
+    const linha = linhas[indice]
 
-    indice <
-    linhas.length;
-
-    indice++
-  ) {
-    const linha =
-      linhas[indice]
-
-    if (
-      correspondeRotulo(
-        linha,
-        todosRotulos
-      )
-    ) {
+    if (correspondeRotulo(linha, todosRotulos)) {
       break
     }
 
-    conteudo.push(
-      linha
-    )
+    conteudo.push(linha)
   }
 
-  const texto =
-    conteudo
-      .join("\n")
-      .trim()
+  const texto = conteudo.join("\n").trim()
 
   return texto || null
 }
@@ -172,130 +100,64 @@ function extrairSecao(
  * Tento recuperar a empresa sem aceitar como nome da organização
  * o próprio título da vaga.
  */
-function extrairEmpresa(
-  $: RaizCheerio,
-  urlFinal: string,
-  tituloVaga: string
-): string | null {
-  const tituloNormalizado =
-    normalizarTextoCurto(
-      tituloVaga
-    ).toLowerCase()
+function extrairEmpresa($: RaizCheerio, urlFinal: string, tituloVaga: string): string | null {
+  const tituloNormalizado = normalizarTextoCurto(tituloVaga).toLowerCase()
 
-  const seletoresMetadados = [
-    'meta[property="og:site_name"]',
-    'meta[name="application-name"]'
-  ]
+  const seletoresMetadados = ['meta[property="og:site_name"]', 'meta[name="application-name"]']
 
-  for (
-    const seletor
-    of seletoresMetadados
-  ) {
-    const conteudo =
-      normalizarTextoCurto(
-        $(seletor)
-          .first()
-          .attr("content") ??
-        ""
-      )
+  for (const seletor of seletoresMetadados) {
+    const conteudo = normalizarTextoCurto($(seletor).first().attr("content") ?? "")
 
-    const conteudoNormalizado =
-      conteudo.toLowerCase()
+    const conteudoNormalizado = conteudo.toLowerCase()
 
-    if (
-      conteudo &&
-      conteudoNormalizado !==
-      "gupy" &&
-      conteudoNormalizado !==
-      tituloNormalizado
-    ) {
+    if (conteudo && conteudoNormalizado !== "gupy" && conteudoNormalizado !== tituloNormalizado) {
       return conteudo
     }
   }
 
   try {
-    const hostname =
-      new URL(
-        urlFinal
-      ).hostname.toLowerCase()
+    const hostname = new URL(urlFinal).hostname.toLowerCase()
 
-    if (
-      !hostname.endsWith(
-        ".gupy.io"
-      )
-    ) {
+    if (!hostname.endsWith(".gupy.io")) {
       return null
     }
 
-    const identificadorEmpresa =
-      hostname.split(".")[0]
+    const identificadorEmpresa = hostname.split(".")[0]
 
-    if (
-      !identificadorEmpresa
-    ) {
+    if (!identificadorEmpresa) {
       return null
     }
 
     return identificadorEmpresa
       .split("-")
       .filter(Boolean)
-      .map(
-        (parte) =>
-          parte
-            .charAt(0)
-            .toUpperCase() +
-          parte.slice(1)
-      )
+      .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
       .join(" ")
   } catch {
     return null
   }
 }
 
-function extrairValorEstruturado(
-  $: RaizCheerio,
-  propriedade: string
-): string | null {
-  const elemento =
-    $(
-      `[itemprop="${propriedade}"]`
-    ).first()
+function extrairValorEstruturado($: RaizCheerio, propriedade: string): string | null {
+  const elemento = $(`[itemprop="${propriedade}"]`).first()
 
   if (!elemento.length) {
     return null
   }
 
-  const valor =
-    elemento.attr("content") ??
-    elemento.attr("datetime") ??
-    elemento.text()
+  const valor = elemento.attr("content") ?? elemento.attr("datetime") ?? elemento.text()
 
-  const valorNormalizado =
-    normalizarTextoCurto(
-      valor
-    )
+  const valorNormalizado = normalizarTextoCurto(valor)
 
-  return (
-    valorNormalizado ||
-    null
-  )
+  return valorNormalizado || null
 }
 
-function detectarRemoto(
-  texto: string
-) {
-  return /\b(remote|remoto|remota|100%\s*remot[oa]|home\s*office)\b/i.test(
-    texto
-  )
+function detectarRemoto(texto: string) {
+  return /\b(remote|remoto|remota|100%\s*remot[oa]|home\s*office)\b/i.test(texto)
 }
 
-function ehLinkCandidatura(
-  texto: string
-) {
-  const textoNormalizado =
-    normalizarTextoCurto(
-      texto
-    ).toLowerCase()
+function ehLinkCandidatura(texto: string) {
+  const textoNormalizado = normalizarTextoCurto(texto).toLowerCase()
 
   return (
     textoNormalizado === "apply" ||
@@ -307,42 +169,23 @@ function ehLinkCandidatura(
   )
 }
 
-function extrairUrlCandidatura(
-  $: RaizCheerio,
-  urlFinal: string
-): string {
-  const elementoCandidatura =
-    $("a")
-      .toArray()
-      .find(
-        (elemento) =>
-          ehLinkCandidatura(
-            $(elemento).text()
-          )
-      )
+function extrairUrlCandidatura($: RaizCheerio, urlFinal: string): string {
+  const elementoCandidatura = $("a")
+    .toArray()
+    .find(elemento => ehLinkCandidatura($(elemento).text()))
 
-  if (
-    !elementoCandidatura
-  ) {
+  if (!elementoCandidatura) {
     return urlFinal
   }
 
-  const href =
-    $(elementoCandidatura)
-      .attr("href")
+  const href = $(elementoCandidatura).attr("href")
 
-  if (
-    !href ||
-    href.startsWith("#")
-  ) {
+  if (!href || href.startsWith("#")) {
     return urlFinal
   }
 
   try {
-    return new URL(
-      href,
-      urlFinal
-    ).toString()
+    return new URL(href, urlFinal).toString()
   } catch {
     return urlFinal
   }
@@ -355,75 +198,41 @@ function montarDescricao(
   informacoesAdicionais: string | null
 ) {
   const secoes = [
-    descricao
-      ? `Descrição da vaga\n${descricao}`
-      : null,
+    descricao ? `Descrição da vaga\n${descricao}` : null,
 
-    responsabilidades
-      ? `Responsabilidades\n${responsabilidades}`
-      : null,
+    responsabilidades ? `Responsabilidades\n${responsabilidades}` : null,
 
-    requisitos
-      ? `Requisitos\n${requisitos}`
-      : null,
+    requisitos ? `Requisitos\n${requisitos}` : null,
 
-    informacoesAdicionais
-      ? `Informações adicionais\n${informacoesAdicionais}`
-      : null
-  ].filter(
-    (secao): secao is string =>
-      Boolean(secao)
-  )
+    informacoesAdicionais ? `Informações adicionais\n${informacoesAdicionais}` : null
+  ].filter((secao): secao is string => Boolean(secao))
 
-  return secoes.length > 0
-    ? secoes.join("\n\n")
-    : null
+  return secoes.length > 0 ? secoes.join("\n\n") : null
 }
 
 /**
  * Recupero o identificador da vaga e a página oficial de carreiras
  * usando somente a própria URL da Gupy.
  */
-function interpretarContextoGupy(
-  urlFinal: string
-): ContextoGupy | null {
+function interpretarContextoGupy(urlFinal: string): ContextoGupy | null {
   try {
-    const url =
-      new URL(urlFinal)
+    const url = new URL(urlFinal)
 
-    const hostname =
-      url.hostname.toLowerCase()
+    const hostname = url.hostname.toLowerCase()
 
-    if (
-      !hostname.endsWith(
-        ".gupy.io"
-      )
-    ) {
+    if (!hostname.endsWith(".gupy.io")) {
       return null
     }
 
-    const partes =
-      url.pathname
-        .split("/")
-        .filter(Boolean)
+    const partes = url.pathname.split("/").filter(Boolean)
 
-    const indiceVaga =
-      partes.findIndex(
-        (parte) => {
-          const valor =
-            parte.toLowerCase()
+    const indiceVaga = partes.findIndex(parte => {
+      const valor = parte.toLowerCase()
 
-          return (
-            valor === "job" ||
-            valor === "jobs"
-          )
-        }
-      )
+      return valor === "job" || valor === "jobs"
+    })
 
-    const idVaga =
-      partes[
-      indiceVaga + 1
-      ]
+    const idVaga = partes[indiceVaga + 1]
 
     if (!idVaga) {
       return null
@@ -431,8 +240,7 @@ function interpretarContextoGupy(
 
     return {
       idVaga,
-      urlCarreiras:
-        `${url.protocol}//${hostname}/`
+      urlCarreiras: `${url.protocol}//${hostname}/`
     }
   } catch {
     return null
@@ -449,94 +257,59 @@ async function enriquecerPelaPaginaCarreiras(
   vaga: VagaExtraida,
   urlFinal: string
 ): Promise<VagaExtraida> {
-  const contexto =
-    interpretarContextoGupy(
-      urlFinal
-    )
+  const contexto = interpretarContextoGupy(urlFinal)
 
   if (!contexto) {
     return vaga
   }
 
-  const controlador =
-    new AbortController()
+  const controlador = new AbortController()
 
-  const temporizador =
-    setTimeout(
-      () =>
-        controlador.abort(),
-      12000
-    )
+  const temporizador = setTimeout(() => controlador.abort(), 12000)
 
   try {
-    const resposta =
-      await fetch(
-        contexto.urlCarreiras,
-        {
-          signal:
-            controlador.signal,
+    const resposta = await fetch(contexto.urlCarreiras, {
+      signal: controlador.signal,
 
-          headers: {
-            Accept:
-              "text/html,application/xhtml+xml",
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
 
-            "Accept-Language":
-              "pt-BR,pt;q=0.9,en;q=0.8"
-          }
-        }
-      )
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8"
+      }
+    })
 
     if (!resposta.ok) {
       return vaga
     }
 
-    const html =
-      await resposta.text()
+    const html = await resposta.text()
 
-    const $ =
-      cheerio.load(html)
+    const $ = cheerio.load(html)
 
-    const linkVaga =
-      $("a")
-        .toArray()
-        .find(
-          (elemento) => {
-            const href =
-              $(elemento)
-                .attr("href")
+    const linkVaga = $("a")
+      .toArray()
+      .find(elemento => {
+        const href = $(elemento).attr("href")
 
-            if (!href) {
-              return false
-            }
+        if (!href) {
+          return false
+        }
 
-            return href.includes(
-              `/jobs/${contexto.idVaga}`
-            )
-          }
-        )
+        return href.includes(`/jobs/${contexto.idVaga}`)
+      })
 
     if (!linkVaga) {
       return vaga
     }
 
-    const textoCartao =
-      normalizarTextoCurto(
-        $(linkVaga).text()
-      )
+    const textoCartao = normalizarTextoCurto($(linkVaga).text())
 
-    const textoPagina =
-      normalizarTextoCurto(
-        $("body").text()
-      )
+    const textoPagina = normalizarTextoCurto($("body").text())
 
     const remoto =
-      vaga.remoto ||
-      /\b(remote work|trabalho remoto|remoto|home office)\b/i.test(
-        textoCartao
-      )
+      vaga.remoto || /\b(remote work|trabalho remoto|remoto|home office)\b/i.test(textoCartao)
 
-    let localizacao =
-      vaga.localizacao
+    let localizacao = vaga.localizacao
 
     /**
      * Só assumo Brasil quando a própria página oficial da empresa
@@ -544,12 +317,9 @@ async function enriquecerPelaPaginaCarreiras(
      */
     if (
       !localizacao &&
-      /\b(em todo o brasil|todo o brasil|throughout brazil)\b/i.test(
-        textoPagina
-      )
+      /\b(em todo o brasil|todo o brasil|throughout brazil)\b/i.test(textoPagina)
     ) {
-      localizacao =
-        "Brasil"
+      localizacao = "Brasil"
     }
 
     return {
@@ -560,9 +330,7 @@ async function enriquecerPelaPaginaCarreiras(
   } catch {
     return vaga
   } finally {
-    clearTimeout(
-      temporizador
-    )
+    clearTimeout(temporizador)
   }
 }
 
@@ -574,116 +342,58 @@ export async function extrairVagaGupy(
   html: string,
   urlFinal: string
 ): Promise<VagaExtraida | null> {
-  const $ =
-    cheerio.load(html)
+  const $ = cheerio.load(html)
 
-  const titulo =
-    normalizarTextoCurto(
-      $("h1")
-        .first()
-        .text()
-    )
+  const titulo = normalizarTextoCurto($("h1").first().text())
 
   if (!titulo) {
     return null
   }
 
-  const linhas =
-    extrairLinhasPagina($)
+  const linhas = extrairLinhasPagina($)
 
-  const descricao =
-    extrairSecao(
-      linhas,
-      rotulosSecoes.descricao
-    )
+  const descricao = extrairSecao(linhas, rotulosSecoes.descricao)
 
-  const responsabilidades =
-    extrairSecao(
-      linhas,
-      rotulosSecoes.responsabilidades
-    )
+  const responsabilidades = extrairSecao(linhas, rotulosSecoes.responsabilidades)
 
-  const requisitos =
-    extrairSecao(
-      linhas,
-      rotulosSecoes.requisitos
-    )
+  const requisitos = extrairSecao(linhas, rotulosSecoes.requisitos)
 
-  const informacoesAdicionais =
-    extrairSecao(
-      linhas,
-      rotulosSecoes.informacoesAdicionais
-    )
+  const informacoesAdicionais = extrairSecao(linhas, rotulosSecoes.informacoesAdicionais)
 
-  const descricaoCompleta =
-    montarDescricao(
-      descricao,
-      responsabilidades,
-      requisitos,
-      informacoesAdicionais
-    )
+  const descricaoCompleta = montarDescricao(
+    descricao,
+    responsabilidades,
+    requisitos,
+    informacoesAdicionais
+  )
 
-  if (
-    !descricao &&
-    !responsabilidades &&
-    !requisitos
-  ) {
+  if (!descricao && !responsabilidades && !requisitos) {
     return null
   }
 
-  const textoParaAnalise = [
-    titulo,
-    descricaoCompleta
-  ]
-    .filter(
-      (valor): valor is string =>
-        Boolean(valor)
-    )
+  const textoParaAnalise = [titulo, descricaoCompleta]
+    .filter((valor): valor is string => Boolean(valor))
     .join(" ")
 
   const vaga: VagaExtraida = {
     titulo,
 
-    empresa:
-      extrairEmpresa(
-        $,
-        urlFinal,
-        titulo
-      ),
+    empresa: extrairEmpresa($, urlFinal, titulo),
 
-    descricao:
-      descricaoCompleta,
+    descricao: descricaoCompleta,
 
     localizacao: null,
 
     tipoContratacao: null,
 
-    dataPublicacao:
-      extrairValorEstruturado(
-        $,
-        "datePosted"
-      ),
+    dataPublicacao: extrairValorEstruturado($, "datePosted"),
 
-    validaAte:
-      extrairValorEstruturado(
-        $,
-        "validThrough"
-      ),
+    validaAte: extrairValorEstruturado($, "validThrough"),
 
-    remoto:
-      detectarRemoto(
-        textoParaAnalise
-      ),
+    remoto: detectarRemoto(textoParaAnalise),
 
-    urlCandidatura:
-      extrairUrlCandidatura(
-        $,
-        urlFinal
-      )
+    urlCandidatura: extrairUrlCandidatura($, urlFinal)
   }
 
-  return enriquecerPelaPaginaCarreiras(
-    vaga,
-    urlFinal
-  )
+  return enriquecerPelaPaginaCarreiras(vaga, urlFinal)
 }

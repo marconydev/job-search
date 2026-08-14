@@ -16,48 +16,31 @@ import {
   X
 } from "lucide-react"
 
-import type {
-  StatusVaga,
-  VagaPainel
-} from "@/types/painel"
+import type { StatusVaga, VagaPainel } from "@/types/painel"
 
 type Propriedades = {
   vaga: VagaPainel
 
   processando: boolean
 
-  aoFechar:
-    () => void
+  aoFechar: () => void
 
-  aoAbrir:
-    () => void
+  aoAbrir: () => void
 
-  aoAlterarStatus:
-    (
-      status:
-        StatusVaga
-    ) => Promise<void>
+  aoAlterarStatus: (status: StatusVaga) => Promise<void>
 }
 
 type EtapaAcompanhamento = {
   titulo: string
 
-  data:
-    string | null
+  data: string | null
 
-  concluida:
-    boolean
+  concluida: boolean
 
-  tipo:
-    "encontrada"
-    | "vista"
-    | "aplicada"
+  tipo: "encontrada" | "vista" | "aplicada"
 }
 
-function obterRotuloStatus(
-  status:
-    StatusVaga
-) {
+function obterRotuloStatus(status: StatusVaga) {
   switch (status) {
     case "relevant":
       return "Nova"
@@ -73,191 +56,104 @@ function obterRotuloStatus(
   }
 }
 
-function obterNomeFonte(
-  fonte: string
-) {
-  const nomes:
-    Record<
-      string,
-      string
-    > = {
-    linkedin:
-      "LinkedIn",
+function obterNomeFonte(fonte: string) {
+  const nomes: Record<string, string> = {
+    linkedin: "LinkedIn",
 
-    indeed:
-      "Indeed",
+    indeed: "Indeed",
 
-    gupy:
-      "Gupy",
+    gupy: "Gupy",
 
-    lever:
-      "Lever",
+    lever: "Lever",
 
-    greenhouse:
-      "Greenhouse",
+    greenhouse: "Greenhouse",
 
-    workable:
-      "Workable",
+    workable: "Workable",
 
-    smartrecruiters:
-      "SmartRecruiters",
+    smartrecruiters: "SmartRecruiters",
 
-    remotive:
-      "Remotive",
+    remotive: "Remotive",
 
-    "remote-ok":
-      "Remote OK",
+    "remote-ok": "Remote OK",
 
-    agregador:
-      "Agregador",
+    agregador: "Agregador",
 
-    desconhecido:
-      "Outra fonte"
+    desconhecido: "Outra fonte"
   }
 
-  return (
-    nomes[fonte] ??
-    fonte
-  )
+  return nomes[fonte] ?? fonte
 }
 
-function formatarDataHora(
-  valor:
-    string | null
-) {
+function formatarDataHora(valor: string | null) {
   if (!valor) {
     return null
   }
 
-  const data =
-    new Date(valor)
+  const data = new Date(valor)
 
-  if (
-    Number.isNaN(
-      data.getTime()
-    )
-  ) {
+  if (Number.isNaN(data.getTime())) {
     return null
   }
 
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      day:
-        "2-digit",
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
 
-      month:
-        "2-digit",
+    month: "2-digit",
 
-      year:
-        "numeric",
+    year: "numeric",
 
-      hour:
-        "2-digit",
+    hour: "2-digit",
 
-      minute:
-        "2-digit"
-    }
-  ).format(data)
+    minute: "2-digit"
+  }).format(data)
 }
 
-function criarEtapasAcompanhamento(
-  vaga:
-    VagaPainel
-): EtapaAcompanhamento[] {
+function criarEtapasAcompanhamento(vaga: VagaPainel): EtapaAcompanhamento[] {
   return [
     {
-      titulo:
-        "Encontrada",
+      titulo: "Encontrada",
 
-      data:
-        formatarDataHora(
-          vaga.created_at
-        ),
+      data: formatarDataHora(vaga.created_at),
 
-      concluida:
-        true,
+      concluida: true,
 
-      tipo:
-        "encontrada"
+      tipo: "encontrada"
     },
     {
-      titulo:
-        "Vista",
+      titulo: "Vista",
 
-      data:
-        formatarDataHora(
-          vaga.viewed_at
-        ),
+      data: formatarDataHora(vaga.viewed_at),
 
-      concluida:
-        Boolean(
-          vaga.viewed_at
-        ),
+      concluida: Boolean(vaga.viewed_at),
 
-      tipo:
-        "vista"
+      tipo: "vista"
     },
     {
-      titulo:
-        "Aplicada",
+      titulo: "Aplicada",
 
-      data:
-        formatarDataHora(
-          vaga.applied_at
-        ),
+      data: formatarDataHora(vaga.applied_at),
 
-      concluida:
-        Boolean(
-          vaga.applied_at
-        ),
+      concluida: Boolean(vaga.applied_at),
 
-      tipo:
-        "aplicada"
+      tipo: "aplicada"
     }
   ]
 }
 
-function IconeEtapa({
-  etapa
-}: {
-  etapa:
-    EtapaAcompanhamento
-}) {
-  if (
-    !etapa.concluida
-  ) {
-    return (
-      <Circle
-        size={16}
-        className="text-slate-300 dark:text-slate-700"
-      />
-    )
+function IconeEtapa({ etapa }: { etapa: EtapaAcompanhamento }) {
+  if (!etapa.concluida) {
+    return <Circle size={16} className="text-slate-300 dark:text-slate-700" />
   }
 
-  switch (
-    etapa.tipo
-  ) {
+  switch (etapa.tipo) {
     case "encontrada":
-      return (
-        <Sparkles
-          size={16}
-        />
-      )
+      return <Sparkles size={16} />
 
     case "vista":
-      return (
-        <Eye
-          size={16}
-        />
-      )
+      return <Eye size={16} />
 
     case "aplicada":
-      return (
-        <CheckCircle2
-          size={16}
-        />
-      )
+      return <CheckCircle2 size={16} />
   }
 }
 
@@ -268,23 +164,13 @@ export function DetalheVaga({
   aoAbrir,
   aoAlterarStatus
 }: Propriedades) {
-  const etapas =
-    criarEtapasAcompanhamento(
-      vaga
-    )
+  const etapas = criarEtapasAcompanhamento(vaga)
 
-  const candidaturaAplicada =
-    vaga.status ===
-    "applied"
+  const candidaturaAplicada = vaga.status === "applied"
 
-  const oportunidadeIgnorada =
-    vaga.status ===
-    "ignored"
+  const oportunidadeIgnorada = vaga.status === "ignored"
 
-  const statusRetorno =
-    vaga.viewed_at
-      ? "viewed"
-      : "relevant"
+  const statusRetorno = vaga.viewed_at ? "viewed" : "relevant"
 
   return (
     <aside
@@ -307,35 +193,26 @@ export function DetalheVaga({
                     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                     : oportunidadeIgnorada
                       ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                      : vaga.status ===
-                        "viewed"
+                      : vaga.status === "viewed"
                         ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
                         : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
                 ].join(" ")}
               >
-                {obterRotuloStatus(
-                  vaga.status
-                )}
+                {obterRotuloStatus(vaga.status)}
               </span>
 
               <span className="text-xs font-medium text-slate-500">
-                {obterNomeFonte(
-                  vaga.source
-                )}
+                {obterNomeFonte(vaga.source)}
               </span>
             </div>
 
             <button
               type="button"
-              onClick={
-                aoFechar
-              }
+              onClick={aoFechar}
               className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:hover:bg-slate-900 dark:hover:text-slate-100 lg:hidden"
               aria-label="Fechar detalhes"
             >
-              <X
-                size={19}
-              />
+              <X size={19} />
             </button>
           </div>
         </header>
@@ -348,9 +225,7 @@ export function DetalheVaga({
               </h2>
 
               <div className="mt-3 flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400">
-                <Building2
-                  size={17}
-                />
+                <Building2 size={17} />
 
                 {vaga.company}
               </div>
@@ -359,15 +234,12 @@ export function DetalheVaga({
             <div
               className={[
                 "flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl",
-                vaga.local_score >=
-                85
+                vaga.local_score >= 85
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                   : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
               ].join(" ")}
             >
-              <span className="text-lg font-bold tabular-nums">
-                {vaga.local_score}%
-              </span>
+              <span className="text-lg font-bold tabular-nums">{vaga.local_score}%</span>
 
               <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">
                 match
@@ -378,9 +250,7 @@ export function DetalheVaga({
           <div className="mt-6 flex flex-wrap gap-2">
             {vaga.location && (
               <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-800 dark:text-slate-400">
-                <MapPin
-                  size={14}
-                />
+                <MapPin size={14} />
 
                 {vaga.location}
               </span>
@@ -388,28 +258,19 @@ export function DetalheVaga({
 
             {vaga.remote ? (
               <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-800 dark:text-slate-400">
-                <House
-                  size={14}
-                />
-
+                <House size={14} />
                 Trabalho remoto
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-500">
-                <CircleDot
-                  size={14}
-                />
-
+                <CircleDot size={14} />
                 Modalidade não confirmada
               </span>
             )}
 
             {vaga.partial && (
               <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-                <Sparkles
-                  size={14}
-                />
-
+                <Sparkles size={14} />
                 Dados parciais
               </span>
             )}
@@ -417,10 +278,7 @@ export function DetalheVaga({
 
           <section className="mt-8">
             <div className="mb-3 flex items-center gap-2">
-              <Clock3
-                size={17}
-                className="text-indigo-500"
-              />
+              <Clock3 size={17} className="text-indigo-500" />
 
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 Acompanhamento
@@ -428,79 +286,54 @@ export function DetalheVaga({
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
-              {etapas.map(
-                (
-                  etapa,
-                  indice
-                ) => (
+              {etapas.map((etapa, indice) => (
+                <div
+                  key={etapa.titulo}
+                  className={[
+                    "flex items-center gap-3 px-4 py-3",
+                    indice < etapas.length - 1
+                      ? "border-b border-slate-100 dark:border-slate-900"
+                      : ""
+                  ].join(" ")}
+                >
                   <div
-                    key={
-                      etapa.titulo
-                    }
                     className={[
-                      "flex items-center gap-3 px-4 py-3",
-                      indice <
-                      etapas.length -
-                        1
-                        ? "border-b border-slate-100 dark:border-slate-900"
-                        : ""
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                      etapa.concluida
+                        ? etapa.tipo === "aplicada"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                        : "bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-600"
                     ].join(" ")}
                   >
+                    <IconeEtapa etapa={etapa} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
                     <div
                       className={[
-                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                        "text-xs font-semibold",
                         etapa.concluida
-                          ? etapa.tipo ===
-                            "aplicada"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                            : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                          : "bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-600"
+                          ? "text-slate-800 dark:text-slate-200"
+                          : "text-slate-400 dark:text-slate-600"
                       ].join(" ")}
                     >
-                      <IconeEtapa
-                        etapa={
-                          etapa
-                        }
-                      />
+                      {etapa.titulo}
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className={[
-                          "text-xs font-semibold",
-                          etapa.concluida
-                            ? "text-slate-800 dark:text-slate-200"
-                            : "text-slate-400 dark:text-slate-600"
-                        ].join(" ")}
-                      >
-                        {etapa.titulo}
-                      </div>
-
-                      <div className="mt-0.5 text-xs text-slate-500">
-                        {etapa.data ??
-                          "Ainda não"}
-                      </div>
-                    </div>
-
-                    {etapa.concluida && (
-                      <Check
-                        size={15}
-                        className="shrink-0 text-emerald-500"
-                      />
-                    )}
+                    <div className="mt-0.5 text-xs text-slate-500">{etapa.data ?? "Ainda não"}</div>
                   </div>
-                )
-              )}
+
+                  {etapa.concluida && <Check size={15} className="shrink-0 text-emerald-500" />}
+                </div>
+              ))}
             </div>
 
             {oportunidadeIgnorada && (
               <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900">
                 Oportunidade ignorada em{" "}
                 <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                  {formatarDataHora(
-                    vaga.status_updated_at
-                  ) ??
-                    "data não registrada"}
+                  {formatarDataHora(vaga.status_updated_at) ?? "data não registrada"}
                 </strong>
                 .
               </div>
@@ -511,9 +344,7 @@ export function DetalheVaga({
             <section className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
               <div className="flex items-start gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                  <CheckCircle2
-                    size={18}
-                  />
+                  <CheckCircle2 size={18} />
                 </div>
 
                 <div>
@@ -523,24 +354,17 @@ export function DetalheVaga({
 
                   <p className="mt-1 text-xs leading-5 text-emerald-700/80 dark:text-emerald-300/80">
                     Você marcou esta oportunidade como aplicada
-                    {vaga.applied_at
-                      ? ` em ${formatarDataHora(vaga.applied_at)}`
-                      : ""}
-                    .
+                    {vaga.applied_at ? ` em ${formatarDataHora(vaga.applied_at)}` : ""}.
                   </p>
                 </div>
               </div>
             </section>
           )}
 
-          {vaga.matched_skills.length >
-            0 && (
+          {vaga.matched_skills.length > 0 && (
             <section className="mt-8">
               <div className="mb-3 flex items-center gap-2">
-                <Target
-                  size={17}
-                  className="text-indigo-500"
-                />
+                <Target size={17} className="text-indigo-500" />
 
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   Competências encontradas
@@ -548,51 +372,35 @@ export function DetalheVaga({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {vaga
-                  .matched_skills
-                  .map(
-                    competencia => (
-                      <span
-                        key={
-                          competencia
-                        }
-                        className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
-                      >
-                        {competencia}
-                      </span>
-                    )
-                  )}
+                {vaga.matched_skills.map(competencia => (
+                  <span
+                    key={competencia}
+                    className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
+                  >
+                    {competencia}
+                  </span>
+                ))}
               </div>
             </section>
           )}
 
-          {vaga.reasons.length >
-            0 && (
+          {vaga.reasons.length > 0 && (
             <section className="mt-8">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 Por que esta vaga combina com seu perfil
               </h3>
 
               <div className="mt-3 space-y-2.5">
-                {vaga.reasons.map(
-                  motivo => (
-                    <div
-                      key={
-                        motivo
-                      }
-                      className="flex gap-2.5 text-sm leading-6 text-slate-600 dark:text-slate-400"
-                    >
-                      <Check
-                        size={16}
-                        className="mt-1 shrink-0 text-emerald-500"
-                      />
+                {vaga.reasons.map(motivo => (
+                  <div
+                    key={motivo}
+                    className="flex gap-2.5 text-sm leading-6 text-slate-600 dark:text-slate-400"
+                  >
+                    <Check size={16} className="mt-1 shrink-0 text-emerald-500" />
 
-                      <span>
-                        {motivo}
-                      </span>
-                    </div>
-                  )
-                )}
+                    <span>{motivo}</span>
+                  </div>
+                ))}
               </div>
             </section>
           )}
@@ -611,48 +419,28 @@ export function DetalheVaga({
         <footer className="sticky bottom-0 border-t border-slate-100 bg-white/95 p-4 backdrop-blur-xl dark:border-slate-900 dark:bg-slate-950/95 lg:rounded-b-3xl">
           <div className="grid gap-2 sm:grid-cols-2">
             <a
-              href={
-                vaga.url
-              }
+              href={vaga.url}
               target="_blank"
               rel="noreferrer"
-              onClick={
-                aoAbrir
-              }
+              onClick={aoAbrir}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
             >
               Abrir vaga
-
-              <ArrowUpRight
-                size={17}
-              />
+              <ArrowUpRight size={17} />
             </a>
 
-            {!candidaturaAplicada &&
-              !oportunidadeIgnorada && (
+            {!candidaturaAplicada && !oportunidadeIgnorada && (
               <button
                 type="button"
-                disabled={
-                  processando
-                }
-                onClick={() =>
-                  aoAlterarStatus(
-                    "applied"
-                  )
-                }
+                disabled={processando}
+                onClick={() => aoAlterarStatus("applied")}
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {processando ? (
-                  <LoaderCircle
-                    size={17}
-                    className="animate-spin"
-                  />
+                  <LoaderCircle size={17} className="animate-spin" />
                 ) : (
-                  <Check
-                    size={17}
-                  />
+                  <Check size={17} />
                 )}
-
                 Marcar como aplicada
               </button>
             )}
@@ -660,27 +448,15 @@ export function DetalheVaga({
             {candidaturaAplicada && (
               <button
                 type="button"
-                disabled={
-                  processando
-                }
-                onClick={() =>
-                  aoAlterarStatus(
-                    statusRetorno
-                  )
-                }
+                disabled={processando}
+                onClick={() => aoAlterarStatus(statusRetorno)}
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900"
               >
                 {processando ? (
-                  <LoaderCircle
-                    size={16}
-                    className="animate-spin"
-                  />
+                  <LoaderCircle size={16} className="animate-spin" />
                 ) : (
-                  <RotateCcw
-                    size={16}
-                  />
+                  <RotateCcw size={16} />
                 )}
-
                 Desfazer candidatura
               </button>
             )}
@@ -688,47 +464,26 @@ export function DetalheVaga({
             {oportunidadeIgnorada ? (
               <button
                 type="button"
-                disabled={
-                  processando
-                }
-                onClick={() =>
-                  aoAlterarStatus(
-                    "relevant"
-                  )
-                }
+                disabled={processando}
+                onClick={() => aoAlterarStatus("relevant")}
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
               >
                 {processando ? (
-                  <LoaderCircle
-                    size={16}
-                    className="animate-spin"
-                  />
+                  <LoaderCircle size={16} className="animate-spin" />
                 ) : (
-                  <RotateCcw
-                    size={16}
-                  />
+                  <RotateCcw size={16} />
                 )}
-
                 Reabrir oportunidade
               </button>
             ) : (
               !candidaturaAplicada && (
                 <button
                   type="button"
-                  disabled={
-                    processando
-                  }
-                  onClick={() =>
-                    aoAlterarStatus(
-                      "ignored"
-                    )
-                  }
+                  disabled={processando}
+                  onClick={() => aoAlterarStatus("ignored")}
                   className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:border-rose-900 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 sm:col-span-2"
                 >
-                  <X
-                    size={16}
-                  />
-
+                  <X size={16} />
                   Ignorar oportunidade
                 </button>
               )

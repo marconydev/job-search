@@ -1,11 +1,6 @@
-import type {
-  PaginaClassificada,
-  ProvedorPagina
-} from "./discovery.js"
+import type { PaginaClassificada, ProvedorPagina } from "./discovery.js"
 
-import type {
-  ResultadoElegibilidadeLocalizacao
-} from "./elegibilidade.js"
+import type { ResultadoElegibilidadeLocalizacao } from "./elegibilidade.js"
 
 /**
  * Guardo aqui os dados que consigo extrair de uma publicação de vaga.
@@ -38,8 +33,7 @@ export type InspecaoPagina = {
   codigoStatus: number
   ehPublicacaoVaga: boolean
   vaga: VagaExtraida | null
-  elegibilidadeBrasil:
-    ResultadoElegibilidadeLocalizacao | null
+  elegibilidadeBrasil: ResultadoElegibilidadeLocalizacao | null
 }
 
 /**
@@ -50,6 +44,4 @@ export type FalhaInspecaoPagina = {
   erro: string
 }
 
-export type ResultadoInspecaoPagina =
-  | InspecaoPagina
-  | FalhaInspecaoPagina
+export type ResultadoInspecaoPagina = InspecaoPagina | FalhaInspecaoPagina

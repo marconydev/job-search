@@ -127,113 +127,67 @@ export const perfilBusca = {
   competencias: [
     {
       nome: "SQL",
-      termos: [
-        "sql"
-      ]
+      termos: ["sql"]
     },
     {
       nome: "PostgreSQL",
-      termos: [
-        "postgresql",
-        "postgres"
-      ]
+      termos: ["postgresql", "postgres"]
     },
     {
       nome: "SQLite",
-      termos: [
-        "sqlite"
-      ]
+      termos: ["sqlite"]
     },
     {
       nome: "MongoDB",
-      termos: [
-        "mongodb",
-        "mongo db"
-      ]
+      termos: ["mongodb", "mongo db"]
     },
     {
       nome: "DBeaver",
-      termos: [
-        "dbeaver"
-      ]
+      termos: ["dbeaver"]
     },
     {
       nome: "Análise de dados",
-      termos: [
-        "analise de dados",
-        "data analysis",
-        "data analytics"
-      ]
+      termos: ["analise de dados", "data analysis", "data analytics"]
     },
     {
       nome: "Power BI",
-      termos: [
-        "power bi",
-        "powerbi"
-      ]
+      termos: ["power bi", "powerbi"]
     },
     {
       nome: "Linux",
-      termos: [
-        "linux"
-      ]
+      termos: ["linux"]
     },
     {
       nome: "Windows",
-      termos: [
-        "windows"
-      ]
+      termos: ["windows"]
     },
     {
       nome: "Windows Server",
-      termos: [
-        "windows server"
-      ]
+      termos: ["windows server"]
     },
     {
       nome: "Active Directory",
-      termos: [
-        "active directory",
-        "azure ad",
-        "entra id"
-      ]
+      termos: ["active directory", "azure ad", "entra id"]
     },
     {
       nome: "APIs REST",
-      termos: [
-        "rest api",
-        "restful api",
-        "api rest",
-        "api restful",
-        "api"
-      ]
+      termos: ["rest api", "restful api", "api rest", "api restful", "api"]
     },
     {
       nome: "Postman",
-      termos: [
-        "postman"
-      ]
+      termos: ["postman"]
     },
     {
       nome: "Zabbix",
-      termos: [
-        "zabbix"
-      ]
+      termos: ["zabbix"]
     },
     {
       nome: "Grafana",
-      termos: [
-        "grafana"
-      ]
+      termos: ["grafana"]
     },
     {
       nome: "Elastic / Elasticsearch",
-      termos: [
-        "elasticsearch",
-        "elastic stack",
-        "elk stack",
-        "elastic"
-      ]
+      termos: ["elasticsearch", "elastic stack", "elk stack", "elastic"]
     },
     {
       nome: "Análise de logs",
@@ -247,98 +201,55 @@ export const perfilBusca = {
     },
     {
       nome: "JavaScript",
-      termos: [
-        "javascript",
-        "java script"
-      ]
+      termos: ["javascript", "java script"]
     },
     {
       nome: "TypeScript",
-      termos: [
-        "typescript",
-        "type script"
-      ]
+      termos: ["typescript", "type script"]
     },
     {
       nome: "Node.js",
-      termos: [
-        "node.js",
-        "nodejs",
-        "node js"
-      ]
+      termos: ["node.js", "nodejs", "node js"]
     },
     {
       nome: "React",
-      termos: [
-        "react",
-        "react.js",
-        "reactjs"
-      ]
+      termos: ["react", "react.js", "reactjs"]
     },
     {
       nome: "Next.js",
-      termos: [
-        "next.js",
-        "nextjs",
-        "next js"
-      ]
+      termos: ["next.js", "nextjs", "next js"]
     },
     {
       nome: "HTML5",
-      termos: [
-        "html5",
-        "html"
-      ]
+      termos: ["html5", "html"]
     },
     {
       nome: "CSS",
-      termos: [
-        "css",
-        "css3"
-      ]
+      termos: ["css", "css3"]
     },
     {
       nome: "Git",
-      termos: [
-        "git"
-      ]
+      termos: ["git"]
     },
     {
       nome: "GitHub",
-      termos: [
-        "github"
-      ]
+      termos: ["github"]
     },
     {
       nome: "Jira",
-      termos: [
-        "jira",
-        "atlassian jira"
-      ]
+      termos: ["jira", "atlassian jira"]
     },
     {
       nome: "Redes",
-      termos: [
-        "network",
-        "networking",
-        "redes",
-        "rede de computadores"
-      ]
+      termos: ["network", "networking", "redes", "rede de computadores"]
     },
     {
       nome: "TCP/IP",
-      termos: [
-        "tcp/ip",
-        "tcp ip"
-      ]
+      termos: ["tcp/ip", "tcp ip"]
     },
     {
       nome: "VLAN",
-      termos: [
-        "vlan",
-        "vlans",
-        "virtual lan"
-      ]
+      termos: ["vlan", "vlans", "virtual lan"]
     },
     {
       nome: "Switches",
@@ -364,10 +275,7 @@ export const perfilBusca = {
     },
     {
       nome: "Firewall",
-      termos: [
-        "firewall",
-        "firewalls"
-      ]
+      termos: ["firewall", "firewalls"]
     },
     {
       nome: "Troubleshooting",
@@ -380,10 +288,7 @@ export const perfilBusca = {
     },
     {
       nome: "Suporte técnico",
-      termos: [
-        "technical support",
-        "suporte tecnico"
-      ]
+      termos: ["technical support", "suporte tecnico"]
     },
     {
       nome: "Suporte N1/N2/N3",
@@ -404,43 +309,23 @@ export const perfilBusca = {
     },
     {
       nome: "Suporte ao cliente",
-      termos: [
-        "customer support",
-        "suporte ao cliente"
-      ]
+      termos: ["customer support", "suporte ao cliente"]
     },
     {
       nome: "Gestão de incidentes",
-      termos: [
-        "incident management",
-        "gestao de incidentes"
-      ]
+      termos: ["incident management", "gestao de incidentes"]
     },
     {
       nome: "Service Desk",
-      termos: [
-        "service desk"
-      ]
+      termos: ["service desk"]
     },
     {
       nome: "Gestão de demandas",
-      termos: [
-        "gestao de demandas",
-        "demand management",
-        "gestao de chamados",
-        "ticket management"
-      ]
+      termos: ["gestao de demandas", "demand management", "gestao de chamados", "ticket management"]
     },
     {
       nome: "SLA / KPI",
-      termos: [
-        "sla",
-        "slas",
-        "kpi",
-        "kpis",
-        "indicadores de desempenho",
-        "service level agreement"
-      ]
+      termos: ["sla", "slas", "kpi", "kpis", "indicadores de desempenho", "service level agreement"]
     },
     {
       nome: "BPM / Automação de processos",
@@ -506,9 +391,7 @@ export const perfilBusca = {
     },
     {
       nome: "SaaS",
-      termos: [
-        "saas"
-      ]
+      termos: ["saas"]
     }
   ],
 

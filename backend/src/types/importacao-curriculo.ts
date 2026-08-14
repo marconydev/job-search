@@ -6,40 +6,29 @@ import type {
 } from "./perfil-profissional.js"
 
 export type SugestoesCurriculo = {
-  resumoProfissional:
-    string
+  resumoProfissional: string
 
-  competencias:
-    CompetenciaPerfil[]
+  competencias: CompetenciaPerfil[]
 
-  experiencias:
-    ExperienciaProfissional[]
+  experiencias: ExperienciaProfissional[]
 
-  formacoes:
-    FormacaoProfissional[]
+  formacoes: FormacaoProfissional[]
 
-  cursos:
-    CursoProfissional[]
+  cursos: CursoProfissional[]
 }
 
 export type ResultadoImportacaoCurriculo = {
   arquivo: {
-    nome:
-      string
+    nome: string
 
-    tipo:
-      string
+    tipo: string
 
-    tamanho:
-      number
+    tamanho: number
   }
 
-  textoExtraido:
-    string
+  textoExtraido: string
 
-  sugestoes:
-    SugestoesCurriculo
+  sugestoes: SugestoesCurriculo
 
-  avisos:
-    string[]
+  avisos: string[]
 }

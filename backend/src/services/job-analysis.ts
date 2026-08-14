@@ -1,82 +1,44 @@
-import {
-  saveJobMatch
-} from "../repositories/job-match-repository.js"
+import { saveJobMatch } from "../repositories/job-match-repository.js"
 
-import {
-  listJobs,
-  listUnmatchedJobs
-} from "../repositories/job-repository.js"
+import { listJobs, listUnmatchedJobs } from "../repositories/job-repository.js"
 
-import {
-  matchJob
-} from "./job-matcher.js"
+import { matchJob } from "./job-matcher.js"
 
-import type {
-  JobMatchStatus,
-  StoredJob
-} from "../types/job.js"
+import type { JobMatchStatus, StoredJob } from "../types/job.js"
 
-const RELEVANT_SCORE =
-  60
+const RELEVANT_SCORE = 60
 
-function getMatchStatus(
-  score:
-    number
-): JobMatchStatus {
-  return score >=
-    RELEVANT_SCORE
-    ? "relevant"
-    : "discarded"
+function getMatchStatus(score: number): JobMatchStatus {
+  return score >= RELEVANT_SCORE ? "relevant" : "discarded"
 }
 
 /**
  * Eu concentro a análise em uma única função para utilizar exatamente a
  * mesma regra tanto em vagas novas quanto em uma reanálise completa.
  */
-async function analisarVagas(
-  jobs:
-    StoredJob[]
-) {
-  let relevant =
-    0
+async function analisarVagas(jobs: StoredJob[]) {
+  let relevant = 0
 
-  let discarded =
-    0
+  let discarded = 0
 
-  for (
-    const job
-    of jobs
-  ) {
-    const match =
-      matchJob(
-        job
-      )
+  for (const job of jobs) {
+    const match = matchJob(job)
 
-    const status =
-      getMatchStatus(
-        match.score
-      )
+    const status = getMatchStatus(match.score)
 
     await saveJobMatch({
-      jobId:
-        job.id,
+      jobId: job.id,
 
-      localScore:
-        match.score,
+      localScore: match.score,
 
-      matchedSkills:
-        match.matchedSkills,
+      matchedSkills: match.matchedSkills,
 
-      reasons:
-        match.reasons,
+      reasons: match.reasons,
 
       status
     })
 
-    if (
-      status ===
-      "relevant"
-    ) {
+    if (status === "relevant") {
       relevant++
     } else {
       discarded++
@@ -84,8 +46,7 @@ async function analisarVagas(
   }
 
   return {
-    analyzed:
-      jobs.length,
+    analyzed: jobs.length,
 
     relevant,
 
@@ -97,12 +58,9 @@ async function analisarVagas(
  * Na sincronização normal eu continuo analisando somente vagas novas.
  */
 export async function analyzePendingJobs() {
-  const jobs =
-    await listUnmatchedJobs()
+  const jobs = await listUnmatchedJobs()
 
-  return analisarVagas(
-    jobs
-  )
+  return analisarVagas(jobs)
 }
 
 /**
@@ -113,10 +71,7 @@ export async function analyzePendingJobs() {
  * aplicada e ignorada.
  */
 export async function reanalisarTodasAsVagas() {
-  const jobs =
-    await listJobs()
+  const jobs = await listJobs()
 
-  return analisarVagas(
-    jobs
-  )
+  return analisarVagas(jobs)
 }

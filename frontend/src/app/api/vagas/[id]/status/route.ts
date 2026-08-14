@@ -1,33 +1,18 @@
-import {
-  NextRequest,
-  NextResponse
-} from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
-import {
-  obterUrlBackend
-} from "@/lib/api-servidor"
+import { obterUrlBackend } from "@/lib/api-servidor"
 
-import type {
-  StatusVaga
-} from "@/types/painel"
+import type { StatusVaga } from "@/types/painel"
 
-export const runtime =
-  "nodejs"
+export const runtime = "nodejs"
 
 type ContextoRota = {
-  params:
-    Promise<{
-      id: string
-    }>
+  params: Promise<{
+    id: string
+  }>
 }
 
-const statusPermitidos =
-  new Set<StatusVaga>([
-    "relevant",
-    "viewed",
-    "applied",
-    "ignored"
-  ])
+const statusPermitidos = new Set<StatusVaga>(["relevant", "viewed", "applied", "ignored"])
 
 /**
  * Eu mantenho esta alteração passando pelo próprio Next.
@@ -35,26 +20,15 @@ const statusPermitidos =
  * Assim o navegador conversa somente com o frontend e o Next fica
  * responsável por encaminhar a ação para a API Express.
  */
-export async function PATCH(
-  requisicao: NextRequest,
-  contexto: ContextoRota
-) {
-  const {
-    id
-  } =
-    await contexto.params
+export async function PATCH(requisicao: NextRequest, contexto: ContextoRota) {
+  const { id } = await contexto.params
 
-  const idVaga =
-    Number(id)
+  const idVaga = Number(id)
 
-  if (
-    !Number.isInteger(idVaga) ||
-    idVaga <= 0
-  ) {
+  if (!Number.isInteger(idVaga) || idVaga <= 0) {
     return NextResponse.json(
       {
-        mensagem:
-          "Identificador da vaga inválido."
+        mensagem: "Identificador da vaga inválido."
       },
       {
         status: 400
@@ -62,19 +36,16 @@ export async function PATCH(
     )
   }
 
-  let corpo:
-    {
-      status?: unknown
-    }
+  let corpo: {
+    status?: unknown
+  }
 
   try {
-    corpo =
-      await requisicao.json()
+    corpo = await requisicao.json()
   } catch {
     return NextResponse.json(
       {
-        mensagem:
-          "Não consegui interpretar os dados enviados."
+        mensagem: "Não consegui interpretar os dados enviados."
       },
       {
         status: 400
@@ -82,17 +53,10 @@ export async function PATCH(
     )
   }
 
-  if (
-    typeof corpo.status !==
-      "string" ||
-    !statusPermitidos.has(
-      corpo.status as StatusVaga
-    )
-  ) {
+  if (typeof corpo.status !== "string" || !statusPermitidos.has(corpo.status as StatusVaga)) {
     return NextResponse.json(
       {
-        mensagem:
-          "O status informado não é válido."
+        mensagem: "O status informado não é válido."
       },
       {
         status: 400
@@ -101,59 +65,40 @@ export async function PATCH(
   }
 
   try {
-    const resposta =
-      await fetch(
-        `${obterUrlBackend()}/jobs/${idVaga}/status`,
-        {
-          method:
-            "PATCH",
+    const resposta = await fetch(`${obterUrlBackend()}/jobs/${idVaga}/status`, {
+      method: "PATCH",
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+      headers: {
+        "Content-Type": "application/json"
+      },
 
-          body:
-            JSON.stringify({
-              status:
-                corpo.status
-            }),
+      body: JSON.stringify({
+        status: corpo.status
+      }),
 
-          cache:
-            "no-store"
-        }
-      )
+      cache: "no-store"
+    })
 
-    const dados =
-      await resposta.json()
+    const dados = await resposta.json()
 
     if (!resposta.ok) {
       return NextResponse.json(
         {
-          mensagem:
-            dados.message ??
-            "Não foi possível atualizar a oportunidade."
+          mensagem: dados.message ?? "Não foi possível atualizar a oportunidade."
         },
         {
-          status:
-            resposta.status
+          status: resposta.status
         }
       )
     }
 
-    return NextResponse.json(
-      dados
-    )
+    return NextResponse.json(dados)
   } catch (erro) {
-    console.error(
-      "Erro ao atualizar vaga pelo frontend:",
-      erro
-    )
+    console.error("Erro ao atualizar vaga pelo frontend:", erro)
 
     return NextResponse.json(
       {
-        mensagem:
-          "Não foi possível acessar o backend."
+        mensagem: "Não foi possível acessar o backend."
       },
       {
         status: 503

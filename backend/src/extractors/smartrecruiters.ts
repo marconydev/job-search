@@ -1,8 +1,6 @@
 import * as cheerio from "cheerio"
 
-import type {
-  VagaExtraida
-} from "../types/page-inspection.js"
+import type { VagaExtraida } from "../types/page-inspection.js"
 
 type DadosUrlSmartRecruiters = {
   empresa: string
@@ -40,19 +38,14 @@ type RespostaSmartRecruiters = {
   }
 
   jobAd?: {
-    sections?: Record<
-      string,
-      SecaoSmartRecruiters
-    >
+    sections?: Record<string, SecaoSmartRecruiters>
   }
 }
 
 /**
  * Leio textos simples retornados pela API e removo espaços excedentes.
  */
-function lerTexto(
-  valor: unknown
-): string | null {
+function lerTexto(valor: unknown): string | null {
   if (typeof valor !== "string") {
     return null
   }
@@ -68,44 +61,28 @@ function lerTexto(
  * A URL normalmente possui o identificador numérico seguido pelo
  * título amigável da vaga.
  */
-function interpretarUrlSmartRecruiters(
-  url: string
-): DadosUrlSmartRecruiters | null {
+function interpretarUrlSmartRecruiters(url: string): DadosUrlSmartRecruiters | null {
   try {
     const urlAnalisada = new URL(url)
 
-    const hostname = urlAnalisada.hostname
-      .toLowerCase()
-      .replace(/^www\./, "")
+    const hostname = urlAnalisada.hostname.toLowerCase().replace(/^www\./, "")
 
-    if (
-      hostname !==
-      "jobs.smartrecruiters.com"
-    ) {
+    if (hostname !== "jobs.smartrecruiters.com") {
       return null
     }
 
-    const partes = urlAnalisada.pathname
-      .split("/")
-      .filter(Boolean)
+    const partes = urlAnalisada.pathname.split("/").filter(Boolean)
 
     const empresa = partes[0]
     const identificadorComTitulo = partes[1]
 
-    if (
-      !empresa ||
-      !identificadorComTitulo
-    ) {
+    if (!empresa || !identificadorComTitulo) {
       return null
     }
 
-    const correspondencia =
-      identificadorComTitulo.match(
-        /^(\d+|[0-9a-f-]{20,})/i
-      )
+    const correspondencia = identificadorComTitulo.match(/^(\d+|[0-9a-f-]{20,})/i)
 
-    const idPublicacao =
-      correspondencia?.[1]
+    const idPublicacao = correspondencia?.[1]
 
     if (!idPublicacao) {
       return null
@@ -124,9 +101,7 @@ function interpretarUrlSmartRecruiters(
  * Converto o conteúdo HTML das seções em texto simples para manter
  * somente as informações úteis da vaga.
  */
-function limparTextoHtml(
-  valor: string | undefined
-): string | null {
+function limparTextoHtml(valor: string | undefined): string | null {
   if (!valor) {
     return null
   }
@@ -135,11 +110,9 @@ function limparTextoHtml(
 
   $("br").replaceWith("\n")
 
-  $("p, li").each(
-    (_indice, elemento) => {
-      $(elemento).append("\n")
-    }
-  )
+  $("p, li").each((_indice, elemento) => {
+    $(elemento).append("\n")
+  })
 
   const texto = $.root()
     .text()
@@ -159,40 +132,28 @@ function limparTextoHtml(
  * Assim consigo aproveitar também seções personalizadas sem depender
  * somente de nomes fixos como descrição ou qualificações.
  */
-function montarDescricao(
-  resposta: RespostaSmartRecruiters
-): string | null {
-  const secoes =
-    resposta.jobAd?.sections
+function montarDescricao(resposta: RespostaSmartRecruiters): string | null {
+  const secoes = resposta.jobAd?.sections
 
   if (!secoes) {
     return null
   }
 
   const partes = Object.values(secoes)
-    .map((secao) => {
-      const titulo =
-        lerTexto(secao.title)
+    .map(secao => {
+      const titulo = lerTexto(secao.title)
 
-      const texto =
-        limparTextoHtml(secao.text)
+      const texto = limparTextoHtml(secao.text)
 
       if (!texto) {
         return null
       }
 
-      return titulo
-        ? `${titulo}\n${texto}`
-        : texto
+      return titulo ? `${titulo}\n${texto}` : texto
     })
-    .filter(
-      (parte): parte is string =>
-        Boolean(parte)
-    )
+    .filter((parte): parte is string => Boolean(parte))
 
-  return partes.length > 0
-    ? partes.join("\n\n")
-    : null
+  return partes.length > 0 ? partes.join("\n\n") : null
 }
 
 /**
@@ -201,9 +162,7 @@ function montarDescricao(
  * Isso ajuda também a minha regra de elegibilidade a identificar
  * corretamente países como BR, US ou NZ.
  */
-function normalizarPais(
-  pais: string | undefined
-): string | null {
+function normalizarPais(pais: string | undefined): string | null {
   const valor = lerTexto(pais)
 
   if (!valor) {
@@ -215,20 +174,11 @@ function normalizarPais(
   }
 
   try {
-    const nomesRegioes =
-      new Intl.DisplayNames(
-        ["en"],
-        {
-          type: "region"
-        }
-      )
+    const nomesRegioes = new Intl.DisplayNames(["en"], {
+      type: "region"
+    })
 
-    return (
-      nomesRegioes.of(
-        valor.toUpperCase()
-      ) ??
-      valor
-    )
+    return nomesRegioes.of(valor.toUpperCase()) ?? valor
   } catch {
     return valor
   }
@@ -237,9 +187,7 @@ function normalizarPais(
 /**
  * Transformo cidade, região e país em uma única localização.
  */
-function extrairLocalizacao(
-  resposta: RespostaSmartRecruiters
-): string | null {
+function extrairLocalizacao(resposta: RespostaSmartRecruiters): string | null {
   const local = resposta.location
 
   if (!local) {
@@ -250,14 +198,9 @@ function extrairLocalizacao(
     lerTexto(local.city),
     lerTexto(local.region),
     normalizarPais(local.country)
-  ].filter(
-    (parte): parte is string =>
-      Boolean(parte)
-  )
+  ].filter((parte): parte is string => Boolean(parte))
 
-  return partes.length > 0
-    ? [...new Set(partes)].join(", ")
-    : null
+  return partes.length > 0 ? [...new Set(partes)].join(", ") : null
 }
 
 /**
@@ -266,41 +209,24 @@ function extrairLocalizacao(
  * Uso também o conteúdo como alternativa caso a empresa informe
  * trabalho remoto apenas no título ou na descrição.
  */
-function detectarRemoto(
-  resposta: RespostaSmartRecruiters,
-  descricao: string | null
-) {
-  if (
-    resposta.location?.remote === true
-  ) {
+function detectarRemoto(resposta: RespostaSmartRecruiters, descricao: string | null) {
+  if (resposta.location?.remote === true) {
     return true
   }
 
-  const texto = [
-    resposta.name,
-    extrairLocalizacao(resposta),
-    descricao
-  ]
-    .filter(
-      (valor): valor is string =>
-        Boolean(valor)
-    )
+  const texto = [resposta.name, extrairLocalizacao(resposta), descricao]
+    .filter((valor): valor is string => Boolean(valor))
     .join(" ")
 
-  return /\b(remote|remoto|remota|home office)\b/i.test(
-    texto
-  )
+  return /\b(remote|remoto|remota|home office)\b/i.test(texto)
 }
 
 /**
  * Consulto diretamente a publicação pública disponibilizada pela
  * SmartRecruiters e converto a resposta para o modelo do Job Search.
  */
-export async function extrairVagaSmartRecruiters(
-  url: string
-): Promise<VagaExtraida | null> {
-  const dadosUrl =
-    interpretarUrlSmartRecruiters(url)
+export async function extrairVagaSmartRecruiters(url: string): Promise<VagaExtraida | null> {
+  const dadosUrl = interpretarUrlSmartRecruiters(url)
 
   if (!dadosUrl) {
     return null
@@ -312,76 +238,49 @@ export async function extrairVagaSmartRecruiters(
     `${encodeURIComponent(dadosUrl.idPublicacao)}`
 
   try {
-    const resposta = await fetch(
-      urlApi,
-      {
-        headers: {
-          Accept: "application/json",
-          "Accept-Language": "en"
-        }
+    const resposta = await fetch(urlApi, {
+      headers: {
+        Accept: "application/json",
+        "Accept-Language": "en"
       }
-    )
+    })
 
     if (!resposta.ok) {
       return null
     }
 
-    const dados = (
-      await resposta.json()
-    ) as RespostaSmartRecruiters
+    const dados = (await resposta.json()) as RespostaSmartRecruiters
 
-    if (
-      dados.active === false
-    ) {
+    if (dados.active === false) {
       return null
     }
 
-    const titulo =
-      lerTexto(dados.name)
+    const titulo = lerTexto(dados.name)
 
     if (!titulo) {
       return null
     }
 
-    const descricao =
-      montarDescricao(dados)
+    const descricao = montarDescricao(dados)
 
     return {
       titulo,
 
-      empresa:
-        lerTexto(
-          dados.company?.name
-        ),
+      empresa: lerTexto(dados.company?.name),
 
       descricao,
 
-      localizacao:
-        extrairLocalizacao(dados),
+      localizacao: extrairLocalizacao(dados),
 
-      tipoContratacao:
-        lerTexto(
-          dados.typeOfEmployment?.label
-        ),
+      tipoContratacao: lerTexto(dados.typeOfEmployment?.label),
 
-      dataPublicacao:
-        lerTexto(
-          dados.releasedDate
-        ),
+      dataPublicacao: lerTexto(dados.releasedDate),
 
       validaAte: null,
 
-      remoto:
-        detectarRemoto(
-          dados,
-          descricao
-        ),
+      remoto: detectarRemoto(dados, descricao),
 
-      urlCandidatura:
-        lerTexto(
-          dados.applyUrl
-        ) ??
-        url
+      urlCandidatura: lerTexto(dados.applyUrl) ?? url
     }
   } catch {
     return null

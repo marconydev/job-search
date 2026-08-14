@@ -1,12 +1,8 @@
 import "server-only"
 
-import type {
-  DadosPainel
-} from "@/types/painel"
+import type { DadosPainel } from "@/types/painel"
 
-import type {
-  PerfilProfissionalComMetadados
-} from "@/types/perfil"
+import type { PerfilProfissionalComMetadados } from "@/types/perfil"
 
 /**
  * Eu mantenho o endereço do backend somente no servidor do Next.
@@ -15,14 +11,9 @@ import type {
  * utilizada pela API Express e eu evito depender de CORS no frontend.
  */
 export function obterUrlBackend() {
-  const endereco =
-    process.env.API_BACKEND_URL ??
-    "http://localhost:3333"
+  const endereco = process.env.API_BACKEND_URL ?? "http://localhost:3333"
 
-  return endereco.replace(
-    /\/+$/,
-    ""
-  )
+  return endereco.replace(/\/+$/, "")
 }
 
 /**
@@ -31,21 +22,13 @@ export function obterUrlBackend() {
  * Não utilizo cache aqui porque quero que uma atualização de status
  * possa aparecer imediatamente quando a página for atualizada.
  */
-export async function obterDadosPainel():
-  Promise<DadosPainel> {
-  const resposta =
-    await fetch(
-      `${obterUrlBackend()}/jobs/dashboard`,
-      {
-        cache:
-          "no-store"
-      }
-    )
+export async function obterDadosPainel(): Promise<DadosPainel> {
+  const resposta = await fetch(`${obterUrlBackend()}/jobs/dashboard`, {
+    cache: "no-store"
+  })
 
   if (!resposta.ok) {
-    throw new Error(
-      `Não foi possível carregar o dashboard. HTTP ${resposta.status}.`
-    )
+    throw new Error(`Não foi possível carregar o dashboard. HTTP ${resposta.status}.`)
   }
 
   return resposta.json()
@@ -57,21 +40,13 @@ export async function obterDadosPainel():
  * Assim mantenho a comunicação com o backend centralizada e continuo
  * sem expor diretamente a API Express para o navegador.
  */
-export async function obterPerfilProfissional():
-  Promise<PerfilProfissionalComMetadados> {
-  const resposta =
-    await fetch(
-      `${obterUrlBackend()}/perfil`,
-      {
-        cache:
-          "no-store"
-      }
-    )
+export async function obterPerfilProfissional(): Promise<PerfilProfissionalComMetadados> {
+  const resposta = await fetch(`${obterUrlBackend()}/perfil`, {
+    cache: "no-store"
+  })
 
   if (!resposta.ok) {
-    throw new Error(
-      `Não foi possível carregar o perfil profissional. HTTP ${resposta.status}.`
-    )
+    throw new Error(`Não foi possível carregar o perfil profissional. HTTP ${resposta.status}.`)
   }
 
   return resposta.json()

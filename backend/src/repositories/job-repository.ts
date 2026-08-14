@@ -1,20 +1,12 @@
-import {
-  db
-} from "../database/connection.js"
+import { db } from "../database/connection.js"
 
-import type {
-  NewJob,
-  StoredJob
-} from "../types/job.js"
+import type { NewJob, StoredJob } from "../types/job.js"
 
 /**
  * Listo todas as oportunidades armazenadas.
  */
-export async function listJobs(): Promise<
-  StoredJob[]
-> {
-  const result =
-    await db.query(`
+export async function listJobs(): Promise<StoredJob[]> {
+  const result = await db.query(`
       SELECT
         id,
         source,
@@ -41,11 +33,8 @@ export async function listJobs(): Promise<
  * Retorno somente oportunidades que ainda não possuem uma análise
  * associada.
  */
-export async function listUnmatchedJobs(): Promise<
-  StoredJob[]
-> {
-  const result =
-    await db.query(`
+export async function listUnmatchedJobs(): Promise<StoredJob[]> {
+  const result = await db.query(`
       SELECT
         j.id,
         j.source,
@@ -84,9 +73,8 @@ export async function findJobBySourceExternalId(
   source: string,
   externalId: string
 ): Promise<StoredJob | null> {
-  const result =
-    await db.query(
-      `
+  const result = await db.query(
+    `
         SELECT
           id,
           source,
@@ -106,16 +94,10 @@ export async function findJobBySourceExternalId(
           AND external_id = $2
         LIMIT 1
       `,
-      [
-        source,
-        externalId
-      ]
-    )
-
-  return (
-    result.rows[0] ??
-    null
+    [source, externalId]
   )
+
+  return result.rows[0] ?? null
 }
 
 /**
@@ -124,12 +106,9 @@ export async function findJobBySourceExternalId(
  * partial é opcional para manter compatibilidade com os coletores
  * existentes. Quando não informado considero uma vaga completa.
  */
-export async function createJob(
-  job: NewJob
-): Promise<StoredJob> {
-  const result =
-    await db.query(
-      `
+export async function createJob(job: NewJob): Promise<StoredJob> {
+  const result = await db.query(
+    `
         INSERT INTO jobs (
           source,
           external_id,
@@ -156,19 +135,19 @@ export async function createJob(
         )
         RETURNING *
       `,
-      [
-        job.source,
-        job.externalId,
-        job.company,
-        job.title,
-        job.description,
-        job.location,
-        job.remote,
-        job.url,
-        job.publishedAt,
-        job.partial ?? false
-      ]
-    )
+    [
+      job.source,
+      job.externalId,
+      job.company,
+      job.title,
+      job.description,
+      job.location,
+      job.remote,
+      job.url,
+      job.publishedAt,
+      job.partial ?? false
+    ]
+  )
 
   return result.rows[0]
 }
@@ -180,20 +159,16 @@ export async function createJob(
  * Neste projeto normalmente significa que a oportunidade já foi
  * encontrada anteriormente.
  */
-export function isDuplicateJobError(
-  error: unknown
-) {
-  if (
-    typeof error !== "object" ||
-    error === null ||
-    !("code" in error)
-  ) {
+export function isDuplicateJobError(error: unknown) {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
     return false
   }
 
   return (
-    error as {
-      code?: string
-    }
-  ).code === "23505"
+    (
+      error as {
+        code?: string
+      }
+    ).code === "23505"
+  )
 }

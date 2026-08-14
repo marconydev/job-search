@@ -1,12 +1,6 @@
-import type {
-  ProvedorPagina
-} from "./discovery.js"
+import type { ProvedorPagina } from "./discovery.js"
 
-export type TipoPendenciaProcessamentoWeb =
-  | "acesso"
-  | "extracao"
-  | "localizacao"
-  | "indisponivel"
+export type TipoPendenciaProcessamentoWeb = "acesso" | "extracao" | "localizacao" | "indisponivel"
 
 export type PendenciaProcessamentoWeb = {
   tipo: TipoPendenciaProcessamentoWeb
@@ -94,8 +88,7 @@ export type ResultadoPersistenciaDescoberta = {
 }
 
 export type ResultadoProcessamentoWeb = {
-  recomendacoesDescoberta:
-    RecomendacaoDescoberta[]
+  recomendacoesDescoberta: RecomendacaoDescoberta[]
 
   paginasDescobertas: number
 
@@ -133,15 +126,11 @@ export type ResultadoProcessamentoWeb = {
    * Informo separadamente o que aconteceu com as recomendações
    * originadas apenas da descoberta.
    */
-  persistenciaDescoberta:
-    ResultadoPersistenciaDescoberta
+  persistenciaDescoberta: ResultadoPersistenciaDescoberta
 
-  porProvedor:
-    ResultadoFonteProcessada[]
+  porProvedor: ResultadoFonteProcessada[]
 
-  pendencias:
-    PendenciaProcessamentoWeb[]
+  pendencias: PendenciaProcessamentoWeb[]
 
-  somenteDescoberta:
-    PaginaSomenteDescoberta[]
+  somenteDescoberta: PaginaSomenteDescoberta[]
 }

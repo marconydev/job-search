@@ -1,16 +1,10 @@
-import {
-  NextResponse
-} from "next/server"
+import { NextResponse } from "next/server"
 
-import {
-  obterUrlBackend
-} from "@/lib/api-servidor"
+import { obterUrlBackend } from "@/lib/api-servidor"
 
-export const runtime =
-  "nodejs"
+export const runtime = "nodejs"
 
-export const dynamic =
-  "force-dynamic"
+export const dynamic = "force-dynamic"
 
 /**
  * Eu mantenho esta consulta separada da sincronização real.
@@ -20,49 +14,33 @@ export const dynamic =
  */
 export async function GET() {
   try {
-    const resposta =
-      await fetch(
-        `${obterUrlBackend()}/jobs/sync/status`,
-        {
-          cache:
-            "no-store"
-        }
-      )
+    const resposta = await fetch(`${obterUrlBackend()}/jobs/sync/status`, {
+      cache: "no-store"
+    })
 
-    const dados =
-      await resposta.json()
+    const dados = await resposta.json()
 
     if (!resposta.ok) {
       return NextResponse.json(
         {
-          mensagem:
-            dados.message ??
-            "Não foi possível consultar o status da sincronização."
+          mensagem: dados.message ?? "Não foi possível consultar o status da sincronização."
         },
         {
-          status:
-            resposta.status
+          status: resposta.status
         }
       )
     }
 
-    return NextResponse.json(
-      dados
-    )
+    return NextResponse.json(dados)
   } catch (erro) {
-    console.error(
-      "Erro ao consultar a sincronização:",
-      erro
-    )
+    console.error("Erro ao consultar a sincronização:", erro)
 
     return NextResponse.json(
       {
-        mensagem:
-          "Não foi possível acessar o backend."
+        mensagem: "Não foi possível acessar o backend."
       },
       {
-        status:
-          503
+        status: 503
       }
     )
   }

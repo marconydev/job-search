@@ -1,8 +1,6 @@
 import "dotenv/config"
 
-import {
-  db
-} from "../database/connection.js"
+import { db } from "../database/connection.js"
 
 type LinhaRevisaoMatcher = {
   idVaga: string
@@ -18,13 +16,7 @@ type LinhaRevisaoMatcher = {
   analisadaEm: Date | string
 }
 
-const provedoresWeb = [
-  "gupy",
-  "lever",
-  "greenhouse",
-  "workable",
-  "smartrecruiters"
-]
+const provedoresWeb = ["gupy", "lever", "greenhouse", "workable", "smartrecruiters"]
 
 /**
  * Traduzo somente para a exibição no terminal.
@@ -32,32 +24,22 @@ const provedoresWeb = [
  * Mantenho os valores persistidos no banco como estão porque fazem
  * parte da estrutura atual do projeto.
  */
-function traduzirStatus(
-  status: string
-) {
-  const rotulos: Record<
-    string,
-    string
-  > = {
+function traduzirStatus(status: string) {
+  const rotulos: Record<string, string> = {
     relevant: "RELEVANTE",
     discarded: "DESCARTADA",
     applied: "APLICADA",
     ignored: "IGNORADA"
   }
 
-  return (
-    rotulos[status] ??
-    status.toUpperCase()
-  )
+  return rotulos[status] ?? status.toUpperCase()
 }
 
 /**
  * Transformo os valores JSON armazenados no banco em um texto curto
  * e legível para conseguir revisar o matcher pelo terminal.
  */
-function formatarValores(
-  valor: unknown
-) {
+function formatarValores(valor: unknown) {
   if (valor === null || valor === undefined) {
     return "nenhum"
   }
@@ -68,7 +50,7 @@ function formatarValores(
     }
 
     return valor
-      .map((item) => {
+      .map(item => {
         if (typeof item === "string") {
           return item
         }
@@ -89,9 +71,7 @@ function formatarValores(
  * Agrupo as pontuações para enxergar se as vagas descartadas estão
  * muito longe do limite ou apenas alguns pontos abaixo dele.
  */
-function mostrarDistribuicao(
-  linhas: LinhaRevisaoMatcher[]
-) {
+function mostrarDistribuicao(linhas: LinhaRevisaoMatcher[]) {
   const faixas = {
     "80-100": 0,
     "60-79": 0,
@@ -128,13 +108,8 @@ function mostrarDistribuicao(
   console.log("Distribuição das pontuações")
   console.log("---------------------------")
 
-  for (
-    const [faixa, quantidade]
-    of Object.entries(faixas)
-  ) {
-    console.log(
-      `${faixa.padEnd(8)} ${quantidade}`
-    )
+  for (const [faixa, quantidade] of Object.entries(faixas)) {
+    console.log(`${faixa.padEnd(8)} ${quantidade}`)
   }
 }
 
@@ -142,41 +117,23 @@ function mostrarDistribuicao(
  * Mostro cada oportunidade com os dados que realmente influenciaram
  * a decisão do matcher.
  */
-function mostrarVaga(
-  linha: LinhaRevisaoMatcher
-) {
+function mostrarVaga(linha: LinhaRevisaoMatcher) {
   console.log("")
-  console.log(
-    `[${linha.pontuacao}] ${traduzirStatus(linha.status)}`
-  )
+  console.log(`[${linha.pontuacao}] ${traduzirStatus(linha.status)}`)
 
-  console.log(
-    `${linha.empresa} | ${linha.titulo}`
-  )
+  console.log(`${linha.empresa} | ${linha.titulo}`)
 
-  console.log(
-    `Origem: ${linha.origem}`
-  )
+  console.log(`Origem: ${linha.origem}`)
 
-  console.log(
-    `Local: ${linha.localizacao ?? "não informado"}`
-  )
+  console.log(`Local: ${linha.localizacao ?? "não informado"}`)
 
-  console.log(
-    `Remoto: ${linha.remoto ? "sim" : "não"}`
-  )
+  console.log(`Remoto: ${linha.remoto ? "sim" : "não"}`)
 
-  console.log(
-    `Habilidades: ${formatarValores(linha.habilidades)}`
-  )
+  console.log(`Habilidades: ${formatarValores(linha.habilidades)}`)
 
-  console.log(
-    `Motivos: ${formatarValores(linha.motivos)}`
-  )
+  console.log(`Motivos: ${formatarValores(linha.motivos)}`)
 
-  console.log(
-    "------------------------------------------------------------"
-  )
+  console.log("------------------------------------------------------------")
 }
 
 /**
@@ -185,9 +142,8 @@ function mostrarVaga(
  */
 async function executar() {
   try {
-    const resultado =
-      await db.query<LinhaRevisaoMatcher>(
-        `
+    const resultado = await db.query<LinhaRevisaoMatcher>(
+      `
           SELECT
             j.id AS "idVaga",
             j.source AS "origem",
@@ -208,46 +164,27 @@ async function executar() {
             jm.local_score DESC,
             jm.analyzed_at DESC
         `,
-        [
-          provedoresWeb
-        ]
-      )
+      [provedoresWeb]
+    )
 
-    const linhas =
-      resultado.rows
+    const linhas = resultado.rows
 
-    const relevantes =
-      linhas.filter(
-        (linha) =>
-          linha.status === "relevant"
-      )
+    const relevantes = linhas.filter(linha => linha.status === "relevant")
 
-    const descartadas =
-      linhas.filter(
-        (linha) =>
-          linha.status === "discarded"
-      )
+    const descartadas = linhas.filter(linha => linha.status === "discarded")
 
     console.log("")
     console.log("Auditoria do matcher")
     console.log("====================")
 
     console.log("")
-    console.log(
-      `Vagas analisadas: ${linhas.length}`
-    )
+    console.log(`Vagas analisadas: ${linhas.length}`)
 
-    console.log(
-      `Relevantes:       ${relevantes.length}`
-    )
+    console.log(`Relevantes:       ${relevantes.length}`)
 
-    console.log(
-      `Descartadas:      ${descartadas.length}`
-    )
+    console.log(`Descartadas:      ${descartadas.length}`)
 
-    mostrarDistribuicao(
-      linhas
-    )
+    mostrarDistribuicao(linhas)
 
     console.log("")
     console.log("Ranking completo")
@@ -257,10 +194,7 @@ async function executar() {
       mostrarVaga(linha)
     }
   } catch (erro) {
-    console.error(
-      "Não consegui revisar os resultados do matcher:",
-      erro
-    )
+    console.error("Não consegui revisar os resultados do matcher:", erro)
 
     process.exitCode = 1
   } finally {

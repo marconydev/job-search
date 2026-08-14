@@ -1,8 +1,6 @@
 import * as cheerio from "cheerio"
 
-import type {
-  VagaExtraida
-} from "../types/page-inspection.js"
+import type { VagaExtraida } from "../types/page-inspection.js"
 
 /**
  * Mantenho os campos no formato original porque esta estrutura representa
@@ -33,9 +31,7 @@ type DadosUrlGreenhouse = {
  * Normalizo valores simples antes de converter a resposta externa
  * para o modelo utilizado internamente.
  */
-function normalizarTexto(
-  valor: string | undefined
-): string | null {
+function normalizarTexto(valor: string | undefined): string | null {
   const texto = valor?.trim()
 
   return texto || null
@@ -45,9 +41,7 @@ function normalizarTexto(
  * A descrição da Greenhouse pode conter HTML e entidades codificadas.
  * Uso o Cheerio para transformar esse conteúdo em texto legível.
  */
-function converterDescricao(
-  html: string | undefined
-): string | null {
+function converterDescricao(html: string | undefined): string | null {
   if (!html) {
     return null
   }
@@ -69,44 +63,28 @@ function converterDescricao(
 /**
  * Retiro o token do quadro e o identificador da vaga diretamente da URL.
  */
-function interpretarUrlGreenhouse(
-  url: string
-): DadosUrlGreenhouse | null {
+function interpretarUrlGreenhouse(url: string): DadosUrlGreenhouse | null {
   try {
     const urlAnalisada = new URL(url)
 
-    const hostname =
-      urlAnalisada.hostname.toLowerCase()
+    const hostname = urlAnalisada.hostname.toLowerCase()
 
     const dominioValido =
-      hostname === "boards.greenhouse.io" ||
-      hostname === "job-boards.greenhouse.io"
+      hostname === "boards.greenhouse.io" || hostname === "job-boards.greenhouse.io"
 
     if (!dominioValido) {
       return null
     }
 
-    const partes = urlAnalisada.pathname
-      .split("/")
-      .filter(Boolean)
+    const partes = urlAnalisada.pathname.split("/").filter(Boolean)
 
     const tokenQuadro = partes[0]
 
-    const indiceJobs =
-      partes.findIndex(
-        (parte) =>
-          parte.toLowerCase() === "jobs"
-      )
+    const indiceJobs = partes.findIndex(parte => parte.toLowerCase() === "jobs")
 
-    const idVaga =
-      indiceJobs >= 0
-        ? partes[indiceJobs + 1]
-        : null
+    const idVaga = indiceJobs >= 0 ? partes[indiceJobs + 1] : null
 
-    if (
-      !tokenQuadro ||
-      !idVaga
-    ) {
+    if (!tokenQuadro || !idVaga) {
       return null
     }
 
@@ -123,25 +101,12 @@ function interpretarUrlGreenhouse(
  * Considero remoto quando a localização ou o conteúdo indicam
  * explicitamente esse formato de trabalho.
  */
-function detectarRemoto(
-  titulo: string,
-  localizacao: string | null,
-  descricao: string | null
-) {
-  const texto = [
-    titulo,
-    localizacao,
-    descricao
-  ]
-    .filter(
-      (valor): valor is string =>
-        Boolean(valor)
-    )
+function detectarRemoto(titulo: string, localizacao: string | null, descricao: string | null) {
+  const texto = [titulo, localizacao, descricao]
+    .filter((valor): valor is string => Boolean(valor))
     .join(" ")
 
-  return /\b(remote|remoto|remota|home office)\b/i.test(
-    texto
-  )
+  return /\b(remote|remoto|remota|home office)\b/i.test(texto)
 }
 
 /**
@@ -150,11 +115,8 @@ function detectarRemoto(
  * Não preciso de credencial para esta leitura porque a própria
  * plataforma disponibiliza os dados publicados por GET.
  */
-export async function extrairVagaGreenhouse(
-  url: string
-): Promise<VagaExtraida | null> {
-  const dadosUrl =
-    interpretarUrlGreenhouse(url)
+export async function extrairVagaGreenhouse(url: string): Promise<VagaExtraida | null> {
+  const dadosUrl = interpretarUrlGreenhouse(url)
 
   if (!dadosUrl) {
     return null
@@ -166,46 +128,32 @@ export async function extrairVagaGreenhouse(
     `${encodeURIComponent(dadosUrl.idVaga)}`
 
   try {
-    const resposta = await fetch(
-      urlApi,
-      {
-        headers: {
-          Accept: "application/json"
-        }
+    const resposta = await fetch(urlApi, {
+      headers: {
+        Accept: "application/json"
       }
-    )
+    })
 
     if (!resposta.ok) {
       return null
     }
 
-    const dados =
-      (await resposta.json()) as RespostaGreenhouse
+    const dados = (await resposta.json()) as RespostaGreenhouse
 
-    const titulo =
-      normalizarTexto(dados.title)
+    const titulo = normalizarTexto(dados.title)
 
     if (!titulo) {
       return null
     }
 
-    const localizacao =
-      normalizarTexto(
-        dados.location?.name
-      )
+    const localizacao = normalizarTexto(dados.location?.name)
 
-    const descricao =
-      converterDescricao(
-        dados.content
-      )
+    const descricao = converterDescricao(dados.content)
 
     return {
       titulo,
 
-      empresa:
-        normalizarTexto(
-          dados.company_name
-        ),
+      empresa: normalizarTexto(dados.company_name),
 
       descricao,
 
@@ -215,28 +163,13 @@ export async function extrairVagaGreenhouse(
       // equivalente ao tipo de contrato da nossa estrutura interna.
       tipoContratacao: null,
 
-      dataPublicacao:
-        normalizarTexto(
-          dados.first_published
-        ),
+      dataPublicacao: normalizarTexto(dados.first_published),
 
-      validaAte:
-        normalizarTexto(
-          dados.application_deadline
-        ),
+      validaAte: normalizarTexto(dados.application_deadline),
 
-      remoto:
-        detectarRemoto(
-          titulo,
-          localizacao,
-          descricao
-        ),
+      remoto: detectarRemoto(titulo, localizacao, descricao),
 
-      urlCandidatura:
-        normalizarTexto(
-          dados.absolute_url
-        ) ??
-        url
+      urlCandidatura: normalizarTexto(dados.absolute_url) ?? url
     }
   } catch {
     return null

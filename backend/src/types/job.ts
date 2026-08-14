@@ -51,12 +51,7 @@ export type StoredJob = {
   created_at: string
 }
 
-export type JobMatchStatus =
-  | "relevant"
-  | "viewed"
-  | "discarded"
-  | "applied"
-  | "ignored"
+export type JobMatchStatus = "relevant" | "viewed" | "discarded" | "applied" | "ignored"
 
 /**
  * Estes são os estados que posso escolher manualmente pelo dashboard.
@@ -64,11 +59,7 @@ export type JobMatchStatus =
  * Não exponho "discarded" como ação normal porque ele é utilizado
  * internamente pelo matcher.
  */
-export type UserJobStatus =
-  | "relevant"
-  | "viewed"
-  | "applied"
-  | "ignored"
+export type UserJobStatus = "relevant" | "viewed" | "applied" | "ignored"
 
 export type JobMatch = {
   job: StoredJob

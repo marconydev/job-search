@@ -1,29 +1,19 @@
-import {
-  Router
-} from "express"
+import { Router } from "express"
 
 import multer from "multer"
 
-import {
-  reanalisarTodasAsVagas
-} from "../services/job-analysis.js"
+import { reanalisarTodasAsVagas } from "../services/job-analysis.js"
 
-import {
-  analisarCurriculo
-} from "../services/analisador-curriculo.js"
+import { analisarCurriculo } from "../services/analisador-curriculo.js"
 
-import {
-  arquivoCurriculoEhPermitido,
-  extrairTextoCurriculo
-} from "../services/leitor-curriculo.js"
+import { arquivoCurriculoEhPermitido, extrairTextoCurriculo } from "../services/leitor-curriculo.js"
 
 import {
   obterPerfilProfissional,
   salvarPerfilProfissional
 } from "../services/perfil-profissional-service.js"
 
-const perfilRouter =
-  Router()
+const perfilRouter = Router()
 
 /**
  * Eu mantenho o currículo somente em memória durante a importação.
@@ -31,48 +21,29 @@ const perfilRouter =
  * O arquivo não é salvo fisicamente no servidor porque preciso apenas
  * extrair seu texto e gerar sugestões para o meu perfil profissional.
  */
-const uploadCurriculo =
-  multer({
-    storage:
-      multer.memoryStorage(),
+const uploadCurriculo = multer({
+  storage: multer.memoryStorage(),
 
-    limits: {
-      /**
-       * Limito o currículo a 5 MB para evitar uploads desnecessariamente
-       * grandes nesta aplicação.
-       */
-      fileSize:
-        5 * 1024 * 1024,
+  limits: {
+    /**
+     * Limito o currículo a 5 MB para evitar uploads desnecessariamente
+     * grandes nesta aplicação.
+     */
+    fileSize: 5 * 1024 * 1024,
 
-      files:
-        1
-    },
+    files: 1
+  },
 
-    fileFilter: (
-      _request,
-      file,
-      callback
-    ) => {
-      if (
-        arquivoCurriculoEhPermitido(
-          file.originalname
-        )
-      ) {
-        callback(
-          null,
-          true
-        )
+  fileFilter: (_request, file, callback) => {
+    if (arquivoCurriculoEhPermitido(file.originalname)) {
+      callback(null, true)
 
-        return
-      }
-
-      callback(
-        new Error(
-          "Envie um currículo em PDF, DOCX ou TXT."
-        )
-      )
+      return
     }
-  })
+
+    callback(new Error("Envie um currículo em PDF, DOCX ou TXT."))
+  }
+})
 
 /**
  * Eu retorno o perfil atualmente utilizado pela aplicação.
@@ -80,29 +51,17 @@ const uploadCurriculo =
 perfilRouter.get(
   "/",
 
-  async (
-    _request,
-    response
-  ) => {
+  async (_request, response) => {
     try {
-      const dados =
-        await obterPerfilProfissional()
+      const dados = await obterPerfilProfissional()
 
-      return response.json(
-        dados
-      )
+      return response.json(dados)
     } catch (error) {
-      console.error(
-        "Erro ao carregar perfil profissional:",
-        error
-      )
+      console.error("Erro ao carregar perfil profissional:", error)
 
-      return response
-        .status(500)
-        .json({
-          message:
-            "Não foi possível carregar o perfil profissional."
-        })
+      return response.status(500).json({
+        message: "Não foi possível carregar o perfil profissional."
+      })
     }
   }
 )
@@ -124,24 +83,14 @@ perfilRouter.get(
 perfilRouter.post(
   "/importar",
 
-  uploadCurriculo.single(
-    "arquivo"
-  ),
+  uploadCurriculo.single("arquivo"),
 
-  async (
-    request,
-    response
-  ) => {
+  async (request, response) => {
     try {
-      if (
-        !request.file
-      ) {
-        return response
-          .status(400)
-          .json({
-            message:
-              "Selecione um currículo para importar."
-          })
+      if (!request.file) {
+        return response.status(400).json({
+          message: "Selecione um currículo para importar."
+        })
       }
 
       /**
@@ -149,49 +98,31 @@ perfilRouter.post(
        * ajudam o analisador a reconhecer tecnologias e conhecimentos
        * encontrados dentro do currículo.
        */
-      const dadosPerfil =
-        await obterPerfilProfissional()
+      const dadosPerfil = await obterPerfilProfissional()
 
-      const texto =
-        await extrairTextoCurriculo(
-          request.file
-        )
+      const texto = await extrairTextoCurriculo(request.file)
 
-      const resultado =
-        analisarCurriculo(
-          {
-            nome:
-              request.file.originalname,
+      const resultado = analisarCurriculo(
+        {
+          nome: request.file.originalname,
 
-            tipo:
-              request.file.mimetype,
+          tipo: request.file.mimetype,
 
-            tamanho:
-              request.file.size
-          },
+          tamanho: request.file.size
+        },
 
-          texto,
+        texto,
 
-          dadosPerfil.perfil
-        )
-
-      return response.json(
-        resultado
+        dadosPerfil.perfil
       )
+
+      return response.json(resultado)
     } catch (error) {
-      console.error(
-        "Erro ao importar currículo:",
-        error
-      )
+      console.error("Erro ao importar currículo:", error)
 
-      return response
-        .status(400)
-        .json({
-          message:
-            error instanceof Error
-              ? error.message
-              : "Não foi possível analisar o currículo."
-        })
+      return response.status(400).json({
+        message: error instanceof Error ? error.message : "Não foi possível analisar o currículo."
+      })
     }
   }
 )
@@ -209,15 +140,9 @@ perfilRouter.post(
 perfilRouter.put(
   "/",
 
-  async (
-    request,
-    response
-  ) => {
+  async (request, response) => {
     try {
-      const salvo =
-        await salvarPerfilProfissional(
-          request.body
-        )
+      const salvo = await salvarPerfilProfissional(request.body)
 
       /**
        * O perfil já foi salvo neste ponto.
@@ -227,68 +152,46 @@ perfilRouter.put(
        * perfil deixou de ser salvo.
        */
       try {
-        const reanalise =
-          await reanalisarTodasAsVagas()
+        const reanalise = await reanalisarTodasAsVagas()
 
         return response.json({
           ...salvo,
 
           reanalise: {
-            concluida:
-              true,
+            concluida: true,
 
-            analisadas:
-              reanalise.analyzed,
+            analisadas: reanalise.analyzed,
 
-            relevantes:
-              reanalise.relevant,
+            relevantes: reanalise.relevant,
 
-            descartadas:
-              reanalise.discarded
+            descartadas: reanalise.discarded
           }
         })
       } catch (error) {
-        console.error(
-          "Perfil salvo, mas ocorreu erro durante a reanálise das vagas:",
-          error
-        )
+        console.error("Perfil salvo, mas ocorreu erro durante a reanálise das vagas:", error)
 
         return response.json({
           ...salvo,
 
           reanalise: {
-            concluida:
-              false,
+            concluida: false,
 
-            analisadas:
-              0,
+            analisadas: 0,
 
-            relevantes:
-              0,
+            relevantes: 0,
 
-            descartadas:
-              0
+            descartadas: 0
           }
         })
       }
     } catch (error) {
-      console.error(
-        "Erro ao salvar perfil profissional:",
-        error
-      )
+      console.error("Erro ao salvar perfil profissional:", error)
 
-      return response
-        .status(400)
-        .json({
-          message:
-            error instanceof Error
-              ? error.message
-              : "Perfil profissional inválido."
-        })
+      return response.status(400).json({
+        message: error instanceof Error ? error.message : "Perfil profissional inválido."
+      })
     }
   }
 )
 
-export {
-  perfilRouter
-}
+export { perfilRouter }

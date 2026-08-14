@@ -1,7 +1,4 @@
-import type {
-  JobCollection,
-  JobCollector
-} from "../types/collector.js"
+import type { JobCollection, JobCollector } from "../types/collector.js"
 
 import type { NewJob } from "../types/job.js"
 
@@ -41,9 +38,7 @@ function normalizeJob(job: RemotiveJob): NewJob {
   }
 }
 
-export async function collectRemotiveJobs(
-  limit = 100
-): Promise<JobCollection> {
+export async function collectRemotiveJobs(limit = 100): Promise<JobCollection> {
   const url = new URL(REMOTIVE_API_URL)
 
   url.searchParams.set("limit", String(limit))
@@ -51,9 +46,7 @@ export async function collectRemotiveJobs(
   const response = await fetch(url)
 
   if (!response.ok) {
-    throw new Error(
-      `Remotive respondeu com status ${response.status}`
-    )
+    throw new Error(`Remotive respondeu com status ${response.status}`)
   }
 
   const data = (await response.json()) as RemotiveResponse

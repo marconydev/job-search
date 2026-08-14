@@ -1,24 +1,14 @@
-import {
-  collectors
-} from "../collectors/index.js"
+import { collectors } from "../collectors/index.js"
 
-import {
-  analyzePendingJobs
-} from "./job-analysis.js"
+import { analyzePendingJobs } from "./job-analysis.js"
 
-import {
-  importJobs,
-  type JobImportResult
-} from "./job-import.js"
+import { importJobs, type JobImportResult } from "./job-import.js"
 
-import {
-  processarVagasWeb
-} from "./processamento-vagas-web.js"
+import { processarVagasWeb } from "./processamento-vagas-web.js"
 
-type ResultadoFonte =
-  JobImportResult & {
-    error?: string
-  }
+type ResultadoFonte = JobImportResult & {
+  error?: string
+}
 
 type OpcoesSincronizacao = {
   usarBrave?: boolean
@@ -26,39 +16,21 @@ type OpcoesSincronizacao = {
   limiteChamadasBrave?: number
 }
 
-async function coletarFontesDiretas(
-  limite: number
-) {
-  const resultados:
-    ResultadoFonte[] = []
+async function coletarFontesDiretas(limite: number) {
+  const resultados: ResultadoFonte[] = []
 
-  for (
-    const coletor
-    of collectors
-  ) {
+  for (const coletor of collectors) {
     try {
-      const coleta =
-        await coletor.collect(
-          limite
-        )
+      const coleta = await coletor.collect(limite)
 
-      const importacao =
-        await importJobs(
-          coleta
-        )
+      const importacao = await importJobs(coleta)
 
-      resultados.push(
-        importacao
-      )
+      resultados.push(importacao)
     } catch (erro) {
-      const mensagem =
-        erro instanceof Error
-          ? erro.message
-          : "Erro desconhecido durante a coleta"
+      const mensagem = erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta"
 
       resultados.push({
-        source:
-          coletor.name,
+        source: coletor.name,
 
         found: 0,
 
@@ -66,8 +38,7 @@ async function coletarFontesDiretas(
 
         duplicates: 0,
 
-        error:
-          mensagem
+        error: mensagem
       })
     }
   }
@@ -82,29 +53,12 @@ async function coletarFontesDiretas(
  * Mesmo com autorização explícita, nunca permito mais que seis chamadas
  * em uma única sincronização.
  */
-function normalizarLimiteBrave(
-  valor:
-    number | undefined
-) {
-  if (
-    typeof valor !==
-      "number" ||
-    !Number.isFinite(
-      valor
-    )
-  ) {
+function normalizarLimiteBrave(valor: number | undefined) {
+  if (typeof valor !== "number" || !Number.isFinite(valor)) {
     return 6
   }
 
-  return Math.min(
-    6,
-    Math.max(
-      0,
-      Math.floor(
-        valor
-      )
-    )
-  )
+  return Math.min(6, Math.max(0, Math.floor(valor)))
 }
 
 /**
@@ -114,21 +68,10 @@ function normalizarLimiteBrave(
  * realizar novas buscas pagas quando essa autorização for recebida
  * explicitamente.
  */
-export async function syncJobs(
-  limite = 100,
-  opcoes:
-    OpcoesSincronizacao = {}
-) {
-  const usarBrave =
-    opcoes.usarBrave ===
-    true
+export async function syncJobs(limite = 100, opcoes: OpcoesSincronizacao = {}) {
+  const usarBrave = opcoes.usarBrave === true
 
-  const limiteBrave =
-    usarBrave
-      ? normalizarLimiteBrave(
-          opcoes.limiteChamadasBrave
-        )
-      : 0
+  const limiteBrave = usarBrave ? normalizarLimiteBrave(opcoes.limiteChamadasBrave) : 0
 
   console.log("")
 
@@ -138,30 +81,21 @@ export async function syncJobs(
       : "Sincronização: Brave desativada. Usando fontes diretas e cache."
   )
 
-  const fontes =
-    await coletarFontesDiretas(
-      limite
-    )
+  const fontes = await coletarFontesDiretas(limite)
 
-  const web =
-    await processarVagasWeb({
-      salvarCompativeis:
-        true,
+  const web = await processarVagasWeb({
+    salvarCompativeis: true,
 
-      permitirBuscaLive:
-        usarBrave,
+    permitirBuscaLive: usarBrave,
 
-      limiteChamadasBrave:
-        limiteBrave
-    })
+    limiteChamadasBrave: limiteBrave
+  })
 
-  const analise =
-    await analyzePendingJobs()
+  const analise = await analyzePendingJobs()
 
   return {
     modo: {
-      braveAutorizada:
-        usarBrave,
+      braveAutorizada: usarBrave,
 
       limiteBrave
     },
@@ -171,14 +105,11 @@ export async function syncJobs(
     web,
 
     analise: {
-      analisadas:
-        analise.analyzed,
+      analisadas: analise.analyzed,
 
-      relevantes:
-        analise.relevant,
+      relevantes: analise.relevant,
 
-      descartadas:
-        analise.discarded
+      descartadas: analise.discarded
     }
   }
 }

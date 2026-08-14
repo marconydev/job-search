@@ -8,6 +8,4 @@ import { remotiveCollector } from "./remotive.js"
  * Para adicionar um novo coletor, basta implementá-lo e registrá-lo aqui.
  * O restante do processo não precisa conhecer a origem das vagas.
  */
-export const collectors: JobCollector[] = [
-  remotiveCollector
-]
+export const collectors: JobCollector[] = [remotiveCollector]

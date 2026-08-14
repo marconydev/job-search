@@ -67,3 +67,4 @@ dashboard de oportunidades;
 acompanhamento do status das vagas;
 perfil profissional editável;
 importação e análise de currículos PDF, DOCX e TXT.
+```

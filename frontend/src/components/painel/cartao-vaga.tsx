@@ -10,24 +10,17 @@ import {
   Sparkles
 } from "lucide-react"
 
-import type {
-  StatusVaga,
-  VagaPainel
-} from "@/types/painel"
+import type { StatusVaga, VagaPainel } from "@/types/painel"
 
 type Propriedades = {
   vaga: VagaPainel
 
   selecionada: boolean
 
-  aoSelecionar:
-    () => void
+  aoSelecionar: () => void
 }
 
-function obterRotuloStatus(
-  status:
-    StatusVaga
-) {
+function obterRotuloStatus(status: StatusVaga) {
   switch (status) {
     case "relevant":
       return "Nova"
@@ -43,118 +36,71 @@ function obterRotuloStatus(
   }
 }
 
-function formatarDataCurta(
-  valor:
-    string | null
-) {
+function formatarDataCurta(valor: string | null) {
   if (!valor) {
     return null
   }
 
-  const data =
-    new Date(valor)
+  const data = new Date(valor)
 
-  if (
-    Number.isNaN(
-      data.getTime()
-    )
-  ) {
+  if (Number.isNaN(data.getTime())) {
     return null
   }
 
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      day:
-        "2-digit",
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
 
-      month:
-        "short"
-    }
-  ).format(data)
+    month: "short"
+  }).format(data)
 }
 
-function formatarDataHoraCurta(
-  valor:
-    string | null
-) {
+function formatarDataHoraCurta(valor: string | null) {
   if (!valor) {
     return null
   }
 
-  const data =
-    new Date(valor)
+  const data = new Date(valor)
 
-  if (
-    Number.isNaN(
-      data.getTime()
-    )
-  ) {
+  if (Number.isNaN(data.getTime())) {
     return null
   }
 
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      day:
-        "2-digit",
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
 
-      month:
-        "2-digit",
+    month: "2-digit",
 
-      hour:
-        "2-digit",
+    hour: "2-digit",
 
-      minute:
-        "2-digit"
-    }
-  ).format(data)
+    minute: "2-digit"
+  }).format(data)
 }
 
 /**
  * Eu uso a data específica de cada ação para deixar claro em que ponto
  * do processo esta oportunidade está.
  */
-function obterAcompanhamento(
-  vaga:
-    VagaPainel
-) {
-  switch (
-    vaga.status
-  ) {
+function obterAcompanhamento(vaga: VagaPainel) {
+  switch (vaga.status) {
     case "viewed":
       return {
-        rotulo:
-          "Vista",
+        rotulo: "Vista",
 
-        data:
-          formatarDataHoraCurta(
-            vaga.viewed_at ??
-            vaga.status_updated_at
-          )
+        data: formatarDataHoraCurta(vaga.viewed_at ?? vaga.status_updated_at)
       }
 
     case "applied":
       return {
-        rotulo:
-          "Aplicada",
+        rotulo: "Aplicada",
 
-        data:
-          formatarDataHoraCurta(
-            vaga.applied_at ??
-            vaga.status_updated_at
-          )
+        data: formatarDataHoraCurta(vaga.applied_at ?? vaga.status_updated_at)
       }
 
     case "ignored":
       return {
-        rotulo:
-          "Ignorada",
+        rotulo: "Ignorada",
 
-        data:
-          formatarDataHoraCurta(
-            vaga.status_updated_at
-          )
+        data: formatarDataHoraCurta(vaga.status_updated_at)
       }
 
     default:
@@ -162,58 +108,26 @@ function obterAcompanhamento(
   }
 }
 
-function IconeStatus({
-  status
-}: {
-  status:
-    StatusVaga
-}) {
+function IconeStatus({ status }: { status: StatusVaga }) {
   switch (status) {
     case "relevant":
-      return (
-        <Sparkles
-          size={12}
-        />
-      )
+      return <Sparkles size={12} />
 
     case "viewed":
-      return (
-        <Eye
-          size={12}
-        />
-      )
+      return <Eye size={12} />
 
     case "applied":
-      return (
-        <CheckCircle2
-          size={12}
-        />
-      )
+      return <CheckCircle2 size={12} />
 
     case "ignored":
-      return (
-        <ArchiveX
-          size={12}
-        />
-      )
+      return <ArchiveX size={12} />
   }
 }
 
-export function CartaoVaga({
-  vaga,
-  selecionada,
-  aoSelecionar
-}: Propriedades) {
-  const dataPublicacao =
-    formatarDataCurta(
-      vaga.published_at ??
-      vaga.created_at
-    )
+export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
+  const dataPublicacao = formatarDataCurta(vaga.published_at ?? vaga.created_at)
 
-  const acompanhamento =
-    obterAcompanhamento(
-      vaga
-    )
+  const acompanhamento = obterAcompanhamento(vaga)
 
   return (
     <article
@@ -224,18 +138,12 @@ export function CartaoVaga({
           : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700"
       ].join(" ")}
     >
-      {selecionada && (
-        <div className="absolute inset-y-0 left-0 w-1 bg-indigo-500" />
-      )}
+      {selecionada && <div className="absolute inset-y-0 left-0 w-1 bg-indigo-500" />}
 
       <button
         type="button"
-        onClick={
-          aoSelecionar
-        }
-        aria-pressed={
-          selecionada
-        }
+        onClick={aoSelecionar}
+        aria-pressed={selecionada}
         className="w-full cursor-pointer p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
       >
         <div className="flex items-start gap-4">
@@ -244,27 +152,18 @@ export function CartaoVaga({
               <span
                 className={[
                   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-                  vaga.status ===
-                  "relevant"
+                  vaga.status === "relevant"
                     ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                    : vaga.status ===
-                      "viewed"
+                    : vaga.status === "viewed"
                       ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                      : vaga.status ===
-                        "applied"
+                      : vaga.status === "applied"
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                         : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                 ].join(" ")}
               >
-                <IconeStatus
-                  status={
-                    vaga.status
-                  }
-                />
+                <IconeStatus status={vaga.status} />
 
-                {obterRotuloStatus(
-                  vaga.status
-                )}
+                {obterRotuloStatus(vaga.status)}
               </span>
 
               {vaga.partial && (
@@ -272,10 +171,7 @@ export function CartaoVaga({
                   title="Informações obtidas durante a descoberta da vaga"
                   className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
                 >
-                  <Sparkles
-                    size={12}
-                  />
-
+                  <Sparkles size={12} />
                   Dados parciais
                 </span>
               )}
@@ -286,22 +182,15 @@ export function CartaoVaga({
             </h3>
 
             <div className="mt-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <Building2
-                size={15}
-                className="shrink-0"
-              />
+              <Building2 size={15} className="shrink-0" />
 
-              <span className="truncate">
-                {vaga.company}
-              </span>
+              <span className="truncate">{vaga.company}</span>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-500">
               {vaga.location && (
                 <span className="inline-flex items-center gap-1.5">
-                  <MapPin
-                    size={13}
-                  />
+                  <MapPin size={13} />
 
                   {vaga.location}
                 </span>
@@ -309,79 +198,50 @@ export function CartaoVaga({
 
               {vaga.remote && (
                 <span className="inline-flex items-center gap-1.5">
-                  <House
-                    size={13}
-                  />
-
+                  <House size={13} />
                   Remota
                 </span>
               )}
 
               {dataPublicacao && (
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock3
-                    size={13}
-                  />
+                  <Clock3 size={13} />
 
                   {dataPublicacao}
                 </span>
               )}
             </div>
 
-            {acompanhamento &&
-              acompanhamento.data && (
+            {acompanhamento && acompanhamento.data && (
               <div
                 className={[
                   "mt-3 inline-flex w-fit items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium",
-                  vaga.status ===
-                  "applied"
+                  vaga.status === "applied"
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                    : vaga.status ===
-                      "viewed"
+                    : vaga.status === "viewed"
                       ? "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
                       : "bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400"
                 ].join(" ")}
               >
-                <Clock3
-                  size={12}
-                />
-
-                {acompanhamento.rotulo} em{" "}
-                {acompanhamento.data}
+                <Clock3 size={12} />
+                {acompanhamento.rotulo} em {acompanhamento.data}
               </div>
             )}
 
-            {vaga.matched_skills.length >
-              0 && (
+            {vaga.matched_skills.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5">
-                {vaga.matched_skills
-                  .slice(
-                    0,
-                    4
-                  )
-                  .map(
-                    competencia => (
-                      <span
-                        key={
-                          competencia
-                        }
-                        className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-400"
-                      >
-                        {competencia}
-                      </span>
-                    )
-                  )}
+                {vaga.matched_skills.slice(0, 4).map(competencia => (
+                  <span
+                    key={competencia}
+                    className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-400"
+                  >
+                    {competencia}
+                  </span>
+                ))}
 
-                {vaga
-                  .matched_skills
-                  .length >
-                  4 && (
+                {vaga.matched_skills.length > 4 && (
                   <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-500">
-                    +
-                    {vaga
-                      .matched_skills
-                      .length -
-                      4}
+                    +{vaga.matched_skills.length - 4}
                   </span>
                 )}
               </div>
@@ -392,11 +252,9 @@ export function CartaoVaga({
             <div
               className={[
                 "flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-bold tabular-nums",
-                vaga.local_score >=
-                85
+                vaga.local_score >= 85
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                  : vaga.local_score >=
-                    75
+                  : vaga.local_score >= 75
                     ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
                     : "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300"
               ].join(" ")}

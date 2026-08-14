@@ -1,49 +1,32 @@
-import {
-  ArrowLeft,
-  ServerOff,
-  UserRound
-} from "lucide-react"
+import { ArrowLeft, ServerOff, UserRound } from "lucide-react"
 
 import Link from "next/link"
 
-import {
-  EditorPerfil
-} from "@/components/perfil/editor-perfil"
+import { EditorPerfil } from "@/components/perfil/editor-perfil"
 
-import {
-  obterPerfilProfissional
-} from "@/lib/api-servidor"
+import { obterPerfilProfissional } from "@/lib/api-servidor"
 
-import type {
-  PerfilProfissionalComMetadados
-} from "@/types/perfil"
+import type { PerfilProfissionalComMetadados } from "@/types/perfil"
 
-export const dynamic =
-  "force-dynamic"
+export const dynamic = "force-dynamic"
 
 type ResultadoCarregamento = {
-  dados:
-    PerfilProfissionalComMetadados | null
+  dados: PerfilProfissionalComMetadados | null
 
-  erro:
-    unknown
+  erro: unknown
 }
 
-async function carregarPerfil():
-  Promise<ResultadoCarregamento> {
+async function carregarPerfil(): Promise<ResultadoCarregamento> {
   try {
-    const dados =
-      await obterPerfilProfissional()
+    const dados = await obterPerfilProfissional()
 
     return {
       dados,
-      erro:
-        null
+      erro: null
     }
   } catch (erro) {
     return {
-      dados:
-        null,
+      dados: null,
 
       erro
     }
@@ -51,22 +34,16 @@ async function carregarPerfil():
 }
 
 export default async function PaginaPerfil() {
-  const resultado =
-    await carregarPerfil()
+  const resultado = await carregarPerfil()
 
   if (!resultado.dados) {
-    console.error(
-      "Erro ao carregar perfil:",
-      resultado.erro
-    )
+    console.error("Erro ao carregar perfil:", resultado.erro)
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-slate-950">
         <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
-            <ServerOff
-              size={24}
-            />
+            <ServerOff size={24} />
           </div>
 
           <h1 className="mt-5 text-xl font-bold text-slate-950 dark:text-white">
@@ -81,10 +58,7 @@ export default async function PaginaPerfil() {
             href="/"
             className="mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold"
           >
-            <ArrowLeft
-              size={16}
-            />
-
+            <ArrowLeft size={16} />
             Voltar
           </Link>
         </div>
@@ -101,18 +75,13 @@ export default async function PaginaPerfil() {
               href="/"
               className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900 dark:hover:text-white"
             >
-              <ArrowLeft
-                size={16}
-              />
-
+              <ArrowLeft size={16} />
               Voltar para vagas
             </Link>
 
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                <UserRound
-                  size={22}
-                />
+                <UserRound size={22} />
               </div>
 
               <div>
@@ -128,11 +97,7 @@ export default async function PaginaPerfil() {
           </div>
         </div>
 
-        <EditorPerfil
-          dadosIniciais={
-            resultado.dados
-          }
-        />
+        <EditorPerfil dadosIniciais={resultado.dados} />
       </div>
     </main>
   )

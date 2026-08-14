@@ -1,12 +1,6 @@
 "use client"
 
-import {
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition
-} from "react"
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react"
 
 import {
   ArchiveX,
@@ -23,21 +17,13 @@ import {
   X
 } from "lucide-react"
 
-import {
-  useRouter
-} from "next/navigation"
+import { useRouter } from "next/navigation"
 
-import {
-  CartaoVaga
-} from "./cartao-vaga"
+import { CartaoVaga } from "./cartao-vaga"
 
-import {
-  ControleSincronizacao
-} from "./controle-sincronizacao"
+import { ControleSincronizacao } from "./controle-sincronizacao"
 
-import {
-  DetalheVaga
-} from "./detalhe-vaga"
+import { DetalheVaga } from "./detalhe-vaga"
 
 import type {
   DadosPainel,
@@ -49,43 +35,27 @@ import type {
 } from "@/types/painel"
 
 type Propriedades = {
-  dadosIniciais:
-  DadosPainel
+  dadosIniciais: DadosPainel
 }
 
-const QUANTIDADE_POR_LOTE =
-  12
+const QUANTIDADE_POR_LOTE = 12
 
-function normalizarTexto(
-  texto: string
-) {
+function normalizarTexto(texto: string) {
   return texto
     .normalize("NFD")
-    .replace(
-      /[\u0300-\u036f]/g,
-      ""
-    )
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
 }
 
-function vagaEhDeHoje(
-  vaga: VagaPainel
-) {
-  const data =
-    new Date(
-      vaga.created_at
-    )
+function vagaEhDeHoje(vaga: VagaPainel) {
+  const data = new Date(vaga.created_at)
 
-  const hoje =
-    new Date()
+  const hoje = new Date()
 
   return (
-    data.getFullYear() ===
-    hoje.getFullYear() &&
-    data.getMonth() ===
-    hoje.getMonth() &&
-    data.getDate() ===
-    hoje.getDate()
+    data.getFullYear() === hoje.getFullYear() &&
+    data.getMonth() === hoje.getMonth() &&
+    data.getDate() === hoje.getDate()
   )
 }
 
@@ -94,19 +64,13 @@ function vagaEhDeHoje(
  * status que ainda não foi incorporada aos dados recebidos do servidor.
  */
 function atualizarResumoLocal(
-  resumoAtual:
-    DadosPainel["resumo"],
+  resumoAtual: DadosPainel["resumo"],
 
-  vagaAnterior:
-    VagaPainel,
+  vagaAnterior: VagaPainel,
 
-  novoStatus:
-    StatusVaga
+  novoStatus: StatusVaga
 ) {
-  if (
-    vagaAnterior.status ===
-    novoStatus
-  ) {
+  if (vagaAnterior.status === novoStatus) {
     return resumoAtual
   }
 
@@ -114,49 +78,27 @@ function atualizarResumoLocal(
     ...resumoAtual
   }
 
-  function reduzir(
-    status:
-      StatusVaga
-  ) {
+  function reduzir(status: StatusVaga) {
     switch (status) {
       case "relevant":
-        resumo.novas =
-          Math.max(
-            0,
-            resumo.novas - 1
-          )
+        resumo.novas = Math.max(0, resumo.novas - 1)
         break
 
       case "viewed":
-        resumo.vistas =
-          Math.max(
-            0,
-            resumo.vistas - 1
-          )
+        resumo.vistas = Math.max(0, resumo.vistas - 1)
         break
 
       case "applied":
-        resumo.aplicadas =
-          Math.max(
-            0,
-            resumo.aplicadas - 1
-          )
+        resumo.aplicadas = Math.max(0, resumo.aplicadas - 1)
         break
 
       case "ignored":
-        resumo.ignoradas =
-          Math.max(
-            0,
-            resumo.ignoradas - 1
-          )
+        resumo.ignoradas = Math.max(0, resumo.ignoradas - 1)
         break
     }
   }
 
-  function aumentar(
-    status:
-      StatusVaga
-  ) {
+  function aumentar(status: StatusVaga) {
     switch (status) {
       case "relevant":
         resumo.novas++
@@ -176,39 +118,16 @@ function atualizarResumoLocal(
     }
   }
 
-  reduzir(
-    vagaAnterior.status
-  )
+  reduzir(vagaAnterior.status)
 
-  aumentar(
-    novoStatus
-  )
+  aumentar(novoStatus)
 
-  if (
-    vagaEhDeHoje(
-      vagaAnterior
-    )
-  ) {
-    if (
-      vagaAnterior.status ===
-      "relevant" &&
-      novoStatus !==
-      "relevant"
-    ) {
-      resumo.novas_hoje =
-        Math.max(
-          0,
-          resumo.novas_hoje -
-          1
-        )
+  if (vagaEhDeHoje(vagaAnterior)) {
+    if (vagaAnterior.status === "relevant" && novoStatus !== "relevant") {
+      resumo.novas_hoje = Math.max(0, resumo.novas_hoje - 1)
     }
 
-    if (
-      vagaAnterior.status !==
-      "relevant" &&
-      novoStatus ===
-      "relevant"
-    ) {
+    if (vagaAnterior.status !== "relevant" && novoStatus === "relevant") {
       resumo.novas_hoje++
     }
   }
@@ -216,17 +135,10 @@ function atualizarResumoLocal(
   return resumo
 }
 
-export function PainelVagas({
-  dadosIniciais
-}: Propriedades) {
-  const router =
-    useRouter()
+export function PainelVagas({ dadosIniciais }: Propriedades) {
+  const router = useRouter()
 
-  const [
-    atualizandoPagina,
-    iniciarAtualizacao
-  ] =
-    useTransition()
+  const [atualizandoPagina, iniciarAtualizacao] = useTransition()
 
   /**
    * Eu armazeno somente mudanças feitas localmente.
@@ -234,415 +146,176 @@ export function PainelVagas({
    * Os dados oficiais continuam vindo de dadosIniciais. Isso elimina a
    * necessidade de copiar props para state usando useEffect.
    */
-  const [
-    statusLocais,
-    setStatusLocais
-  ] =
-    useState<
-      Record<
-        number,
-        StatusVaga
-      >
-    >(
-      {}
-    )
+  const [statusLocais, setStatusLocais] = useState<Record<number, StatusVaga>>({})
 
-  const [
-    vagaSelecionadaId,
-    setVagaSelecionadaId
-  ] =
-    useState<
-      number | null
-    >(
-      dadosIniciais
-        .vagas[0]
-        ?.id ??
-      null
-    )
+  const [vagaSelecionadaId, setVagaSelecionadaId] = useState<number | null>(
+    dadosIniciais.vagas[0]?.id ?? null
+  )
 
-  const [
-    busca,
-    setBusca
-  ] =
-    useState("")
+  const [busca, setBusca] = useState("")
 
-  const buscaAdiada =
-    useDeferredValue(
-      busca
-    )
+  const buscaAdiada = useDeferredValue(busca)
 
-  const [
-    filtroStatus,
-    setFiltroStatus
-  ] =
-    useState<
-      FiltroStatus
-    >(
-      "todos"
-    )
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos")
 
-  const [
-    filtroModalidade,
-    setFiltroModalidade
-  ] =
-    useState<
-      FiltroModalidade
-    >(
-      "todas"
-    )
+  const [filtroModalidade, setFiltroModalidade] = useState<FiltroModalidade>("todas")
 
-  const [
-    filtroFonte,
-    setFiltroFonte
-  ] =
-    useState(
-      "todas"
-    )
+  const [filtroFonte, setFiltroFonte] = useState("todas")
 
-  const [
-    pontuacaoMinima,
-    setPontuacaoMinima
-  ] =
-    useState(60)
+  const [pontuacaoMinima, setPontuacaoMinima] = useState(60)
 
-  const [
-    ordenacao,
-    setOrdenacao
-  ] =
-    useState<
-      OrdenacaoVagas
-    >(
-      "compatibilidade"
-    )
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoVagas>("compatibilidade")
 
-  const [
-    idProcessando,
-    setIdProcessando
-  ] =
-    useState<
-      number | null
-    >(
-      null
-    )
+  const [idProcessando, setIdProcessando] = useState<number | null>(null)
 
-  const [
-    mensagem,
-    setMensagem
-  ] =
-    useState<
-      string | null
-    >(
-      null
-    )
+  const [mensagem, setMensagem] = useState<string | null>(null)
 
-  const [
-    limiteVisivel,
-    setLimiteVisivel
-  ] =
-    useState(
-      QUANTIDADE_POR_LOTE
-    )
+  const [limiteVisivel, setLimiteVisivel] = useState(QUANTIDADE_POR_LOTE)
 
   /**
- * Eu combino os dados recebidos do servidor com alterações locais
- * de status que ainda não apareceram na próxima resposta do backend.
- *
- * Primeiro monto a lista atualizada e depois recalculo o resumo de
- * forma imutável. Não altero variáveis durante a renderização.
- */
-  const dados =
-    useMemo(
-      () => {
-        const vagas =
-          dadosIniciais.vagas.map(
-            vaga => {
-              const statusLocal =
-                statusLocais[
-                vaga.id
-                ]
+   * Eu combino os dados recebidos do servidor com alterações locais
+   * de status que ainda não apareceram na próxima resposta do backend.
+   *
+   * Primeiro monto a lista atualizada e depois recalculo o resumo de
+   * forma imutável. Não altero variáveis durante a renderização.
+   */
+  const dados = useMemo(() => {
+    const vagas = dadosIniciais.vagas.map(vaga => {
+      const statusLocal = statusLocais[vaga.id]
 
-              if (
-                !statusLocal ||
-                statusLocal ===
-                vaga.status
-              ) {
-                return vaga
-              }
+      if (!statusLocal || statusLocal === vaga.status) {
+        return vaga
+      }
 
-              return {
-                ...vaga,
+      return {
+        ...vaga,
 
-                status:
-                  statusLocal
-              }
-            }
-          )
+        status: statusLocal
+      }
+    })
 
-        const resumo =
-          vagas.reduce(
-            (
-              resumoAtual,
-              vagaAtual,
-              indice
-            ) => {
-              const vagaOriginal =
-                dadosIniciais.vagas[
-                indice
-                ]
+    const resumo = vagas.reduce(
+      (resumoAtual, vagaAtual, indice) => {
+        const vagaOriginal = dadosIniciais.vagas[indice]
 
-              if (
-                vagaAtual.status ===
-                vagaOriginal.status
-              ) {
-                return resumoAtual
-              }
-
-              return atualizarResumoLocal(
-                resumoAtual,
-                vagaOriginal,
-                vagaAtual.status
-              )
-            },
-            {
-              ...dadosIniciais.resumo
-            }
-          )
-
-        return {
-          ...dadosIniciais,
-
-          resumo,
-
-          vagas
+        if (vagaAtual.status === vagaOriginal.status) {
+          return resumoAtual
         }
+
+        return atualizarResumoLocal(resumoAtual, vagaOriginal, vagaAtual.status)
       },
-      [
-        dadosIniciais,
-        statusLocais
-      ]
+      {
+        ...dadosIniciais.resumo
+      }
     )
+
+    return {
+      ...dadosIniciais,
+
+      resumo,
+
+      vagas
+    }
+  }, [dadosIniciais, statusLocais])
   /**
    * A mensagem desaparece alguns segundos depois.
    *
    * A alteração de estado acontece no callback do temporizador, e não
    * diretamente durante a execução do efeito.
    */
-  useEffect(
-    () => {
-      if (!mensagem) {
-        return
-      }
+  useEffect(() => {
+    if (!mensagem) {
+      return
+    }
 
-      const temporizador =
-        window.setTimeout(
-          () => {
-            setMensagem(
-              null
-            )
-          },
-          3500
-        )
+    const temporizador = window.setTimeout(() => {
+      setMensagem(null)
+    }, 3500)
 
-      return () =>
-        window.clearTimeout(
-          temporizador
-        )
-    },
-    [
-      mensagem
-    ]
+    return () => window.clearTimeout(temporizador)
+  }, [mensagem])
+
+  const fontes = useMemo(
+    () =>
+      [...new Set(dados.vagas.map(vaga => vaga.source))].sort((primeira, segunda) =>
+        primeira.localeCompare(segunda, "pt-BR")
+      ),
+    [dados.vagas]
   )
 
-  const fontes =
-    useMemo(
-      () =>
-        [
-          ...new Set(
-            dados.vagas.map(
-              vaga =>
-                vaga.source
-            )
-          )
-        ].sort(
-          (
-            primeira,
-            segunda
-          ) =>
-            primeira.localeCompare(
-              segunda,
-              "pt-BR"
-            )
-        ),
-      [
-        dados.vagas
-      ]
-    )
+  const vagasFiltradas = useMemo(() => {
+    const termo = normalizarTexto(buscaAdiada.trim())
 
-  const vagasFiltradas =
-    useMemo(
-      () => {
-        const termo =
-          normalizarTexto(
-            buscaAdiada.trim()
-          )
+    const filtradas = dados.vagas.filter(vaga => {
+      if (vaga.local_score < pontuacaoMinima) {
+        return false
+      }
 
-        const filtradas =
-          dados.vagas.filter(
-            vaga => {
-              if (
-                vaga.local_score <
-                pontuacaoMinima
-              ) {
-                return false
-              }
+      if (filtroStatus !== "todos" && vaga.status !== filtroStatus) {
+        return false
+      }
 
-              if (
-                filtroStatus !==
-                "todos" &&
-                vaga.status !==
-                filtroStatus
-              ) {
-                return false
-              }
+      if (filtroFonte !== "todas" && vaga.source !== filtroFonte) {
+        return false
+      }
 
-              if (
-                filtroFonte !==
-                "todas" &&
-                vaga.source !==
-                filtroFonte
-              ) {
-                return false
-              }
+      if (filtroModalidade === "remota" && !vaga.remote) {
+        return false
+      }
 
-              if (
-                filtroModalidade ===
-                "remota" &&
-                !vaga.remote
-              ) {
-                return false
-              }
+      if (filtroModalidade === "nao-remota" && vaga.remote) {
+        return false
+      }
 
-              if (
-                filtroModalidade ===
-                "nao-remota" &&
-                vaga.remote
-              ) {
-                return false
-              }
+      if (!termo) {
+        return true
+      }
 
-              if (!termo) {
-                return true
-              }
+      const texto = normalizarTexto(
+        [vaga.title, vaga.company, vaga.location, vaga.source, ...vaga.matched_skills]
+          .filter(Boolean)
+          .join(" ")
+      )
 
-              const texto =
-                normalizarTexto(
-                  [
-                    vaga.title,
-                    vaga.company,
-                    vaga.location,
-                    vaga.source,
-                    ...vaga
-                      .matched_skills
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                )
+      return texto.includes(termo)
+    })
 
-              return texto.includes(
-                termo
-              )
-            }
-          )
+    return filtradas.sort((primeira, segunda) => {
+      if (ordenacao === "compatibilidade") {
+        return segunda.local_score - primeira.local_score
+      }
 
-        return filtradas.sort(
-          (
-            primeira,
-            segunda
-          ) => {
-            if (
-              ordenacao ===
-              "compatibilidade"
-            ) {
-              return (
-                segunda.local_score -
-                primeira.local_score
-              )
-            }
+      const dataPrimeira = new Date(primeira.published_at ?? primeira.created_at).getTime()
 
-            const dataPrimeira =
-              new Date(
-                primeira.published_at ??
-                primeira.created_at
-              ).getTime()
+      const dataSegunda = new Date(segunda.published_at ?? segunda.created_at).getTime()
 
-            const dataSegunda =
-              new Date(
-                segunda.published_at ??
-                segunda.created_at
-              ).getTime()
+      return dataSegunda - dataPrimeira
+    })
+  }, [
+    buscaAdiada,
+    dados.vagas,
+    filtroFonte,
+    filtroModalidade,
+    filtroStatus,
+    ordenacao,
+    pontuacaoMinima
+  ])
 
-            return (
-              dataSegunda -
-              dataPrimeira
-            )
-          }
-        )
-      },
-      [
-        buscaAdiada,
-        dados.vagas,
-        filtroFonte,
-        filtroModalidade,
-        filtroStatus,
-        ordenacao,
-        pontuacaoMinima
-      ]
-    )
+  const vagasVisiveis = useMemo(
+    () => vagasFiltradas.slice(0, limiteVisivel),
+    [vagasFiltradas, limiteVisivel]
+  )
 
-  const vagasVisiveis =
-    useMemo(
-      () =>
-        vagasFiltradas.slice(
-          0,
-          limiteVisivel
-        ),
-      [
-        vagasFiltradas,
-        limiteVisivel
-      ]
-    )
+  const possuiMaisVagas = vagasVisiveis.length < vagasFiltradas.length
 
-  const possuiMaisVagas =
-    vagasVisiveis.length <
-    vagasFiltradas.length
+  const quantidadeRestante = Math.max(0, vagasFiltradas.length - vagasVisiveis.length)
 
-  const quantidadeRestante =
-    Math.max(
-      0,
-      vagasFiltradas.length -
-      vagasVisiveis.length
-    )
+  const quantidadeProximoLote = Math.min(QUANTIDADE_POR_LOTE, quantidadeRestante)
 
-  const quantidadeProximoLote =
-    Math.min(
-      QUANTIDADE_POR_LOTE,
-      quantidadeRestante
-    )
-
-  const vagaSelecionada =
-    useMemo(
-      () =>
-        dados.vagas.find(
-          vaga =>
-            vaga.id ===
-            vagaSelecionadaId
-        ) ??
-        null,
-      [
-        dados.vagas,
-        vagaSelecionadaId
-      ]
-    )
+  const vagaSelecionada = useMemo(
+    () => dados.vagas.find(vaga => vaga.id === vagaSelecionadaId) ?? null,
+    [dados.vagas, vagaSelecionadaId]
+  )
 
   /**
    * Eu centralizo o reset do lote nas funções que realmente alteram os
@@ -651,198 +324,104 @@ export function PainelVagas({
    * Assim não preciso observar mudanças com useEffect apenas para
    * executar outro setState.
    */
-  function alterarBusca(
-    valor:
-      string
-  ) {
-    setBusca(
-      valor
-    )
+  function alterarBusca(valor: string) {
+    setBusca(valor)
 
-    setLimiteVisivel(
-      QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
-  function alterarFiltroStatus(
-    valor:
-      FiltroStatus
-  ) {
-    setFiltroStatus(
-      valor
-    )
+  function alterarFiltroStatus(valor: FiltroStatus) {
+    setFiltroStatus(valor)
 
-    setLimiteVisivel(
-      QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
-  function alterarFiltroFonte(
-    valor:
-      string
-  ) {
-    setFiltroFonte(
-      valor
-    )
+  function alterarFiltroFonte(valor: string) {
+    setFiltroFonte(valor)
 
-    setLimiteVisivel(
-      QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
-  function alterarFiltroModalidade(
-    valor:
-      FiltroModalidade
-  ) {
-    setFiltroModalidade(
-      valor
-    )
+  function alterarFiltroModalidade(valor: FiltroModalidade) {
+    setFiltroModalidade(valor)
 
-    setLimiteVisivel(
-      QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
-  function alterarPontuacaoMinima(
-    valor:
-      number
-  ) {
-    setPontuacaoMinima(
-      valor
-    )
+  function alterarPontuacaoMinima(valor: number) {
+    setPontuacaoMinima(valor)
 
-    setLimiteVisivel(
-      QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
-  function alterarOrdenacao(
-    valor:
-      OrdenacaoVagas
-  ) {
-    setOrdenacao(
-      valor
-    )
+  function alterarOrdenacao(valor: OrdenacaoVagas) {
+    setOrdenacao(valor)
 
-    setLimiteVisivel(
-      QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
   async function alterarStatus(
-    vaga:
-      VagaPainel,
+    vaga: VagaPainel,
 
-    novoStatus:
-      StatusVaga
+    novoStatus: StatusVaga
   ) {
-    if (
-      vaga.status ===
-      novoStatus
-    ) {
+    if (vaga.status === novoStatus) {
       return
     }
 
-    setIdProcessando(
-      vaga.id
-    )
+    setIdProcessando(vaga.id)
 
     try {
-      const resposta =
-        await fetch(
-          `/api/vagas/${vaga.id}/status`,
-          {
-            method:
-              "PATCH",
+      const resposta = await fetch(`/api/vagas/${vaga.id}/status`, {
+        method: "PATCH",
 
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
+        headers: {
+          "Content-Type": "application/json"
+        },
 
-            body:
-              JSON.stringify({
-                status:
-                  novoStatus
-              })
-          }
-        )
+        body: JSON.stringify({
+          status: novoStatus
+        })
+      })
 
-      const retorno =
-        await resposta.json()
+      const retorno = await resposta.json()
 
       if (!resposta.ok) {
-        throw new Error(
-          retorno.mensagem ??
-          "Não foi possível atualizar a vaga."
-        )
+        throw new Error(retorno.mensagem ?? "Não foi possível atualizar a vaga.")
       }
 
-      setStatusLocais(
-        atuais => ({
-          ...atuais,
+      setStatusLocais(atuais => ({
+        ...atuais,
 
-          [vaga.id]:
-            novoStatus
-        })
-      )
+        [vaga.id]: novoStatus
+      }))
 
-      if (
-        novoStatus ===
-        "applied"
-      ) {
-        setMensagem(
-          "Candidatura registrada."
-        )
-      } else if (
-        novoStatus ===
-        "ignored"
-      ) {
-        setMensagem(
-          "Oportunidade ignorada."
-        )
-      } else if (
-        novoStatus ===
-        "relevant"
-      ) {
-        setMensagem(
-          "Oportunidade reaberta."
-        )
+      if (novoStatus === "applied") {
+        setMensagem("Candidatura registrada.")
+      } else if (novoStatus === "ignored") {
+        setMensagem("Oportunidade ignorada.")
+      } else if (novoStatus === "relevant") {
+        setMensagem("Oportunidade reaberta.")
       }
 
-      iniciarAtualizacao(
-        () => {
-          router.refresh()
-        }
-      )
+      iniciarAtualizacao(() => {
+        router.refresh()
+      })
     } catch (erro) {
       setMensagem(
-        erro instanceof Error
-          ? erro.message
-          : "Não foi possível atualizar a oportunidade."
+        erro instanceof Error ? erro.message : "Não foi possível atualizar a oportunidade."
       )
     } finally {
-      setIdProcessando(
-        null
-      )
+      setIdProcessando(null)
     }
   }
 
-  function registrarAbertura(
-    vaga:
-      VagaPainel
-  ) {
-    if (
-      vaga.status !==
-      "relevant"
-    ) {
+  function registrarAbertura(vaga: VagaPainel) {
+    if (vaga.status !== "relevant") {
       return
     }
 
-    void alterarStatus(
-      vaga,
-      "viewed"
-    )
+    void alterarStatus(vaga, "viewed")
   }
 
   /**
@@ -852,129 +431,85 @@ export function PainelVagas({
    * resposta seja exibida exatamente como estiver no PostgreSQL.
    */
   function atualizarDados() {
-    setStatusLocais(
-      {}
-    )
+    setStatusLocais({})
 
-    iniciarAtualizacao(
-      () => {
-        router.refresh()
-      }
-    )
+    iniciarAtualizacao(() => {
+      router.refresh()
+    })
   }
 
   function limparFiltros() {
     setBusca("")
 
-    setFiltroStatus(
-      "todos"
-    )
+    setFiltroStatus("todos")
 
-    setFiltroModalidade(
-      "todas"
-    )
+    setFiltroModalidade("todas")
 
-    setFiltroFonte(
-      "todas"
-    )
+    setFiltroFonte("todas")
 
-    setPontuacaoMinima(
-      60
-    )
+    setPontuacaoMinima(60)
 
-    setOrdenacao(
-      "compatibilidade"
-    )
+    setOrdenacao("compatibilidade")
 
-    setLimiteVisivel(
-      QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
   function mostrarMaisVagas() {
-    setLimiteVisivel(
-      limiteAtual =>
-        limiteAtual +
-        QUANTIDADE_POR_LOTE
-    )
+    setLimiteVisivel(limiteAtual => limiteAtual + QUANTIDADE_POR_LOTE)
   }
 
   const possuiFiltroAtivo =
     busca.length > 0 ||
-    filtroStatus !==
-    "todos" ||
-    filtroModalidade !==
-    "todas" ||
-    filtroFonte !==
-    "todas" ||
-    pontuacaoMinima !==
-    60
+    filtroStatus !== "todos" ||
+    filtroModalidade !== "todas" ||
+    filtroFonte !== "todas" ||
+    pontuacaoMinima !== 60
 
   const itensMenu = [
     {
-      rotulo:
-        "Visão geral",
+      rotulo: "Visão geral",
 
-      icone:
-        LayoutDashboard,
+      icone: LayoutDashboard,
 
-      status:
-        "todos" as const,
+      status: "todos" as const,
 
-      quantidade:
-        dados.resumo.total
+      quantidade: dados.resumo.total
     },
     {
-      rotulo:
-        "Novas",
+      rotulo: "Novas",
 
-      icone:
-        Sparkles,
+      icone: Sparkles,
 
-      status:
-        "relevant" as const,
+      status: "relevant" as const,
 
-      quantidade:
-        dados.resumo.novas
+      quantidade: dados.resumo.novas
     },
     {
-      rotulo:
-        "Vistas",
+      rotulo: "Vistas",
 
-      icone:
-        Eye,
+      icone: Eye,
 
-      status:
-        "viewed" as const,
+      status: "viewed" as const,
 
-      quantidade:
-        dados.resumo.vistas
+      quantidade: dados.resumo.vistas
     },
     {
-      rotulo:
-        "Aplicadas",
+      rotulo: "Aplicadas",
 
-      icone:
-        CheckCircle2,
+      icone: CheckCircle2,
 
-      status:
-        "applied" as const,
+      status: "applied" as const,
 
-      quantidade:
-        dados.resumo.aplicadas
+      quantidade: dados.resumo.aplicadas
     },
     {
-      rotulo:
-        "Ignoradas",
+      rotulo: "Ignoradas",
 
-      icone:
-        ArchiveX,
+      icone: ArchiveX,
 
-      status:
-        "ignored" as const,
+      status: "ignored" as const,
 
-      quantidade:
-        dados.resumo.ignoradas
+      quantidade: dados.resumo.ignoradas
     }
   ]
 
@@ -990,81 +525,52 @@ export function PainelVagas({
         <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-6 dark:border-slate-900 dark:bg-slate-950 xl:flex xl:flex-col">
           <div className="flex items-center gap-3 px-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
-              <BriefcaseBusiness
-                size={20}
-              />
+              <BriefcaseBusiness size={20} />
             </div>
 
             <div>
-              <div className="font-bold tracking-tight">
-                Job Search
-              </div>
+              <div className="font-bold tracking-tight">Job Search</div>
 
-              <div className="text-xs text-slate-500">
-                Painel de oportunidades
-              </div>
+              <div className="text-xs text-slate-500">Painel de oportunidades</div>
             </div>
           </div>
 
           <nav className="mt-9 space-y-1">
-            {itensMenu.map(
-              item => {
-                const Icone =
-                  item.icone
+            {itensMenu.map(item => {
+              const Icone = item.icone
 
-                const ativo =
-                  filtroStatus ===
-                  item.status
+              const ativo = filtroStatus === item.status
 
-                return (
-                  <button
-                    key={
-                      item.rotulo
-                    }
-                    type="button"
-                    onClick={() =>
-                      alterarFiltroStatus(
-                        item.status
-                      )
-                    }
-                    className={[
-                      "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                      ativo
-                        ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
-                    ].join(" ")}
-                  >
-                    <Icone
-                      size={18}
-                    />
+              return (
+                <button
+                  key={item.rotulo}
+                  type="button"
+                  onClick={() => alterarFiltroStatus(item.status)}
+                  className={[
+                    "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+                    ativo
+                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
+                  ].join(" ")}
+                >
+                  <Icone size={18} />
 
-                    <span className="flex-1 text-left">
-                      {item.rotulo}
-                    </span>
+                  <span className="flex-1 text-left">{item.rotulo}</span>
 
-                    <span className="text-xs tabular-nums opacity-70">
-                      {item.quantidade}
-                    </span>
-                  </button>
-                )
-              }
-            )}
+                  <span className="text-xs tabular-nums opacity-70">{item.quantidade}</span>
+                </button>
+              )
+            })}
           </nav>
 
           <div className="mt-auto rounded-2xl bg-slate-50 p-4 dark:bg-slate-900/70">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <Target
-                size={16}
-                className="text-indigo-500"
-              />
-
+              <Target size={16} className="text-indigo-500" />
               Score médio
             </div>
 
             <div className="mt-3 text-3xl font-bold tracking-tight">
-              {dados.resumo
-                .pontuacao_media}
-              %
+              {dados.resumo.pontuacao_media}%
             </div>
 
             <p className="mt-2 text-xs leading-5 text-slate-500">
@@ -1078,14 +584,9 @@ export function PainelVagas({
             <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2 xl:hidden">
-                  <BriefcaseBusiness
-                    size={20}
-                    className="text-indigo-600"
-                  />
+                  <BriefcaseBusiness size={20} className="text-indigo-600" />
 
-                  <span className="font-bold">
-                    Job Search
-                  </span>
+                  <span className="font-bold">Job Search</span>
                 </div>
 
                 <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl xl:mt-0">
@@ -1093,9 +594,7 @@ export function PainelVagas({
                 </h1>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  {dados.resumo
-                    .novas_hoje >
-                    0
+                  {dados.resumo.novas_hoje > 0
                     ? `${dados.resumo.novas_hoje} novas oportunidades encontradas hoje.`
                     : "Acompanhe as vagas mais compatíveis com seu perfil."}
                 </p>
@@ -1103,25 +602,15 @@ export function PainelVagas({
 
               <button
                 type="button"
-                onClick={
-                  atualizarDados
-                }
-                disabled={
-                  atualizandoPagina
-                }
+                onClick={atualizarDados}
+                disabled={atualizandoPagina}
                 className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 sm:self-auto"
               >
                 {atualizandoPagina ? (
-                  <LoaderCircle
-                    size={16}
-                    className="animate-spin"
-                  />
+                  <LoaderCircle size={16} className="animate-spin" />
                 ) : (
-                  <RefreshCw
-                    size={16}
-                  />
+                  <RefreshCw size={16} />
                 )}
-
                 Atualizar dados
               </button>
             </header>
@@ -1133,87 +622,49 @@ export function PainelVagas({
             <section className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">
               <button
                 type="button"
-                onClick={() =>
-                  alterarFiltroStatus(
-                    "relevant"
-                  )
-                }
+                onClick={() => alterarFiltroStatus("relevant")}
                 className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="text-xs font-medium text-slate-500">
-                  Novas
-                </div>
+                <div className="text-xs font-medium text-slate-500">Novas</div>
 
-                <div className="mt-2 text-2xl font-bold tabular-nums">
-                  {dados.resumo
-                    .novas}
-                </div>
+                <div className="mt-2 text-2xl font-bold tabular-nums">{dados.resumo.novas}</div>
               </button>
 
               <button
                 type="button"
-                onClick={() =>
-                  alterarFiltroStatus(
-                    "viewed"
-                  )
-                }
+                onClick={() => alterarFiltroStatus("viewed")}
                 className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="text-xs font-medium text-slate-500">
-                  Vistas
-                </div>
+                <div className="text-xs font-medium text-slate-500">Vistas</div>
 
-                <div className="mt-2 text-2xl font-bold tabular-nums">
-                  {dados.resumo
-                    .vistas}
-                </div>
+                <div className="mt-2 text-2xl font-bold tabular-nums">{dados.resumo.vistas}</div>
               </button>
 
               <button
                 type="button"
-                onClick={() =>
-                  alterarFiltroStatus(
-                    "applied"
-                  )
-                }
+                onClick={() => alterarFiltroStatus("applied")}
                 className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="text-xs font-medium text-slate-500">
-                  Aplicadas
-                </div>
+                <div className="text-xs font-medium text-slate-500">Aplicadas</div>
 
                 <div className="mt-2 text-2xl font-bold tabular-nums text-emerald-600">
-                  {dados.resumo
-                    .aplicadas}
+                  {dados.resumo.aplicadas}
                 </div>
               </button>
 
               <button
                 type="button"
-                onClick={() =>
-                  alterarFiltroStatus(
-                    "ignored"
-                  )
-                }
+                onClick={() => alterarFiltroStatus("ignored")}
                 className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="text-xs font-medium text-slate-500">
-                  Ignoradas
-                </div>
+                <div className="text-xs font-medium text-slate-500">Ignoradas</div>
 
-                <div className="mt-2 text-2xl font-bold tabular-nums">
-                  {dados.resumo
-                    .ignoradas}
-                </div>
+                <div className="mt-2 text-2xl font-bold tabular-nums">{dados.resumo.ignoradas}</div>
               </button>
 
               <button
                 type="button"
-                onClick={() =>
-                  alterarPontuacaoMinima(
-                    80
-                  )
-                }
+                onClick={() => alterarPontuacaoMinima(80)}
                 className="col-span-2 cursor-pointer rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-indigo-900 dark:bg-indigo-950/40 lg:col-span-1"
               >
                 <div className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
@@ -1221,9 +672,7 @@ export function PainelVagas({
                 </div>
 
                 <div className="mt-2 text-2xl font-bold tabular-nums text-indigo-700 dark:text-indigo-300">
-                  {dados.resumo
-                    .pontuacao_media}
-                  %
+                  {dados.resumo.pontuacao_media}%
                 </div>
               </button>
             </section>
@@ -1237,15 +686,8 @@ export function PainelVagas({
                   />
 
                   <input
-                    value={
-                      busca
-                    }
-                    onChange={
-                      evento =>
-                        alterarBusca(
-                          evento.target.value
-                        )
-                    }
+                    value={busca}
+                    onChange={evento => alterarBusca(evento.target.value)}
                     placeholder="Buscar por cargo, empresa, cidade ou tecnologia..."
                     className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-10 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100 dark:border-slate-800 dark:bg-slate-950 dark:focus:border-indigo-700 dark:focus:ring-indigo-950"
                   />
@@ -1253,167 +695,84 @@ export function PainelVagas({
                   {busca && (
                     <button
                       type="button"
-                      onClick={() =>
-                        alterarBusca("")
-                      }
+                      onClick={() => alterarBusca("")}
                       aria-label="Limpar busca"
                       className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-800"
                     >
-                      <X
-                        size={15}
-                      />
+                      <X size={15} />
                     </button>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
                   <select
-                    value={
-                      filtroStatus
-                    }
-                    onChange={
-                      evento =>
-                        alterarFiltroStatus(
-                          evento.target.value as
-                          FiltroStatus
-                        )
-                    }
+                    value={filtroStatus}
+                    onChange={evento => alterarFiltroStatus(evento.target.value as FiltroStatus)}
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
                   >
-                    <option value="todos">
-                      Todos os status
-                    </option>
+                    <option value="todos">Todos os status</option>
 
-                    <option value="relevant">
-                      Novas
-                    </option>
+                    <option value="relevant">Novas</option>
 
-                    <option value="viewed">
-                      Vistas
-                    </option>
+                    <option value="viewed">Vistas</option>
 
-                    <option value="applied">
-                      Aplicadas
-                    </option>
+                    <option value="applied">Aplicadas</option>
 
-                    <option value="ignored">
-                      Ignoradas
-                    </option>
+                    <option value="ignored">Ignoradas</option>
                   </select>
 
                   <select
-                    value={
-                      filtroFonte
-                    }
-                    onChange={
-                      evento =>
-                        alterarFiltroFonte(
-                          evento.target.value
-                        )
-                    }
+                    value={filtroFonte}
+                    onChange={evento => alterarFiltroFonte(evento.target.value)}
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
                   >
-                    <option value="todas">
-                      Todas as fontes
-                    </option>
+                    <option value="todas">Todas as fontes</option>
 
-                    {fontes.map(
-                      fonte => (
-                        <option
-                          key={
-                            fonte
-                          }
-                          value={
-                            fonte
-                          }
-                        >
-                          {fonte}
-                        </option>
-                      )
-                    )}
+                    {fontes.map(fonte => (
+                      <option key={fonte} value={fonte}>
+                        {fonte}
+                      </option>
+                    ))}
                   </select>
 
                   <select
-                    value={
-                      filtroModalidade
-                    }
-                    onChange={
-                      evento =>
-                        alterarFiltroModalidade(
-                          evento.target.value as
-                          FiltroModalidade
-                        )
+                    value={filtroModalidade}
+                    onChange={evento =>
+                      alterarFiltroModalidade(evento.target.value as FiltroModalidade)
                     }
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
                   >
-                    <option value="todas">
-                      Toda modalidade
-                    </option>
+                    <option value="todas">Toda modalidade</option>
 
-                    <option value="remota">
-                      Remotas
-                    </option>
+                    <option value="remota">Remotas</option>
 
-                    <option value="nao-remota">
-                      Não marcadas como remotas
-                    </option>
+                    <option value="nao-remota">Não marcadas como remotas</option>
                   </select>
 
                   <select
-                    value={
-                      pontuacaoMinima
-                    }
-                    onChange={
-                      evento =>
-                        alterarPontuacaoMinima(
-                          Number(
-                            evento.target.value
-                          )
-                        )
-                    }
+                    value={pontuacaoMinima}
+                    onChange={evento => alterarPontuacaoMinima(Number(evento.target.value))}
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
                   >
-                    <option value={60}>
-                      Score 60%+
-                    </option>
+                    <option value={60}>Score 60%+</option>
 
-                    <option value={70}>
-                      Score 70%+
-                    </option>
+                    <option value={70}>Score 70%+</option>
 
-                    <option value={80}>
-                      Score 80%+
-                    </option>
+                    <option value={80}>Score 80%+</option>
 
-                    <option value={85}>
-                      Score 85%+
-                    </option>
+                    <option value={85}>Score 85%+</option>
 
-                    <option value={90}>
-                      Score 90%+
-                    </option>
+                    <option value={90}>Score 90%+</option>
                   </select>
 
                   <select
-                    value={
-                      ordenacao
-                    }
-                    onChange={
-                      evento =>
-                        alterarOrdenacao(
-                          evento.target.value as
-                          OrdenacaoVagas
-                        )
-                    }
+                    value={ordenacao}
+                    onChange={evento => alterarOrdenacao(evento.target.value as OrdenacaoVagas)}
                     className="col-span-2 h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950 md:col-span-1"
                   >
-                    <option value="compatibilidade">
-                      Maior compatibilidade
-                    </option>
+                    <option value="compatibilidade">Maior compatibilidade</option>
 
-                    <option value="recentes">
-                      Mais recentes
-                    </option>
+                    <option value="recentes">Mais recentes</option>
                   </select>
                 </div>
               </div>
@@ -1421,28 +780,21 @@ export function PainelVagas({
 
             <div className="mt-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-sm text-slate-500">
-                <SlidersHorizontal
-                  size={15}
-                />
+                <SlidersHorizontal size={15} />
 
                 <span>
                   <strong className="font-semibold text-slate-800 dark:text-slate-200">
                     {vagasFiltradas.length}
                   </strong>{" "}
                   oportunidade
-                  {vagasFiltradas.length !==
-                    1
-                    ? "s"
-                    : ""}
+                  {vagasFiltradas.length !== 1 ? "s" : ""}
                 </span>
               </div>
 
               {possuiFiltroAtivo && (
                 <button
                   type="button"
-                  onClick={
-                    limparFiltros
-                  }
+                  onClick={limparFiltros}
                   className="cursor-pointer text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
                 >
                   Limpar filtros
@@ -1452,46 +804,27 @@ export function PainelVagas({
 
             <section className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
               <div className="space-y-3">
-                {vagasFiltradas.length >
-                  0 ? (
+                {vagasFiltradas.length > 0 ? (
                   <>
-                    {vagasVisiveis.map(
-                      vaga => (
-                        <CartaoVaga
-                          key={
-                            vaga.id
-                          }
-                          vaga={
-                            vaga
-                          }
-                          selecionada={
-                            vaga.id ===
-                            vagaSelecionadaId
-                          }
-                          aoSelecionar={() =>
-                            setVagaSelecionadaId(
-                              vaga.id
-                            )
-                          }
-                        />
-                      )
-                    )}
+                    {vagasVisiveis.map(vaga => (
+                      <CartaoVaga
+                        key={vaga.id}
+                        vaga={vaga}
+                        selecionada={vaga.id === vagaSelecionadaId}
+                        aoSelecionar={() => setVagaSelecionadaId(vaga.id)}
+                      />
+                    ))}
 
                     {possuiMaisVagas && (
                       <div className="pt-2">
                         <button
                           type="button"
-                          onClick={
-                            mostrarMaisVagas
-                          }
+                          onClick={mostrarMaisVagas}
                           className="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-indigo-900 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
                         >
-                          Mostrar mais{" "}
-                          {quantidadeProximoLote}
-
+                          Mostrar mais {quantidadeProximoLote}
                           <span className="ml-2 text-xs font-normal opacity-60">
-                            {vagasVisiveis.length} de{" "}
-                            {vagasFiltradas.length}
+                            {vagasVisiveis.length} de {vagasFiltradas.length}
                           </span>
                         </button>
                       </div>
@@ -1500,14 +833,10 @@ export function PainelVagas({
                 ) : (
                   <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-800 dark:bg-slate-900">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800">
-                      <Search
-                        size={20}
-                      />
+                      <Search size={20} />
                     </div>
 
-                    <h3 className="mt-4 font-semibold">
-                      Nenhuma oportunidade encontrada
-                    </h3>
+                    <h3 className="mt-4 font-semibold">Nenhuma oportunidade encontrada</h3>
 
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
                       Tente reduzir o score mínimo ou remover algum dos filtros aplicados.
@@ -1515,9 +844,7 @@ export function PainelVagas({
 
                     <button
                       type="button"
-                      onClick={
-                        limparFiltros
-                      }
+                      onClick={limparFiltros}
                       className="mt-5 cursor-pointer rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
                     >
                       Limpar filtros
@@ -1528,30 +855,11 @@ export function PainelVagas({
 
               {vagaSelecionada ? (
                 <DetalheVaga
-                  vaga={
-                    vagaSelecionada
-                  }
-                  processando={
-                    idProcessando ===
-                    vagaSelecionada.id
-                  }
-                  aoFechar={() =>
-                    setVagaSelecionadaId(
-                      null
-                    )
-                  }
-                  aoAbrir={() =>
-                    registrarAbertura(
-                      vagaSelecionada
-                    )
-                  }
-                  aoAlterarStatus={
-                    status =>
-                      alterarStatus(
-                        vagaSelecionada,
-                        status
-                      )
-                  }
+                  vaga={vagaSelecionada}
+                  processando={idProcessando === vagaSelecionada.id}
+                  aoFechar={() => setVagaSelecionadaId(null)}
+                  aoAbrir={() => registrarAbertura(vagaSelecionada)}
+                  aoAlterarStatus={status => alterarStatus(vagaSelecionada, status)}
                 />
               ) : (
                 <div className="sticky top-6 hidden min-h-[420px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900 lg:flex">
