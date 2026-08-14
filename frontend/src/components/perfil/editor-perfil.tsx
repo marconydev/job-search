@@ -1,12 +1,14 @@
 "use client"
 
 import {
+  useMemo,
   useState
 } from "react"
 
 import {
   BriefcaseBusiness,
-  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   GraduationCap,
   LoaderCircle,
   Plus,
@@ -47,6 +49,29 @@ type ListasTexto = {
 
   titulosExcluidos: string
 }
+
+const LIMITE_COMPETENCIAS =
+  10
+
+/**
+ * Eu mantenho opções padronizadas para evitar variações desnecessárias
+ * na forma como o nível acadêmico é armazenado.
+ */
+const NIVEIS_FORMACAO = [
+  "Ensino Médio",
+  "Técnico",
+  "Tecnólogo",
+  "Graduação",
+  "Bacharelado",
+  "Licenciatura",
+  "Especialização",
+  "Pós-graduação",
+  "MBA",
+  "Mestrado",
+  "Doutorado",
+  "Pós-doutorado",
+  "Outro"
+]
 
 function listaParaTexto(
   valores:
@@ -100,42 +125,151 @@ function textoParaTermos(
   ]
 }
 
-function formatarData(
-  valor:
-    string | null
-) {
-  if (!valor) {
-    return "Ainda não salvo"
-  }
+/**
+ * Eu centralizo a conversão das competências porque utilizo a mesma
+ * estrutura tanto ao carregar quanto depois de salvar o perfil.
+ */
+function criarCompetenciasEditaveis(
+  perfil:
+    PerfilProfissional
+): CompetenciaEditavel[] {
+  return perfil
+    .competencias
+    .map(
+      competencia => ({
+        nome:
+          competencia.nome,
 
-  const data =
-    new Date(valor)
-
-  if (
-    Number.isNaN(
-      data.getTime()
+        termosTexto:
+          termosParaTexto(
+            competencia.termos
+          )
+      })
     )
-  ) {
-    return "Data não disponível"
+}
+
+/**
+ * Eu também centralizo as listas que são editadas como texto.
+ */
+function criarListasTexto(
+  perfil:
+    PerfilProfissional
+): ListasTexto {
+  return {
+    cargosPrincipais:
+      listaParaTexto(
+        perfil.cargosPrincipais
+      ),
+
+    cargosRelacionados:
+      listaParaTexto(
+        perfil.cargosRelacionados
+      ),
+
+    cargosDesvio:
+      listaParaTexto(
+        perfil.cargosDesvio
+      ),
+
+    localizacoesAceitas:
+      listaParaTexto(
+        perfil.localizacoesAceitas
+      ),
+
+    titulosExcluidos:
+      listaParaTexto(
+        perfil.titulosExcluidos
+      )
   }
+}
 
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      dateStyle:
-        "short",
+/**
+ * Eu monto sempre a mesma representação final do perfil.
+ *
+ * Além de preparar os dados para a API, utilizo essa estrutura para
+ * saber se existe realmente alguma alteração ainda não salva.
+ */
+function montarPerfil(
+  perfil:
+    PerfilProfissional,
 
-      timeStyle:
-        "short"
-    }
-  ).format(
-    data
-  )
+  listasTexto:
+    ListasTexto,
+
+  competencias:
+    CompetenciaEditavel[]
+): PerfilProfissional {
+  return {
+    ...perfil,
+
+    cargosPrincipais:
+      textoParaLista(
+        listasTexto
+          .cargosPrincipais
+      ),
+
+    cargosRelacionados:
+      textoParaLista(
+        listasTexto
+          .cargosRelacionados
+      ),
+
+    cargosDesvio:
+      textoParaLista(
+        listasTexto
+          .cargosDesvio
+      ),
+
+    localizacoesAceitas:
+      textoParaLista(
+        listasTexto
+          .localizacoesAceitas
+      ),
+
+    titulosExcluidos:
+      textoParaLista(
+        listasTexto
+          .titulosExcluidos
+      ),
+
+    competencias:
+      competencias
+        .map(
+          competencia => ({
+            nome:
+              competencia
+                .nome
+                .trim(),
+
+            termos:
+              textoParaTermos(
+                competencia
+                  .termosTexto
+              )
+          })
+        )
+        .filter(
+          competencia =>
+            Boolean(
+              competencia.nome
+            )
+        )
+  }
 }
 
 export function EditorPerfil({
   dadosIniciais
 }: Propriedades) {
+  const competenciasIniciais =
+    criarCompetenciasEditaveis(
+      dadosIniciais.perfil
+    )
+
+  const listasIniciais =
+    criarListasTexto(
+      dadosIniciais.perfil
+    )
+
   const [
     perfil,
     setPerfil
@@ -153,78 +287,28 @@ export function EditorPerfil({
     useState<
       CompetenciaEditavel[]
     >(
-      dadosIniciais
-        .perfil
-        .competencias
-        .map(
-          competencia => ({
-            nome:
-              competencia.nome,
-
-            termosTexto:
-              termosParaTexto(
-                competencia.termos
-              )
-          })
-        )
+      competenciasIniciais
     )
 
   const [
     listasTexto,
     setListasTexto
   ] =
-    useState<ListasTexto>({
-      cargosPrincipais:
-        listaParaTexto(
-          dadosIniciais
-            .perfil
-            .cargosPrincipais
-        ),
+    useState<ListasTexto>(
+      listasIniciais
+    )
 
-      cargosRelacionados:
-        listaParaTexto(
-          dadosIniciais
-            .perfil
-            .cargosRelacionados
-        ),
-
-      cargosDesvio:
-        listaParaTexto(
-          dadosIniciais
-            .perfil
-            .cargosDesvio
-        ),
-
-      localizacoesAceitas:
-        listaParaTexto(
-          dadosIniciais
-            .perfil
-            .localizacoesAceitas
-        ),
-
-      titulosExcluidos:
-        listaParaTexto(
-          dadosIniciais
-            .perfil
-            .titulosExcluidos
-        )
-    })
+  const [
+    exibirTodasCompetencias,
+    setExibirTodasCompetencias
+  ] =
+    useState(false)
 
   const [
     salvando,
     setSalvando
   ] =
     useState(false)
-
-  const [
-    mensagem,
-    setMensagem
-  ] =
-    useState<
-      string | null
-    >(
-      null
-    )
 
   const [
     erro,
@@ -236,16 +320,80 @@ export function EditorPerfil({
       null
     )
 
+  /**
+   * Eu salvo uma assinatura do último estado persistido.
+   *
+   * A comparação é feita com o perfil completo, então qualquer alteração
+   * em experiência, formação, competência, cargo ou configuração do
+   * matcher faz o botão de salvar aparecer.
+   */
   const [
-    atualizadoEm,
-    setAtualizadoEm
+    assinaturaSalva,
+    setAssinaturaSalva
   ] =
-    useState<
-      string | null
-    >(
-      dadosIniciais
-        .atualizadoEm
+    useState(
+      () =>
+        JSON.stringify(
+          montarPerfil(
+            dadosIniciais.perfil,
+            listasIniciais,
+            competenciasIniciais
+          )
+        )
     )
+
+  const perfilParaSalvar =
+    useMemo(
+      () =>
+        montarPerfil(
+          perfil,
+          listasTexto,
+          competencias
+        ),
+      [
+        competencias,
+        listasTexto,
+        perfil
+      ]
+    )
+
+  const assinaturaAtual =
+    useMemo(
+      () =>
+        JSON.stringify(
+          perfilParaSalvar
+        ),
+      [
+        perfilParaSalvar
+      ]
+    )
+
+  /**
+   * O botão aparece somente quando existe uma diferença real em relação
+   * ao último perfil salvo.
+   */
+  const possuiAlteracoes =
+    assinaturaAtual !==
+    assinaturaSalva
+
+  const competenciasVisiveis =
+    useMemo(
+      () =>
+        exibirTodasCompetencias
+          ? competencias
+          : competencias.slice(
+              0,
+              LIMITE_COMPETENCIAS
+            ),
+      [
+        competencias,
+        exibirTodasCompetencias
+      ]
+    )
+
+  const possuiCompetenciasOcultas =
+    competencias.length >
+    LIMITE_COMPETENCIAS
 
   function alterarListaTexto(
     campo:
@@ -254,6 +402,10 @@ export function EditorPerfil({
     valor:
       string
   ) {
+    setErro(
+      null
+    )
+
     setListasTexto(
       atual => ({
         ...atual,
@@ -265,6 +417,18 @@ export function EditorPerfil({
   }
 
   function adicionarCompetencia() {
+    setErro(
+      null
+    )
+
+    /**
+     * Eu abro a lista completa para a nova competência ficar
+     * imediatamente visível.
+     */
+    setExibirTodasCompetencias(
+      true
+    )
+
     setCompetencias(
       atuais => [
         ...atuais,
@@ -287,6 +451,10 @@ export function EditorPerfil({
     valor:
       string
   ) {
+    setErro(
+      null
+    )
+
     setCompetencias(
       atuais =>
         atuais.map(
@@ -314,6 +482,10 @@ export function EditorPerfil({
     valor:
       string
   ) {
+    setErro(
+      null
+    )
+
     setCompetencias(
       atuais =>
         atuais.map(
@@ -338,6 +510,10 @@ export function EditorPerfil({
     indice:
       number
   ) {
+    setErro(
+      null
+    )
+
     setCompetencias(
       atuais =>
         atuais.filter(
@@ -352,6 +528,10 @@ export function EditorPerfil({
   }
 
   function adicionarExperiencia() {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -387,6 +567,10 @@ export function EditorPerfil({
     valor:
       string
   ) {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -417,6 +601,10 @@ export function EditorPerfil({
     indice:
       number
   ) {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -437,6 +625,10 @@ export function EditorPerfil({
   }
 
   function adicionarFormacao() {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -472,6 +664,10 @@ export function EditorPerfil({
     valor:
       string
   ) {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -502,6 +698,10 @@ export function EditorPerfil({
     indice:
       number
   ) {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -522,6 +722,10 @@ export function EditorPerfil({
   }
 
   function adicionarCurso() {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -554,6 +758,10 @@ export function EditorPerfil({
     valor:
       string
   ) {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -584,6 +792,10 @@ export function EditorPerfil({
     indice:
       number
   ) {
+    setErro(
+      null
+    )
+
     setPerfil(
       atual => ({
         ...atual,
@@ -603,73 +815,16 @@ export function EditorPerfil({
     )
   }
 
-  function montarPerfilParaSalvar():
-    PerfilProfissional {
-    return {
-      ...perfil,
-
-      cargosPrincipais:
-        textoParaLista(
-          listasTexto
-            .cargosPrincipais
-        ),
-
-      cargosRelacionados:
-        textoParaLista(
-          listasTexto
-            .cargosRelacionados
-        ),
-
-      cargosDesvio:
-        textoParaLista(
-          listasTexto
-            .cargosDesvio
-        ),
-
-      localizacoesAceitas:
-        textoParaLista(
-          listasTexto
-            .localizacoesAceitas
-        ),
-
-      titulosExcluidos:
-        textoParaLista(
-          listasTexto
-            .titulosExcluidos
-        ),
-
-      competencias:
-        competencias
-          .map(
-            competencia => ({
-              nome:
-                competencia
-                  .nome
-                  .trim(),
-
-              termos:
-                textoParaTermos(
-                  competencia
-                    .termosTexto
-                )
-            })
-          )
-          .filter(
-            competencia =>
-              Boolean(
-                competencia.nome
-              )
-          )
-    }
-  }
-
   async function salvarPerfil() {
+    if (
+      !possuiAlteracoes ||
+      salvando
+    ) {
+      return
+    }
+
     setSalvando(
       true
-    )
-
-    setMensagem(
-      null
     )
 
     setErro(
@@ -677,9 +832,6 @@ export function EditorPerfil({
     )
 
     try {
-      const perfilParaSalvar =
-        montarPerfilParaSalvar()
-
       const resposta =
         await fetch(
           "/api/perfil",
@@ -709,18 +861,47 @@ export function EditorPerfil({
         )
       }
 
-      setPerfil(
+      /**
+       * Eu sincronizo o editor com a versão normalizada que voltou do
+       * backend.
+       */
+      const perfilSalvo:
+        PerfilProfissional =
         retorno.perfil
+
+      const novasCompetencias =
+        criarCompetenciasEditaveis(
+          perfilSalvo
+        )
+
+      const novasListas =
+        criarListasTexto(
+          perfilSalvo
+        )
+
+      const assinatura =
+        JSON.stringify(
+          montarPerfil(
+            perfilSalvo,
+            novasListas,
+            novasCompetencias
+          )
+        )
+
+      setPerfil(
+        perfilSalvo
       )
 
-      setAtualizadoEm(
-        retorno.atualizadoEm ??
-        new Date()
-          .toISOString()
+      setCompetencias(
+        novasCompetencias
       )
 
-      setMensagem(
-        "Perfil salvo com sucesso."
+      setListasTexto(
+        novasListas
+      )
+
+      setAssinaturaSalva(
+        assinatura
       )
     } catch (falha) {
       setErro(
@@ -736,7 +917,7 @@ export function EditorPerfil({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
@@ -762,7 +943,11 @@ export function EditorPerfil({
               .resumoProfissional
           }
           onChange={
-            evento =>
+            evento => {
+              setErro(
+                null
+              )
+
               setPerfil(
                 atual => ({
                   ...atual,
@@ -773,6 +958,7 @@ export function EditorPerfil({
                       .value
                 })
               )
+            }
           }
           rows={6}
           placeholder="Ex.: Profissional de TI com experiência em suporte, sistemas hospitalares, infraestrutura, análise de incidentes..."
@@ -886,7 +1072,7 @@ export function EditorPerfil({
         </div>
 
         <div className="mt-5 space-y-3">
-          {competencias.map(
+          {competenciasVisiveis.map(
             (
               competencia,
               indice
@@ -950,6 +1136,39 @@ export function EditorPerfil({
             )
           )}
         </div>
+
+        {possuiCompetenciasOcultas && (
+          <div className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() =>
+                setExibirTodasCompetencias(
+                  atual =>
+                    !atual
+                )
+              }
+              className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-indigo-600 transition hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+            >
+              {exibirTodasCompetencias ? (
+                <>
+                  Exibir menos
+
+                  <ChevronUp
+                    size={14}
+                  />
+                </>
+              ) : (
+                <>
+                  Exibir mais
+
+                  <ChevronDown
+                    size={14}
+                  />
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
@@ -967,7 +1186,7 @@ export function EditorPerfil({
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Registre suas experiências reais. Elas serão especialmente úteis quando adicionarmos a análise contextual.
+                Registre suas experiências profissionais e principais responsabilidades.
               </p>
             </div>
           </div>
@@ -1046,7 +1265,7 @@ export function EditorPerfil({
                             evento.target.value
                           )
                       }
-                      placeholder="Período — ex.: 2024 a 2026"
+                      placeholder="Período — ex.: jun/2025 até o momento"
                       className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900 md:col-span-2"
                     />
                   </div>
@@ -1064,7 +1283,7 @@ export function EditorPerfil({
                         )
                     }
                     rows={5}
-                    placeholder="Principais responsabilidades, projetos e resultados..."
+                    placeholder="Principais responsabilidades, atividades, projetos e tecnologias utilizadas..."
                     className="mt-3 w-full rounded-xl border border-slate-200 p-3 text-sm leading-6 outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
                   />
 
@@ -1111,6 +1330,10 @@ export function EditorPerfil({
               <h2 className="text-base font-semibold text-slate-950 dark:text-white">
                 Formação acadêmica
               </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Cadastre graduação, tecnólogo, especializações e demais formações.
+              </p>
             </div>
           </div>
 
@@ -1119,7 +1342,7 @@ export function EditorPerfil({
             onClick={
               adicionarFormacao
             }
-            className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold"
+            className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
           >
             <Plus
               size={16}
@@ -1154,7 +1377,7 @@ export function EditorPerfil({
                       )
                   }
                   placeholder="Instituição"
-                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
                 />
 
                 <input
@@ -1170,10 +1393,10 @@ export function EditorPerfil({
                       )
                   }
                   placeholder="Curso"
-                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
                 />
 
-                <input
+                <select
                   value={
                     formacao.nivel
                   }
@@ -1185,9 +1408,40 @@ export function EditorPerfil({
                         evento.target.value
                       )
                   }
-                  placeholder="Nível — Graduação, Especialização..."
-                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-800 dark:bg-slate-900"
-                />
+                  className="min-h-11 cursor-pointer rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:focus:ring-indigo-950"
+                >
+                  <option value="">
+                    Selecione o nível
+                  </option>
+
+                  {NIVEIS_FORMACAO.map(
+                    nivel => (
+                      <option
+                        key={
+                          nivel
+                        }
+                        value={
+                          nivel
+                        }
+                      >
+                        {nivel}
+                      </option>
+                    )
+                  )}
+
+                  {formacao.nivel &&
+                    !NIVEIS_FORMACAO.includes(
+                      formacao.nivel
+                    ) && (
+                    <option
+                      value={
+                        formacao.nivel
+                      }
+                    >
+                      {formacao.nivel}
+                    </option>
+                  )}
+                </select>
 
                 <div className="flex gap-2">
                   <input
@@ -1203,7 +1457,7 @@ export function EditorPerfil({
                         )
                     }
                     placeholder="Período"
-                    className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+                    className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
                   />
 
                   <button
@@ -1213,7 +1467,8 @@ export function EditorPerfil({
                         indice
                       )
                     }
-                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    aria-label="Remover formação"
+                    className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-rose-500 transition hover:bg-rose-50 dark:hover:bg-rose-950/40"
                   >
                     <Trash2
                       size={16}
@@ -1222,6 +1477,13 @@ export function EditorPerfil({
                 </div>
               </div>
             )
+          )}
+
+          {perfil.formacoes.length ===
+            0 && (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
+              Nenhuma formação cadastrada.
+            </div>
           )}
         </div>
       </section>
@@ -1232,6 +1494,10 @@ export function EditorPerfil({
             <h2 className="text-base font-semibold text-slate-950 dark:text-white">
               Cursos e certificações
             </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Inclua cursos complementares e certificações relevantes para sua atuação.
+            </p>
           </div>
 
           <button
@@ -1239,7 +1505,7 @@ export function EditorPerfil({
             onClick={
               adicionarCurso
             }
-            className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold"
+            className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
           >
             <Plus
               size={16}
@@ -1274,7 +1540,7 @@ export function EditorPerfil({
                       )
                   }
                   placeholder="Curso ou certificação"
-                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
                 />
 
                 <input
@@ -1290,7 +1556,7 @@ export function EditorPerfil({
                       )
                   }
                   placeholder="Instituição"
-                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
                 />
 
                 <input
@@ -1306,7 +1572,7 @@ export function EditorPerfil({
                       )
                   }
                   placeholder="Ano"
-                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  className="min-h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
                 />
 
                 <button
@@ -1316,7 +1582,8 @@ export function EditorPerfil({
                       indice
                     )
                   }
-                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  aria-label="Remover curso"
+                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-rose-500 transition hover:bg-rose-50 dark:hover:bg-rose-950/40"
                 >
                   <Trash2
                     size={16}
@@ -1324,6 +1591,13 @@ export function EditorPerfil({
                 </button>
               </div>
             )
+          )}
+
+          {perfil.cursos.length ===
+            0 && (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
+              Nenhum curso ou certificação cadastrado.
+            </div>
           )}
         </div>
       </section>
@@ -1365,7 +1639,7 @@ export function EditorPerfil({
                   )
               }
               rows={10}
-              className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+              className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
             />
           </div>
 
@@ -1387,7 +1661,7 @@ export function EditorPerfil({
                   )
               }
               rows={10}
-              className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+              className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
             />
           </div>
 
@@ -1409,68 +1683,55 @@ export function EditorPerfil({
                   )
               }
               rows={10}
-              className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm dark:border-slate-800 dark:bg-slate-900"
+              className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-900"
             />
           </div>
         </div>
       </details>
 
-      <div className="sticky bottom-4 z-20 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            {mensagem && (
-              <div className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                <CheckCircle2
-                  size={17}
-                />
-
-                {mensagem}
-              </div>
-            )}
-
-            {erro && (
-              <div className="text-sm font-medium text-rose-600">
-                {erro}
-              </div>
-            )}
-
-            {!mensagem &&
-              !erro && (
-              <div className="text-xs text-slate-500">
-                Última atualização:{" "}
-                {formatarData(
-                  atualizadoEm
-                )}
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            disabled={
-              salvando
-            }
-            onClick={
-              salvarPerfil
-            }
-            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {salvando ? (
-              <LoaderCircle
-                size={17}
-                className="animate-spin"
-              />
-            ) : (
-              <Save
-                size={17}
-              />
-            )}
-
-            {salvando
-              ? "Salvando..."
-              : "Salvar perfil"}
-          </button>
+      {erro && (
+        <div className="fixed bottom-20 right-5 z-50 max-w-sm rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-medium text-rose-600 shadow-lg dark:border-rose-900 dark:bg-slate-950">
+          {erro}
         </div>
+      )}
+
+      <div
+        className={[
+          "fixed bottom-5 right-5 z-50 transition-all duration-300 ease-out",
+          possuiAlteracoes ||
+          salvando
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-3 opacity-0"
+        ].join(
+          " "
+        )}
+      >
+        <button
+          type="button"
+          disabled={
+            salvando ||
+            !possuiAlteracoes
+          }
+          onClick={
+            salvarPerfil
+          }
+          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/15 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {salvando ? (
+            <LoaderCircle
+              size={17}
+              className="animate-spin"
+            />
+          ) : (
+            <Save
+              size={17}
+            />
+          )}
+
+          {salvando
+            ? "Salvando..."
+            : "Salvar alterações"}
+        </button>
       </div>
     </div>
   )

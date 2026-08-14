@@ -3,6 +3,10 @@ import {
 } from "express"
 
 import {
+  reanalisarTodasAsVagas
+} from "../services/job-analysis.js"
+
+import {
   obterPerfilProfissional,
   salvarPerfilProfissional
 } from "../services/perfil-profissional-service.js"
@@ -43,8 +47,10 @@ perfilRouter.get(
 )
 
 /**
- * Eu salvo o perfil completo porque a interface trabalhará como um
- * editor único das informações profissionais.
+ * Eu salvo o perfil e em seguida recalculo as oportunidades existentes.
+ *
+ * Essa reanálise utiliza apenas os dados já armazenados no PostgreSQL e
+ * não executa nenhuma pesquisa na Brave.
  */
 perfilRouter.put(
   "/",
@@ -58,9 +64,58 @@ perfilRouter.put(
           request.body
         )
 
-      return response.json(
-        salvo
-      )
+      /**
+       * O perfil já está salvo neste ponto.
+       *
+       * Se ocorrer algum problema durante a reanálise eu não retorno um
+       * falso erro de salvamento, porque isso faria a interface acreditar
+       * que o perfil não foi gravado.
+       */
+      try {
+        const reanalise =
+          await reanalisarTodasAsVagas()
+
+        return response.json({
+          ...salvo,
+
+          reanalise: {
+            concluida:
+              true,
+
+            analisadas:
+              reanalise.analyzed,
+
+            relevantes:
+              reanalise.relevant,
+
+            descartadas:
+              reanalise.discarded
+          }
+        })
+      } catch (error) {
+        console.error(
+          "Perfil salvo, mas ocorreu erro durante a reanálise das vagas:",
+          error
+        )
+
+        return response.json({
+          ...salvo,
+
+          reanalise: {
+            concluida:
+              false,
+
+            analisadas:
+              0,
+
+            relevantes:
+              0,
+
+            descartadas:
+              0
+          }
+        })
+      }
     } catch (error) {
       console.error(
         "Erro ao salvar perfil profissional:",

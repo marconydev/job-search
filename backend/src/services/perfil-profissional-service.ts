@@ -7,6 +7,10 @@ import {
   salvarPerfilProfissionalNoBanco
 } from "../repositories/perfil-profissional-repository.js"
 
+import {
+  definirPerfilProfissionalAtivo
+} from "./job-matcher.js"
+
 import type {
   CompetenciaPerfil,
   CursoProfissional,
@@ -15,6 +19,12 @@ import type {
   PerfilProfissional
 } from "../types/perfil-profissional.js"
 
+/**
+ * Eu mantenho o arquivo search-profile.ts como configuração inicial.
+ *
+ * Depois do primeiro salvamento, o PostgreSQL passa a ser a fonte
+ * principal do meu perfil profissional.
+ */
 function criarPerfilPadrao():
   PerfilProfissional {
   return {
@@ -378,8 +388,7 @@ function normalizarCursos(
 }
 
 /**
- * Eu valido e normalizo tudo que chega da interface antes de gravar
- * no banco.
+ * Eu valido e normalizo tudo que chega da interface antes de salvar.
  */
 export function normalizarPerfilProfissional(
   valor:
@@ -405,146 +414,59 @@ export function normalizarPerfilProfissional(
   return {
     resumoProfissional:
       normalizarTexto(
-        registro
-          .resumoProfissional
+        registro.resumoProfissional
       ),
 
     cargosPrincipais:
       normalizarLista(
-        registro
-          .cargosPrincipais
+        registro.cargosPrincipais
       ),
 
     cargosRelacionados:
       normalizarLista(
-        registro
-          .cargosRelacionados
+        registro.cargosRelacionados
       ),
 
     cargosDesvio:
       normalizarLista(
-        registro
-          .cargosDesvio
+        registro.cargosDesvio
       ),
 
     competencias:
       normalizarCompetencias(
-        registro
-          .competencias
+        registro.competencias
       ),
 
     experiencias:
       normalizarExperiencias(
-        registro
-          .experiencias
+        registro.experiencias
       ),
 
     formacoes:
       normalizarFormacoes(
-        registro
-          .formacoes
+        registro.formacoes
       ),
 
     cursos:
       normalizarCursos(
-        registro
-          .cursos
+        registro.cursos
       ),
 
     localizacoesAceitas:
       normalizarLista(
-        registro
-          .localizacoesAceitas
+        registro.localizacoesAceitas
       ),
 
     titulosExcluidos:
       normalizarLista(
-        registro
-          .titulosExcluidos
+        registro.titulosExcluidos
       )
   }
 }
 
-function substituirLista(
-  destino:
-    string[],
-
-  origem:
-    string[]
-) {
-  destino.splice(
-    0,
-    destino.length,
-    ...origem
-  )
-}
-
 /**
- * O matcher atual já importa perfilBusca diretamente.
- *
- * Por isso eu atualizo o mesmo objeto em memória em vez de criar uma
- * segunda configuração paralela.
- */
-function aplicarPerfilNoMatcher(
-  perfil:
-    PerfilProfissional
-) {
-  substituirLista(
-    perfilBusca
-      .cargosPrincipais,
-    perfil.cargosPrincipais
-  )
-
-  substituirLista(
-    perfilBusca
-      .cargosRelacionados,
-    perfil.cargosRelacionados
-  )
-
-  substituirLista(
-    perfilBusca
-      .cargosDesvio,
-    perfil.cargosDesvio
-  )
-
-  perfilBusca
-    .competencias
-    .splice(
-      0,
-      perfilBusca
-        .competencias
-        .length,
-
-      ...perfil
-        .competencias
-        .map(
-          competencia => ({
-            nome:
-              competencia.nome,
-
-            termos: [
-              ...competencia.termos
-            ]
-          })
-        )
-    )
-
-  substituirLista(
-    perfilBusca
-      .localizacoesAceitas,
-    perfil.localizacoesAceitas
-  )
-
-  substituirLista(
-    perfilBusca
-      .titulosExcluidos,
-    perfil.titulosExcluidos
-  )
-}
-
-/**
- * Se ainda não existe um perfil salvo, continuo usando exatamente a
- * configuração atual do search-profile.ts.
+ * Eu retorno o perfil salvo ou, enquanto ele ainda não existir, a
+ * configuração inicial do projeto.
  */
 export async function obterPerfilProfissional() {
   const salvo =
@@ -567,20 +489,24 @@ export async function obterPerfilProfissional() {
 }
 
 /**
- * Eu recarrego o perfil do PostgreSQL antes das operações importantes
- * de análise e descoberta.
+ * Eu carrego o perfil do PostgreSQL para a memória utilizada pelo
+ * matcher.
  */
 export async function carregarPerfilProfissionalAtivo() {
   const dados =
     await obterPerfilProfissional()
 
-  aplicarPerfilNoMatcher(
+  definirPerfilProfissionalAtivo(
     dados.perfil
   )
 
   return dados
 }
 
+/**
+ * Quando salvo o perfil, ele passa a valer imediatamente para novas
+ * análises sem precisar reiniciar o servidor.
+ */
 export async function salvarPerfilProfissional(
   valor:
     unknown,
@@ -599,7 +525,7 @@ export async function salvarPerfilProfissional(
       nomeArquivoOrigem
     )
 
-  aplicarPerfilNoMatcher(
+  definirPerfilProfissionalAtivo(
     salvo.perfil
   )
 
