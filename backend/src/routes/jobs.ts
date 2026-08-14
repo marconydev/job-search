@@ -40,6 +40,10 @@ import {
   obterStatusDescobertaWeb
 } from "../services/job-discovery.js"
 
+import {
+  carregarPerfilProfissionalAtivo
+} from "../services/perfil-profissional-service.js"
+
 const jobsRouter =
   Router()
 
@@ -366,6 +370,8 @@ jobsRouter.post(
         : 6
 
     try {
+      await carregarPerfilProfissionalAtivo()
+
       const result =
         await syncJobs(
           limit,
@@ -405,6 +411,8 @@ jobsRouter.post(
     response
   ) => {
     try {
+      await carregarPerfilProfissionalAtivo()
+      
       const result =
         await analyzePendingJobs()
 
