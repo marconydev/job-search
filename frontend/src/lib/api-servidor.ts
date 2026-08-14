@@ -4,6 +4,10 @@ import type {
   DadosPainel
 } from "@/types/painel"
 
+import type {
+  PerfilProfissionalComMetadados
+} from "@/types/perfil"
+
 /**
  * Eu mantenho o endereço do backend somente no servidor do Next.
  *
@@ -33,13 +37,40 @@ export async function obterDadosPainel():
     await fetch(
       `${obterUrlBackend()}/jobs/dashboard`,
       {
-        cache: "no-store"
+        cache:
+          "no-store"
       }
     )
 
   if (!resposta.ok) {
     throw new Error(
       `Não foi possível carregar o dashboard. HTTP ${resposta.status}.`
+    )
+  }
+
+  return resposta.json()
+}
+
+/**
+ * Eu também carrego o perfil pelo servidor Next.
+ *
+ * Assim mantenho a comunicação com o backend centralizada e continuo
+ * sem expor diretamente a API Express para o navegador.
+ */
+export async function obterPerfilProfissional():
+  Promise<PerfilProfissionalComMetadados> {
+  const resposta =
+    await fetch(
+      `${obterUrlBackend()}/perfil`,
+      {
+        cache:
+          "no-store"
+      }
+    )
+
+  if (!resposta.ok) {
+    throw new Error(
+      `Não foi possível carregar o perfil profissional. HTTP ${resposta.status}.`
     )
   }
 
