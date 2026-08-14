@@ -121,8 +121,8 @@ export const perfilBusca = {
    * Agrupo sinônimos da mesma competência para contabilizar o
    * conhecimento somente uma vez.
    *
-   * Por exemplo, "API", "REST API" e "RESTful API" representam um
-   * único conceito na pontuação.
+   * Assim uma descrição que mencione API REST e RESTful API, por
+   * exemplo, continua representando uma única competência.
    */
   competencias: [
     {
@@ -136,6 +136,40 @@ export const perfilBusca = {
       termos: [
         "postgresql",
         "postgres"
+      ]
+    },
+    {
+      nome: "SQLite",
+      termos: [
+        "sqlite"
+      ]
+    },
+    {
+      nome: "MongoDB",
+      termos: [
+        "mongodb",
+        "mongo db"
+      ]
+    },
+    {
+      nome: "DBeaver",
+      termos: [
+        "dbeaver"
+      ]
+    },
+    {
+      nome: "Análise de dados",
+      termos: [
+        "analise de dados",
+        "data analysis",
+        "data analytics"
+      ]
+    },
+    {
+      nome: "Power BI",
+      termos: [
+        "power bi",
+        "powerbi"
       ]
     },
     {
@@ -159,7 +193,9 @@ export const perfilBusca = {
     {
       nome: "Active Directory",
       termos: [
-        "active directory"
+        "active directory",
+        "azure ad",
+        "entra id"
       ]
     },
     {
@@ -191,15 +227,36 @@ export const perfilBusca = {
       ]
     },
     {
+      nome: "Elastic / Elasticsearch",
+      termos: [
+        "elasticsearch",
+        "elastic stack",
+        "elk stack",
+        "elastic"
+      ]
+    },
+    {
+      nome: "Análise de logs",
+      termos: [
+        "analise de logs",
+        "log analysis",
+        "logs analysis",
+        "log monitoring",
+        "troubleshooting de logs"
+      ]
+    },
+    {
       nome: "JavaScript",
       termos: [
-        "javascript"
+        "javascript",
+        "java script"
       ]
     },
     {
       nome: "TypeScript",
       termos: [
-        "typescript"
+        "typescript",
+        "type script"
       ]
     },
     {
@@ -227,6 +284,20 @@ export const perfilBusca = {
       ]
     },
     {
+      nome: "HTML5",
+      termos: [
+        "html5",
+        "html"
+      ]
+    },
+    {
+      nome: "CSS",
+      termos: [
+        "css",
+        "css3"
+      ]
+    },
+    {
       nome: "Git",
       termos: [
         "git"
@@ -236,6 +307,13 @@ export const perfilBusca = {
       nome: "GitHub",
       termos: [
         "github"
+      ]
+    },
+    {
+      nome: "Jira",
+      termos: [
+        "jira",
+        "atlassian jira"
       ]
     },
     {
@@ -255,6 +333,43 @@ export const perfilBusca = {
       ]
     },
     {
+      nome: "VLAN",
+      termos: [
+        "vlan",
+        "vlans",
+        "virtual lan"
+      ]
+    },
+    {
+      nome: "Switches",
+      termos: [
+        "network switch",
+        "network switches",
+        "switch de rede",
+        "switches de rede",
+        "switch gerenciavel",
+        "switch gerenciável"
+      ]
+    },
+    {
+      nome: "Access Points",
+      termos: [
+        "access point",
+        "access points",
+        "wireless access point",
+        "ponto de acesso",
+        "pontos de acesso",
+        "unifi"
+      ]
+    },
+    {
+      nome: "Firewall",
+      termos: [
+        "firewall",
+        "firewalls"
+      ]
+    },
+    {
       nome: "Troubleshooting",
       termos: [
         "troubleshooting",
@@ -268,6 +383,23 @@ export const perfilBusca = {
       termos: [
         "technical support",
         "suporte tecnico"
+      ]
+    },
+    {
+      nome: "Suporte N1/N2/N3",
+      termos: [
+        "suporte n1",
+        "suporte n2",
+        "suporte n3",
+        "nivel 1",
+        "nivel 2",
+        "nivel 3",
+        "level 1 support",
+        "level 2 support",
+        "level 3 support",
+        "l1 support",
+        "l2 support",
+        "l3 support"
       ]
     },
     {
@@ -288,6 +420,88 @@ export const perfilBusca = {
       nome: "Service Desk",
       termos: [
         "service desk"
+      ]
+    },
+    {
+      nome: "Gestão de demandas",
+      termos: [
+        "gestao de demandas",
+        "demand management",
+        "gestao de chamados",
+        "ticket management"
+      ]
+    },
+    {
+      nome: "SLA / KPI",
+      termos: [
+        "sla",
+        "slas",
+        "kpi",
+        "kpis",
+        "indicadores de desempenho",
+        "service level agreement"
+      ]
+    },
+    {
+      nome: "BPM / Automação de processos",
+      termos: [
+        "bpm",
+        "business process management",
+        "automacao de processos",
+        "process automation",
+        "workflow automation"
+      ]
+    },
+    {
+      nome: "Análise de processos",
+      termos: [
+        "analise de processos",
+        "process analysis",
+        "process improvement",
+        "melhoria de processos"
+      ]
+    },
+    {
+      nome: "Análise de requisitos",
+      termos: [
+        "analise de requisitos",
+        "requirements analysis",
+        "levantamento de requisitos",
+        "requirements gathering"
+      ]
+    },
+    {
+      nome: "Implantação de sistemas",
+      termos: [
+        "implantacao de sistemas",
+        "implementacao de sistemas",
+        "system implementation",
+        "software implementation",
+        "implementation"
+      ]
+    },
+    {
+      nome: "Documentação técnica",
+      termos: [
+        "documentacao tecnica",
+        "technical documentation",
+        "documentacao de sistemas",
+        "procedimentos tecnicos"
+      ]
+    },
+    {
+      nome: "Sistemas hospitalares",
+      termos: [
+        "sistema hospitalar",
+        "sistemas hospitalares",
+        "sistema de gestao hospitalar",
+        "sistema de gestão hospitalar",
+        "hospital information system",
+        "hospital information systems",
+        "healthcare information system",
+        "healthcare it",
+        "his",
+        "wareline"
       ]
     },
     {

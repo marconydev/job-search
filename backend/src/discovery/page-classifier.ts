@@ -5,8 +5,9 @@ import type {
 } from "../types/discovery.js"
 
 /**
- * Mantenho aqui portais e agregadores que podem ser úteis para descobrir
- * uma oportunidade, mas que não considero automaticamente a fonte oficial.
+ * Mantenho aqui portais, ATS complementares e agregadores que podem ser
+ * úteis para descobrir uma oportunidade, mas que ainda não possuem um
+ * extrator estruturado próprio no projeto.
  */
 const dominiosAgregadores =
   new Set([
@@ -40,7 +41,17 @@ const dominiosAgregadores =
     "tryremotely.com",
     "vacancyglobalpro.up.railway.app",
     "vagas.com.br",
-    "weworkremotely.com"
+    "weworkremotely.com",
+
+    /**
+     * ATS complementares que quero manter na descoberta mesmo antes
+     * de implementar extração estruturada específica para cada um.
+     */
+    "vagas.solides.com.br",
+    "pandape.infojobs.com.br",
+    "pandape.catho.com.br",
+    "myworkdayjobs.com",
+    "myworkdaysite.com"
   ])
 
 function ehDominioAgregador(
@@ -49,8 +60,9 @@ function ehDominioAgregador(
   return [
     ...dominiosAgregadores
   ].some(
-    (dominio) =>
-      hostname === dominio ||
+    dominio =>
+      hostname ===
+        dominio ||
       hostname.endsWith(
         `.${dominio}`
       )
@@ -69,7 +81,9 @@ export function identificarProvedorPagina(
 ): ProvedorPagina {
   try {
     const urlAnalisada =
-      new URL(url)
+      new URL(
+        url
+      )
 
     const hostname =
       urlAnalisada.hostname
@@ -80,7 +94,8 @@ export function identificarProvedorPagina(
         )
 
     if (
-      hostname === "gupy.io" ||
+      hostname ===
+        "gupy.io" ||
       hostname.endsWith(
         ".gupy.io"
       )
@@ -89,7 +104,8 @@ export function identificarProvedorPagina(
     }
 
     if (
-      hostname === "linkedin.com" ||
+      hostname ===
+        "linkedin.com" ||
       hostname.endsWith(
         ".linkedin.com"
       )
@@ -98,7 +114,8 @@ export function identificarProvedorPagina(
     }
 
     if (
-      hostname === "jobs.lever.co" ||
+      hostname ===
+        "jobs.lever.co" ||
       hostname ===
         "jobs.eu.lever.co"
     ) {
@@ -128,13 +145,14 @@ export function identificarProvedorPagina(
 
     if (
       hostname ===
-      "jobs.smartrecruiters.com"
+        "jobs.smartrecruiters.com"
     ) {
       return "smartrecruiters"
     }
 
     if (
-      hostname === "indeed.com" ||
+      hostname ===
+        "indeed.com" ||
       hostname.endsWith(
         ".indeed.com"
       )
@@ -144,7 +162,7 @@ export function identificarProvedorPagina(
 
     if (
       hostname ===
-      "remoteok.com"
+        "remoteok.com"
     ) {
       return "remote-ok"
     }
@@ -178,7 +196,8 @@ export function identificarProvedorPagina(
  * pelo mecanismo de busca.
  */
 export function classificarPagina(
-  pagina: PaginaDescoberta
+  pagina:
+    PaginaDescoberta
 ): PaginaClassificada {
   return {
     ...pagina,

@@ -1,21 +1,49 @@
 {
-  "geradoEm": "2026-08-11T19:38:29.934Z",
+  "geradoEm": "2026-08-14T13:55:54.535Z",
   "resultado": {
-    "paginasDescobertas": 149,
+    "paginasDescobertas": 170,
     "descartadasPorTitulo": 0,
-    "paginasDeListagem": 0,
-    "paginasSelecionadas": 0,
-    "paginasSomenteDescoberta": 149,
-    "vagasExtraidas": 0,
+    "paginasDeListagem": 2,
+    "paginasSelecionadas": 1,
+    "paginasSomenteDescoberta": 167,
+    "vagasExtraidas": 1,
     "compativeisBrasil": 0,
     "incompativeisBrasil": 0,
-    "indefinidas": 0,
+    "indefinidas": 1,
     "importadas": 0,
     "duplicadas": 0,
     "semDadosObrigatorios": 0,
     "falhas": 0,
-    "porProvedor": [],
-    "pendencias": [],
+    "persistenciaDescoberta": {
+      "novas": 0,
+      "atualizadas": 0,
+      "falhas": 0
+    },
+    "porProvedor": [
+      {
+        "provedor": "lever",
+        "encontradas": 1,
+        "vagasValidas": 1,
+        "compativeisBrasil": 0,
+        "incompativeisBrasil": 0,
+        "indefinidas": 1,
+        "importadas": 0,
+        "duplicadas": 0,
+        "semDadosObrigatorios": 0,
+        "falhas": 0,
+        "ignoradas": 0
+      }
+    ],
+    "pendencias": [
+      {
+        "tipo": "localizacao",
+        "provedor": "lever",
+        "titulo": "IT Service Desk Help Desk (Full-Time, On-Site)",
+        "url": "https://jobs.lever.co/parallelwireless/c1fee74c-9d87-43b6-b7fb-21348d091c4e",
+        "localizacao": "Pune",
+        "motivo": "Não consegui confirmar se a localização \"Pune\" aceita candidatos no Brasil."
+      }
+    ],
     "somenteDescoberta": [
       {
         "provedor": "desconhecido",
@@ -1059,6 +1087,132 @@
         "url": "https://remotive.com/remote/jobs/customer-service/customer-support-technician-2nd-line-5294868",
         "descricao": "3d ago - MDY Contact Center is hiring a remote Customer Support Technician (2nd Line).",
         "consulta": "site:remotive.com/remote/jobs (\"Technical Support\" OR \"Application Support\" OR \"Customer Support\") Brazil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "L2 Customer Support Engineer, Trilogy (L2 Customer Support Engineer) - $60,000/year USD",
+        "url": "https://www.crossover.com/jobs/3330/trilogy/l2-customer-support-engineer",
+        "descricao": "For this Brazilian support agent, the answer is earning 5X... ... Wish you could travel and work from anywhere? This L3 Customer Support Agent once had to drive a taxi to make ends meet, until he found a re... ... Teague James was recruited by Crossover to become a remote Product Knowledge Curator at Trilogy – which is really a fancy way of saying he c...",
+        "consulta": "(\"Technical Support\" OR \"Application Support\" OR \"Product Support\" OR \"Support Engineer\") (Brazil OR Brasil)"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Analista de Suporte Técnico - Consultoria - Pretensão Salarial - Centro RJ - RIOVAGAS",
+        "url": "https://riovagas.com.br/riovagas/analista-de-suporte-tecnico-consultoria-pretensao-salarial-centro/",
+        "descricao": "<strong>Prestar suporte técnico de 1º e 2º nível aos usuários, presencial e remoto, realizando o registro, tratamento e acompanhamento de chamados</strong>. Instalar, configurar e manter equipamentos, sistemas operacionais, softwares, dispositivos móveis, ...",
+        "consulta": "(\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Sistemas\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Ibrowse Consultoria e Informatica Ltda (Porto Alegre): ANALISTA DE SUPORTE (N3) – PRESENCIAL – PASSO FUNDO/RS",
+        "url": "https://join.com/companies/ibrowse275/16477422-analista-de-suporte-n3-presencial-passo-fundo-rs",
+        "descricao": "Ibrowse Consultoria e Informatica Ltda has a job opening for <strong>ANALISTA DE SUPORTE</strong> (N3) – PRESENCIAL – PASSO FUNDO/RS in Porto Alegre (published: 10.11.2025). Apply now or check the other available jobs.",
+        "consulta": "(\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Sistemas\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "O que é field service em TI e como funciona o atendimento em campo",
+        "url": "https://www.gabrieldevs.com.br/2026/07/o-que-e-field-service-em-ti-e-como.html",
+        "descricao": "Além do Nível 2: <strong>O Field Service atua onde o Help Desk e o Service Desk não alcançam, exigindo intervenção física em data centers, redes e estações de trabalho</strong>.",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "O que é um Help Desk? Funções Principais, Tipos, Benefícios e Mais",
+        "url": "https://www.splashtop.com/pt/blog/help-desk",
+        "descricao": "Em resumo, <strong>enquanto um help desk</strong> se concentra em resolver problemas imediatos dos utilizadores, um service desk oferece uma abordagem mais abrangente à gestão de serviços de TI, visando melhorar tanto as experiências dos utilizadores quanto ...",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "The Best IT Help Desk Software We've Tested for 2026 | PCMag",
+        "url": "https://www.pcmag.com/picks/the-best-it-help-desk-software",
+        "descricao": "The Atlassian Service Collection bundles excellent customer service and IT help desk components in one convenient platform for a reasonable price, enhancing the experience with a helpful range of AI features. Jump To See More Details Atlassian Service Collection Review ... Read Our Editorial Mission Statement and Testing Methodologies. Freshservice streamlines IT support by combining powerful ticket management with time-saving automation and an intuitive interface.",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "O que é Helpdesk e Como Organizar o Suporte | OmniSmart",
+        "url": "https://omnismart.com.br/o-que-e-helpdesk/",
+        "descricao": "Entenda o que é helpdesk e como organizar solicitações por canal, fila, prioridade, responsável, prazo, status e histórico de atendimento.",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Help Desk vs. Service Desk: Understanding the Key Differences and Why a Service Desk is the Future - SolarWinds Blog",
+        "url": "https://www.solarwinds.com/blog/help-desk-vs-service-desk-understanding-the-key-differences-and-why-a-service-desk-is-the-future",
+        "descricao": "On the other hand, <strong>a service desk offers a more comprehensive approach to IT service management</strong> . It is designed to be a strategic partner within an organization, focusing not just on immediate fixes but also on improving IT processes overall.",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil"
+      },
+      {
+        "provedor": "linkedin",
+        "titulo": "A empresa Villela Brasil Bank está contratando para o cargo de Assistente de Help Desk em: Porto Alegre e Região",
+        "url": "https://br.linkedin.com/jobs/view/assistente-de-help-desk-at-villela-brasil-bank-4440189886",
+        "descricao": "We cannot provide a description for this page right now",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Die 13 besten Help-Desk-Lösungen für 2026 - Zendesk",
+        "url": "https://www.zendesk.com/service/help-desk-software/",
+        "descricao": "HappyFox is a cloud-based help desk solution that helps support and marketing teams track and manage customer issues. The help desk features a ticketing system that creates tickets from email, voice, live chat, messaging, social media, and web form requests and routes them to its shared inbox. HappyFox’s help desk offers a few options for its self-service knowledge bases.",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Anúncio: Analista de monitoramento| presencial |brasília/df #2307192 - Netvagas",
+        "url": "https://www.netvagas.com.br/empresa/anuncios/a2307192/analista-de-monitoramento-presencial-brasilia-df/",
+        "descricao": "Atualizar e manter firmwares dos equipamentos de infraestrutura e servidores.Requisitos obrigatórios · Ensino Superior completo (Bacharelado, Licenciatura ou Tecnólogo) em Tecnologia da Informação, Ciência da Computação, Engenharia da Computação ou áreas correlatas; Experiência solida em monitoramento de infraestrutura de TIC, construção de dashboards, monitoramento de sistemas e serviços ou tratamento de incidentes;",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Vaga para INFRASTRUCTURE AND MONITORING ANALYST em CURITIBA - Employed",
+        "url": "https://employed.com.br/vagas/curitiba/tecnologia/infrastructure-and-monitoring-analyst/",
+        "descricao": "Experience working in NOC (Network Operations Center) environments or other critical technology operations. Knowledge of monitoring, observability, and log management tools. Experience with Application Performance Monitoring (APM) solutions for monitoring applications and services. Knowledge of server infrastructure, operating systems, databases, and enterprise networking. Strong analytical skills for investigating and resolving complex issues in high-availability environments.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil"
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Vaga Analista de Monitoramento - São Paulo - Penso Tecnologia 2826785 | Vagas.com",
+        "url": "https://www.vagas.com.br/vagas/v2826785/analista-de-monitoramento",
+        "descricao": "Monitorar redes, servidores e serviços em tempo real (via Zabbix, 24x7, Wazuh, Grafana). Detectar incidentes e gerar alertas para equipes responsáveis. Garantir a operação contínua dos serviços com foco em disponibilidade e performance. Analisar e diagnosticar falhas de rede, conectividade, lentidão ou indisponibilidades. Acionar equipes de infraestrutura, provedores ou data center quando necessário.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil"
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "INFRASTRUCTURE AND MONITORING ANALYST na ScanSource Brasil - Brazil Remoto",
+        "url": "https://remoterocketship.com/br/empresa/pagina-scansource-site/vagas/infrastructure-and-monitoring-analyst-brasil-remoto",
+        "descricao": "Busque mais de 9.719 vagas para trabalhar de casa nas melhores empresas remotas. Encontre o trabalho remoto dos seus sonhos.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil"
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Analista NOC",
+        "url": "https://www.jobleads.com/br/job/analista-noc--indaiatuba--e4638d82b44399f6b20bcfd75e67a7a86",
+        "descricao": "JobLeads: Finds jobs matched to your skills and ambitions – not what companies pay to promote. Build a standout resume &amp; tailor it for each job in minutes. The job platform genuinely on your side. 12M users worldwide.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil"
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Analista NOC Junior — Monitoreo, SQL y Observabilidad (Híbrido)",
+        "url": "https://www.jobleads.com/pe/job/analista-noc-junior-monitoreo-sql-y-observabilidad-hibrido--san-isidro--e942c0fa7a77049a4b40ce67df7aee97c",
+        "descricao": "JobLeads: Encuentra trabajos que coinciden con tus habilidades y ambiciones, no lo que las empresas pagan por promocionar. Crea un currículum destacado y adáptalo para cada puesto de trabajo en minutos. La plataforma de empleo que realmente está de tu lado.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Implementation Consultant at Fortive in Brazil, BR",
+        "url": "https://tsenta.com/jobs/fortive-implementation-consultant-26b73981-4c38-4c8e-887e-08b7ec52092d",
+        "descricao": "<strong>Guide new customers through onboarding and provide CMMS strategies to accelerate adoption</strong>.",
+        "consulta": "(\"Analista de Implantação\" OR \"Implementation Analyst\" OR \"Implementation Specialist\" OR \"Customer Onboarding\") (Brazil OR Brasil)"
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Senior Software Implementation Specialist - Trader Interactive",
+        "url": "https://careers.traderinteractive.com/jobs/666622-senior-software-implementation-specialist",
+        "descricao": "<strong>Experience owning or contributing to implementation playbooks, onboarding standards, or QA frameworks</strong>.",
+        "consulta": "(\"Analista de Implantação\" OR \"Implementation Analyst\" OR \"Implementation Specialist\" OR \"Customer Onboarding\") (Brazil OR Brasil)"
       }
     ],
     "recomendacoesDescoberta": [
@@ -1068,17 +1222,38 @@
         "url": "https://br.talent.com/view?id=630535777761034320",
         "descricao": "O que você fará no dia a dia Prestar suporte técnico presencial e remoto aos usuários; Instalar, configurar e dar suporte a Windows 10 e 11; Apoiar usuários em aplicações corporativas e Office 365; Criar e gerenciar usuários no Active Directory; Atuar no suporte de redes LAN e Wi-Fi; Auxiliar na identificação e resolução de falhas de rede; Monitorar switches, roteadores, VPNs e links de internet; Apoiar na administração de firewalls e políticas de segurança; Gerenciar inventário de equipamentos e ativos de TI; Apoiar demandas gerais da equipe de infraestrutura. Requisitos Conh",
         "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoramento\" OR \"IT Operations\") Brasil",
-        "pontuacao": 86,
+        "pontuacao": 90,
         "competencias": [
           "Windows",
           "Active Directory",
           "Redes",
+          "Firewall",
           "Suporte técnico"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
           "Localização compatível",
-          "4 competência(s) relacionada(s)"
+          "5 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Analista de Infraestrutura PL - eWave do Brasil informatica LTDA | BeBee",
+        "url": "https://bebee.com/br/jobs/analista-de-infraestrutura-pl-ewave-do-brasil-informatica-ltda-curitiba-pr--t7xk-788299506",
+        "descricao": "Administração da infraestrutura de TI. Administração de servidores Windows e/ou Linux. Administração de Active Directory, DNS, DHCP e GPO. Administração da rede corporativa (Switches, VLANs, Wi-Fi e Firewall). Monitoramento do ambiente.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoramento\" OR \"IT Operations\") Brasil",
+        "pontuacao": 90,
+        "competencias": [
+          "Linux",
+          "Windows",
+          "Active Directory",
+          "VLAN",
+          "Firewall"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "5 competência(s) relacionada(s)"
         ]
       },
       {
@@ -1087,17 +1262,36 @@
         "url": "https://trabalheconosco.vagas.com.br/zydus-brasil/oportunidade/analista-de-ti/2826646",
         "descricao": "Experiência com ferramentas de monitoramento (ex: Zabbix, Grafana, Azure Monitor) e painéis de antivírus/EDR/Firewall.Domínio na administração de serviços e recursos em ambiente Microsoft Azure.Experiência com implementação e controle de GPOs, conformidade de segurança e padrões de auditoria.Conhecimento sólido em administração de servidores (Windows/Linux) e ativos de rede.",
         "consulta": "(\"Zabbix\" OR \"Grafana\" OR \"Active Directory\" OR \"Windows Server\") (suporte OR analista OR NOC) Brasil",
-        "pontuacao": 86,
+        "pontuacao": 90,
         "competencias": [
           "Linux",
           "Windows",
           "Zabbix",
-          "Grafana"
+          "Grafana",
+          "Firewall"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
           "Localização compatível",
-          "4 competência(s) relacionada(s)"
+          "5 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Application Support Engineer - Work from home - Talent Connection - Leapfrog, International Jobs | BeBee",
+        "url": "https://bebee.com/tr/jobs/application-support-engineer-work-from-home-talent-connection-leapfrog-international-jobs-greater-is--t7xk-766590213",
+        "descricao": "Get notified about new Application Support Engineer jobs in Greater Brasilia . ... Application Support Engineer, Trilogy (Remote) - $60,000/year USD Application Support Engineer, Trilogy (Remote) - $60,000/year USD ... Technical Support Engineer- ESG (Bilingual English and Spanish) Technical Support Engineer- ESG (Bilingual English and Spanish) L2 Support Engineer, Alpha (Remote) - $60,000/year USD L2 Support Engineer, Alpha (Remote) - $60,000/year USD ... FBS Data Production Support Analyst (Data Pipelines) FBS Data Production Support Analyst (Data Pipelines)",
+        "consulta": "(\"Technical Support\" OR \"Application Support\" OR \"Product Support\" OR \"Support Engineer\") (Brazil OR Brasil)",
+        "pontuacao": 88,
+        "competencias": [
+          "Suporte técnico",
+          "Suporte N1/N2/N3"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Vaga remota",
+          "Localização compatível",
+          "2 competência(s) relacionada(s)"
         ]
       },
       {
@@ -1140,19 +1334,21 @@
       },
       {
         "provedor": "agregador",
-        "titulo": "Application Support Engineer - Work from home - Talent Connection - Leapfrog, International Jobs | BeBee",
-        "url": "https://bebee.com/tr/jobs/application-support-engineer-work-from-home-talent-connection-leapfrog-international-jobs-greater-is--t7xk-766590213",
-        "descricao": "Get notified about new Application Support Engineer jobs in Greater Brasilia . ... Application Support Engineer, Trilogy (Remote) - $60,000/year USD Application Support Engineer, Trilogy (Remote) - $60,000/year USD ... Technical Support Engineer- ESG (Bilingual English and Spanish) Technical Support Engineer- ESG (Bilingual English and Spanish) L2 Support Engineer, Alpha (Remote) - $60,000/year USD L2 Support Engineer, Alpha (Remote) - $60,000/year USD ... FBS Data Production Support Analyst (Data Pipelines) FBS Data Production Support Analyst (Data Pipelines)",
-        "consulta": "(\"Technical Support\" OR \"Application Support\" OR \"Product Support\" OR \"Support Engineer\") (Brazil OR Brasil)",
-        "pontuacao": 84,
+        "titulo": "Vaga de Emprego de Suporte Técnico (TI Infraestrutura Call Center), Rio Branco /",
+        "url": "https://www.catho.com.br/vagas/suporte-tecnico-ti-infraestrutura-call-center/37717866",
+        "descricao": "Criação de usuários, reset de senhas e inclusão de máquinas no domínio. Registrar e dar baixa em tickets de suporte (Service Desk), garantindo o cumprimento do SLA (prazo de atendimento). Formação: Cursando ou concluído Técnico ou Superior em Redes, Sistemas de Informação ou Ciência da Computação.",
+        "consulta": "site:catho.com.br (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sistemas\")",
+        "pontuacao": 86,
         "competencias": [
-          "Suporte técnico"
+          "Redes",
+          "Suporte técnico",
+          "Service Desk",
+          "SLA / KPI"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
-          "Vaga remota",
           "Localização compatível",
-          "1 competência(s) relacionada(s)"
+          "4 competência(s) relacionada(s)"
         ]
       },
       {
@@ -1191,24 +1387,6 @@
       },
       {
         "provedor": "agregador",
-        "titulo": "Analista de Infraestrutura PL - eWave do Brasil informatica LTDA | BeBee",
-        "url": "https://bebee.com/br/jobs/analista-de-infraestrutura-pl-ewave-do-brasil-informatica-ltda-curitiba-pr--t7xk-788299506",
-        "descricao": "Administração da infraestrutura de TI. Administração de servidores Windows e/ou Linux. Administração de Active Directory, DNS, DHCP e GPO. Administração da rede corporativa (Switches, VLANs, Wi-Fi e Firewall). Monitoramento do ambiente.",
-        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoramento\" OR \"IT Operations\") Brasil",
-        "pontuacao": 82,
-        "competencias": [
-          "Linux",
-          "Windows",
-          "Active Directory"
-        ],
-        "motivos": [
-          "Cargo diretamente relacionado ao perfil",
-          "Localização compatível",
-          "3 competência(s) relacionada(s)"
-        ]
-      },
-      {
-        "provedor": "agregador",
         "titulo": "Analista de Suporte Júnior – RICOH BRASIL – Vaga Brazil",
         "url": "https://br.talent.com/view?id=630536069494606402",
         "descricao": "Responsabilidades ; - <strong>Prestar suporte técnico de segundo nível para sistemas operacionais (Windows, Linux), aplicações corporativas e infraestrutura de rede</strong>.Diagnosticar e resolver incidentes comp...",
@@ -1227,15 +1405,33 @@
       },
       {
         "provedor": "agregador",
-        "titulo": "Vaga de Emprego de Suporte Técnico (TI Infraestrutura Call Center), Rio Branco /",
-        "url": "https://www.catho.com.br/vagas/suporte-tecnico-ti-infraestrutura-call-center/37717866",
-        "descricao": "Criação de usuários, reset de senhas e inclusão de máquinas no domínio. Registrar e dar baixa em tickets de suporte (Service Desk), garantindo o cumprimento do SLA (prazo de atendimento). Formação: Cursando ou concluído Técnico ou Superior em Redes, Sistemas de Informação ou Ciência da Computação.",
+        "titulo": "Vaga de Emprego de Analista de Implantação, Brasilia /",
+        "url": "https://www.catho.com.br/vagas/analista-de-implantacao/37652868/",
+        "descricao": "Atuar de forma proativa na identificação e resolução de problemas durante as fases de testes e implantação.Ensino superior completo ou em andamento em Sistemas de Informação, Análise e Desenvolvimento de Sistemas, Ciência da Computação, Engenharia de Software, Administração, Engenharia de Produção ou áreas correlatas. Será considerado diferencial experiência ou formação complementar na área da saúde, com conhecimento em TISS, ANS e processos de operadoras de saúde. Experiência com implantação de sistemas, onboarding de clientes, projetos ou suporte técnico.",
         "consulta": "site:catho.com.br (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sistemas\")",
         "pontuacao": 82,
         "competencias": [
-          "Redes",
+          "Troubleshooting",
           "Suporte técnico",
-          "Service Desk"
+          "Implantação de sistemas"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "3 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Vaga de emprego de ANALISTA DE SUPORTE II em São Paulo,- SP",
+        "url": "https://www.infojobs.com.br/vaga-de-analista-suporte-ii-em-sao-paulo__11821681.aspx",
+        "descricao": "Principais Atividades Instalação, configuração e suporte a equipamentos de TI; Atendimento e resolução de incidentes e solicitações de usuários; Instalação e manutenção de sistemas operacionais Windows; Suporte ao Microsoft Office, Office 365, Outlook, Teams e OneDrive; Instalação de softwares homologados pelo cliente; Apoio em infraestrutura de redes, cabeamento e equipamentos; Registro e acompanhamento de chamados; Elaboração e atualização de documentação técnica e procedimentos; Identificação de oportunidades de automação e melhoria dos processos.",
+        "consulta": "site:infojobs.com.br (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sistemas\")",
+        "pontuacao": 82,
+        "competencias": [
+          "Windows",
+          "Redes",
+          "Documentação técnica"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
@@ -1258,6 +1454,23 @@
         ]
       },
       {
+        "provedor": "agregador",
+        "titulo": "ANALISTA DE SUPORTE (N3) – PRESENCIAL – PORTO ALEGRE/RS - Ibrowse Consultoria e Informatica Ltda | BeBee",
+        "url": "https://bebee.com/br/jobs/analista-de-suporte-n3-presencial-porto-alegre-rs-ibrowse-consultoria-e-informatica-ltda-porto-alegr--t7xk-761345622",
+        "descricao": "RESPONSABILIDADES E ATRIBUIÇÕES Prestar suporte técnico de nível 3, realizando o diagnóstico e a resolução de incidentes complexos relacionados à infraestrutura",
+        "consulta": "(\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Sistemas\") Brasil",
+        "pontuacao": 78,
+        "competencias": [
+          "Suporte técnico",
+          "Suporte N1/N2/N3"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "2 competência(s) relacionada(s)"
+        ]
+      },
+      {
         "provedor": "indeed",
         "titulo": "Analista de Suporte e Infraestrutura PL/SR - Curitiba, PR - Indeed.com",
         "url": "https://br.indeed.com/viewjob?jk=2237b73b583128a5",
@@ -1275,15 +1488,15 @@
         ]
       },
       {
-        "provedor": "agregador",
-        "titulo": "Vaga de Emprego de Analista de Implantação, Brasilia /",
-        "url": "https://www.catho.com.br/vagas/analista-de-implantacao/37652868/",
-        "descricao": "Atuar de forma proativa na identificação e resolução de problemas durante as fases de testes e implantação.Ensino superior completo ou em andamento em Sistemas de Informação, Análise e Desenvolvimento de Sistemas, Ciência da Computação, Engenharia de Software, Administração, Engenharia de Produção ou áreas correlatas. Será considerado diferencial experiência ou formação complementar na área da saúde, com conhecimento em TISS, ANS e processos de operadoras de saúde. Experiência com implantação de sistemas, onboarding de clientes, projetos ou suporte técnico.",
-        "consulta": "site:catho.com.br (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sistemas\")",
+        "provedor": "desconhecido",
+        "titulo": "Analista NOC Telecom - Claro - Rio De Janeiro - RIO EMPREGOS: RIO VAGAS DE EMPREGO RJ",
+        "url": "https://rioempregos.com.br/vagasrj/analista-noc-telecom-claro-rio-de-janeiro-2/",
+        "descricao": "<strong>Executar testes de desempenho, conectividade e segurança em CPEs gerenciados e plataformas de gerência</strong>. Prestar suporte na configuração de roteadores e firewalls gerenciados. Monitorar o cumprimento dos SLAs, garantindo prazos de resposta ...",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoramento\" OR \"IT Operations\") Brasil",
         "pontuacao": 78,
         "competencias": [
-          "Troubleshooting",
-          "Suporte técnico"
+          "Firewall",
+          "SLA / KPI"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
@@ -1292,15 +1505,15 @@
         ]
       },
       {
-        "provedor": "agregador",
-        "titulo": "Vaga de emprego de ANALISTA DE SUPORTE II em São Paulo,- SP",
-        "url": "https://www.infojobs.com.br/vaga-de-analista-suporte-ii-em-sao-paulo__11821681.aspx",
-        "descricao": "Principais Atividades Instalação, configuração e suporte a equipamentos de TI; Atendimento e resolução de incidentes e solicitações de usuários; Instalação e manutenção de sistemas operacionais Windows; Suporte ao Microsoft Office, Office 365, Outlook, Teams e OneDrive; Instalação de softwares homologados pelo cliente; Apoio em infraestrutura de redes, cabeamento e equipamentos; Registro e acompanhamento de chamados; Elaboração e atualização de documentação técnica e procedimentos; Identificação de oportunidades de automação e melhoria dos processos.",
-        "consulta": "site:infojobs.com.br (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sistemas\")",
+        "provedor": "indeed",
+        "titulo": "ATENDENTE - CENTRAL DE ATENDIMENTO HELP DESK - Belo Horizonte, MG - Indeed.com",
+        "url": "https://br.indeed.com/viewjob?jk=2b109144f9bc3b5c",
+        "descricao": "Experiência com sistemas de gestão de chamados e suporte técnico.",
+        "consulta": "site:br.indeed.com/viewjob (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Service Desk\" OR \"Help Desk\")",
         "pontuacao": 78,
         "competencias": [
-          "Windows",
-          "Redes"
+          "Suporte técnico",
+          "Gestão de demandas"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
@@ -1352,6 +1565,23 @@
         "competencias": [
           "Redes",
           "Suporte técnico"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "2 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Vaga de emprego de Técnico De Suporte N1 - PCD em Rio de Janeiro,- RJ",
+        "url": "https://www.infojobs.com.br/vaga-de-tecnico-suporte-n1-pcd-em-rio-janeiro__11835528.aspx",
+        "descricao": "<strong>Prestar suporte de 1º nível, orientando usuários e realizando a triagem dos chamados</strong>. Registrar, categorizar e acompanhar os atendimentos na plataforma de gestão, garantindo o cumprimento dos SLAs.",
+        "consulta": "site:infojobs.com.br (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sistemas\")",
+        "pontuacao": 78,
+        "competencias": [
+          "Suporte N1/N2/N3",
+          "SLA / KPI"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
@@ -1428,22 +1658,6 @@
         "titulo": "Analista de suporte - Guaxupé, MG - Indeed.com",
         "url": "https://br.indeed.com/viewjob?jk=d5c70e0f3a26fb7a",
         "descricao": "O(a) <strong>Analista de Suporte Sonner</strong> é responsável por: Prestar atendimento (presencial e através de ferramenta de Suporte Técnico) aos usuários dos diversos módulos do Sistema Integrado Sonner quanto à dúvidas na utilização do software, ...",
-        "consulta": "(\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Sistemas\") Brasil",
-        "pontuacao": 74,
-        "competencias": [
-          "Suporte técnico"
-        ],
-        "motivos": [
-          "Cargo diretamente relacionado ao perfil",
-          "Localização compatível",
-          "1 competência(s) relacionada(s)"
-        ]
-      },
-      {
-        "provedor": "agregador",
-        "titulo": "ANALISTA DE SUPORTE (N3) – PRESENCIAL – PORTO ALEGRE/RS - Ibrowse Consultoria e Informatica Ltda | BeBee",
-        "url": "https://bebee.com/br/jobs/analista-de-suporte-n3-presencial-porto-alegre-rs-ibrowse-consultoria-e-informatica-ltda-porto-alegr--t7xk-761345622",
-        "descricao": "RESPONSABILIDADES E ATRIBUIÇÕES Prestar suporte técnico de nível 3, realizando o diagnóstico e a resolução de incidentes complexos relacionados à infraestrutura",
         "consulta": "(\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Sistemas\") Brasil",
         "pontuacao": 74,
         "competencias": [
@@ -1537,6 +1751,38 @@
       },
       {
         "provedor": "indeed",
+        "titulo": "ANALISTA DE SUPORTE NÍVEL 1 PLENO - Botafogo (Infobase IT) - Rio de Janeiro, RJ - Indeed.com",
+        "url": "https://br.indeed.com/viewjob?jk=6081e34d5046096b",
+        "descricao": "Empresa de Tecnologia busca profissional <strong>Analista de Suporte</strong> Nível 1 Pleno em Rio de Janeiro (Botafogo).",
+        "consulta": "site:br.indeed.com/viewjob (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Service Desk\" OR \"Help Desk\")",
+        "pontuacao": 74,
+        "competencias": [
+          "Suporte N1/N2/N3"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "1 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "Analista de Suporte Técnico - Consultoria - Pretensão Salarial - Centro RJ - RIOVAGAS",
+        "url": "https://riovagas.com.br/riovagas/analista-de-suporte-tecnico-consultoria-pretensao-salarial-centro/",
+        "descricao": "<strong>Prestar suporte técnico de 1º e 2º nível aos usuários, presencial e remoto, realizando o registro, tratamento e acompanhamento de chamados</strong>. Instalar, configurar e manter equipamentos, sistemas operacionais, softwares, dispositivos móveis, ...",
+        "consulta": "(\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Sistemas\") Brasil",
+        "pontuacao": 74,
+        "competencias": [
+          "Suporte técnico"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "1 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "indeed",
         "titulo": "Analista de Suporte Técnico - Nova Lima, MG - Indeed.com",
         "url": "https://br.indeed.com/viewjob?jk=50f6b1153b77ff08",
         "descricao": "Desenvolvimento de briefings executivos e apresentações estratégicas para <strong>suporte</strong> à tomada de decisão. Coordenação e acompanhamento do calendário de eventos, entregas relevantes e iniciativas internas e externas, com análise de impactos ...",
@@ -1600,14 +1846,30 @@
         ]
       },
       {
-        "provedor": "indeed",
-        "titulo": "ATENDENTE - CENTRAL DE ATENDIMENTO HELP DESK - Belo Horizonte, MG - Indeed.com",
-        "url": "https://br.indeed.com/viewjob?jk=2b109144f9bc3b5c",
-        "descricao": "Experiência com sistemas de gestão de chamados e suporte técnico.",
-        "consulta": "site:br.indeed.com/viewjob (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Service Desk\" OR \"Help Desk\")",
+        "provedor": "desconhecido",
+        "titulo": "Ibrowse Consultoria e Informatica Ltda (Porto Alegre): ANALISTA DE SUPORTE (N3) – PRESENCIAL – PASSO FUNDO/RS",
+        "url": "https://join.com/companies/ibrowse275/16477422-analista-de-suporte-n3-presencial-passo-fundo-rs",
+        "descricao": "Ibrowse Consultoria e Informatica Ltda has a job opening for <strong>ANALISTA DE SUPORTE</strong> (N3) – PRESENCIAL – PASSO FUNDO/RS in Porto Alegre (published: 10.11.2025). Apply now or check the other available jobs.",
+        "consulta": "(\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Sistemas\") Brasil",
         "pontuacao": 74,
         "competencias": [
-          "Suporte técnico"
+          "Suporte N1/N2/N3"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "1 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "desconhecido",
+        "titulo": "L2 Customer Support Engineer, Trilogy (L2 Customer Support Engineer) - $60,000/year USD",
+        "url": "https://www.crossover.com/jobs/3330/trilogy/l2-customer-support-engineer",
+        "descricao": "For this Brazilian support agent, the answer is earning 5X... ... Wish you could travel and work from anywhere? This L3 Customer Support Agent once had to drive a taxi to make ends meet, until he found a re... ... Teague James was recruited by Crossover to become a remote Product Knowledge Curator at Trilogy – which is really a fancy way of saying he c...",
+        "consulta": "(\"Technical Support\" OR \"Application Support\" OR \"Product Support\" OR \"Support Engineer\") (Brazil OR Brasil)",
+        "pontuacao": 74,
+        "competencias": [
+          "Suporte ao cliente"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
@@ -1624,6 +1886,22 @@
         "pontuacao": 74,
         "competencias": [
           "Suporte técnico"
+        ],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível",
+          "1 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "indeed",
+        "titulo": "TÉCNICO DE SUPORTE N1 - Santa Clara (Grupo Arthur Azevedo) - Eusébio, CE - Indeed.com",
+        "url": "https://br.indeed.com/viewjob?jk=a7c5a2b50738245c",
+        "descricao": "Indústria e Comércio de Móveis busca profissional Técnico de Suporte N1 em Eusébio (Santa Clara).",
+        "consulta": "site:br.indeed.com/viewjob (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Service Desk\" OR \"Help Desk\")",
+        "pontuacao": 74,
+        "competencias": [
+          "Suporte N1/N2/N3"
         ],
         "motivos": [
           "Cargo diretamente relacionado ao perfil",
@@ -1822,6 +2100,19 @@
       },
       {
         "provedor": "linkedin",
+        "titulo": "A empresa Villela Brasil Bank está contratando para o cargo de Assistente de Help Desk em: Porto Alegre e Região",
+        "url": "https://br.linkedin.com/jobs/view/assistente-de-help-desk-at-villela-brasil-bank-4440189886",
+        "descricao": "We cannot provide a description for this page right now",
+        "consulta": "(\"Service Desk\" OR \"Help Desk\" OR \"Desktop Support\" OR \"Field Service\" OR \"IT Support\") Brasil",
+        "pontuacao": 70,
+        "competencias": [],
+        "motivos": [
+          "Cargo diretamente relacionado ao perfil",
+          "Localização compatível"
+        ]
+      },
+      {
+        "provedor": "linkedin",
         "titulo": "Analista de Infraestrutura e Suporte de Segurança Eletrônica",
         "url": "https://br.linkedin.com/jobs/view/analista-de-infraestrutura-e-suporte-de-seguran%C3%A7a-eletr%C3%B4nica-at-security24h-4448677243",
         "descricao": "We cannot provide a description for this page right now",
@@ -1873,32 +2164,6 @@
         ]
       },
       {
-        "provedor": "indeed",
-        "titulo": "ANALISTA DE SUPORTE NÍVEL 1 PLENO - Botafogo (Infobase IT) - Rio de Janeiro, RJ - Indeed.com",
-        "url": "https://br.indeed.com/viewjob?jk=6081e34d5046096b",
-        "descricao": "Empresa de Tecnologia busca profissional <strong>Analista de Suporte</strong> Nível 1 Pleno em Rio de Janeiro (Botafogo).",
-        "consulta": "site:br.indeed.com/viewjob (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Service Desk\" OR \"Help Desk\")",
-        "pontuacao": 70,
-        "competencias": [],
-        "motivos": [
-          "Cargo diretamente relacionado ao perfil",
-          "Localização compatível"
-        ]
-      },
-      {
-        "provedor": "desconhecido",
-        "titulo": "Analista NOC Telecom - Claro - Rio De Janeiro - RIO EMPREGOS: RIO VAGAS DE EMPREGO RJ",
-        "url": "https://rioempregos.com.br/vagasrj/analista-noc-telecom-claro-rio-de-janeiro-2/",
-        "descricao": "<strong>Executar testes de desempenho, conectividade e segurança em CPEs gerenciados e plataformas de gerência</strong>. Prestar suporte na configuração de roteadores e firewalls gerenciados. Monitorar o cumprimento dos SLAs, garantindo prazos de resposta ...",
-        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoramento\" OR \"IT Operations\") Brasil",
-        "pontuacao": 70,
-        "competencias": [],
-        "motivos": [
-          "Cargo diretamente relacionado ao perfil",
-          "Localização compatível"
-        ]
-      },
-      {
         "provedor": "desconhecido",
         "titulo": "Anúncio: Analista de suporte (1) #2308926 - Netvagas",
         "url": "https://www.netvagas.com.br/empresa/anuncios/a2308926/analista-de-suporte-1/",
@@ -1917,19 +2182,6 @@
         "url": "https://br.linkedin.com/jobs/view/azzas-f-l-analista-de-infraestrutura-de-cloud-ii-labs-at-grupo-soma-4450568674",
         "descricao": "We cannot provide a description for this page right now",
         "consulta": "site:br.linkedin.com/jobs/view (\"Analista de Sistemas\" OR \"Analista de Sustentação\" OR \"Analista de Aplicações\" OR \"Analista de Implantação\" OR \"Analista de Infraestrutura\")",
-        "pontuacao": 70,
-        "competencias": [],
-        "motivos": [
-          "Cargo diretamente relacionado ao perfil",
-          "Localização compatível"
-        ]
-      },
-      {
-        "provedor": "indeed",
-        "titulo": "TÉCNICO DE SUPORTE N1 - Santa Clara (Grupo Arthur Azevedo) - Eusébio, CE - Indeed.com",
-        "url": "https://br.indeed.com/viewjob?jk=a7c5a2b50738245c",
-        "descricao": "Indústria e Comércio de Móveis busca profissional Técnico de Suporte N1 em Eusébio (Santa Clara).",
-        "consulta": "site:br.indeed.com/viewjob (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Service Desk\" OR \"Help Desk\")",
         "pontuacao": 70,
         "competencias": [],
         "motivos": [
@@ -1991,19 +2243,6 @@
       },
       {
         "provedor": "agregador",
-        "titulo": "Vaga de emprego de Técnico De Suporte N1 - PCD em Rio de Janeiro,- RJ",
-        "url": "https://www.infojobs.com.br/vaga-de-tecnico-suporte-n1-pcd-em-rio-janeiro__11835528.aspx",
-        "descricao": "<strong>Prestar suporte de 1º nível, orientando usuários e realizando a triagem dos chamados</strong>. Registrar, categorizar e acompanhar os atendimentos na plataforma de gestão, garantindo o cumprimento dos SLAs.",
-        "consulta": "site:infojobs.com.br (\"Analista de Suporte\" OR \"Suporte Técnico\" OR \"Analista de Sistemas\")",
-        "pontuacao": 70,
-        "competencias": [],
-        "motivos": [
-          "Cargo diretamente relacionado ao perfil",
-          "Localização compatível"
-        ]
-      },
-      {
-        "provedor": "agregador",
         "titulo": "Vaga de emprego de Técnico De Suporte Pleno em Maceió,- AL",
         "url": "https://www.infojobs.com.br/vaga-de-tecnico-suporte-pleno-em-alagoas__11814684.aspx",
         "descricao": "Temos uma oportunidade incrível para Analista de Suporte Sênior em Maceió/AL A Positivo S+ é uma empresa de tecnologia, com foco em soluções inovadora...",
@@ -2044,6 +2283,38 @@
           "Cargo relacionado a uma área complementar do perfil",
           "Localização compatível",
           "3 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "Vaga Analista de Monitoramento - São Paulo - Penso Tecnologia 2826785 | Vagas.com",
+        "url": "https://www.vagas.com.br/vagas/v2826785/analista-de-monitoramento",
+        "descricao": "Monitorar redes, servidores e serviços em tempo real (via Zabbix, 24x7, Wazuh, Grafana). Detectar incidentes e gerar alertas para equipes responsáveis. Garantir a operação contínua dos serviços com foco em disponibilidade e performance. Analisar e diagnosticar falhas de rede, conectividade, lentidão ou indisponibilidades. Acionar equipes de infraestrutura, provedores ou data center quando necessário.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil",
+        "pontuacao": 67,
+        "competencias": [
+          "Zabbix",
+          "Grafana",
+          "Redes"
+        ],
+        "motivos": [
+          "Cargo relacionado a uma área complementar do perfil",
+          "Localização compatível",
+          "3 competência(s) relacionada(s)"
+        ]
+      },
+      {
+        "provedor": "agregador",
+        "titulo": "INFRASTRUCTURE AND MONITORING ANALYST na ScanSource Brasil - Brazil Remoto",
+        "url": "https://remoterocketship.com/br/empresa/pagina-scansource-site/vagas/infrastructure-and-monitoring-analyst-brasil-remoto",
+        "descricao": "Busque mais de 9.719 vagas para trabalhar de casa nas melhores empresas remotas. Encontre o trabalho remoto dos seus sonhos.",
+        "consulta": "(\"Analista de Infraestrutura\" OR \"Analista NOC\" OR \"NOC Analyst\" OR \"Monitoring Analyst\" OR \"Analista de Monitoramento\") Brasil",
+        "pontuacao": 65,
+        "competencias": [],
+        "motivos": [
+          "Cargo relacionado a uma área complementar do perfil",
+          "Vaga remota",
+          "Localização compatível"
         ]
       }
     ]

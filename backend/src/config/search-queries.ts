@@ -37,7 +37,13 @@ const consultasGerais = [
 const consultasCompetencias = [
   '("Zabbix" OR "Grafana" OR "Active Directory" OR "Windows Server") (suporte OR analista OR NOC) Brasil',
 
-  '("SQL" OR "PostgreSQL" OR "Postman") ("Application Support" OR "Technical Support" OR "Analista de Suporte") Brazil'
+  '("SQL" OR "PostgreSQL" OR "Postman") ("Application Support" OR "Technical Support" OR "Analista de Suporte") Brazil',
+
+  '("Jira" OR "Elasticsearch" OR "Análise de Logs") ("Analista de Suporte" OR "Application Support" OR "Sustentação") Brasil',
+
+  '("Power BI" OR "Análise de Dados") ("Analista de Dados" OR "Analista de BI" OR "Data Analyst") Brasil',
+
+  '("Sistema Hospitalar" OR "Sistemas Hospitalares" OR "Healthcare IT") (suporte OR sistemas OR implantação OR application) Brasil'
 ]
 
 /**
@@ -70,7 +76,8 @@ const consultasIndeed = [
 ]
 
 /**
- * Consulto diretamente os ATS que já possuo capacidade de extrair.
+ * Consulto diretamente os ATS que já possuo capacidade de reconhecer
+ * e, em alguns casos, extrair de forma estruturada.
  */
 const consultasAts = [
   'site:gupy.io ("Analista de Suporte" OR "Suporte Técnico" OR "Service Desk" OR "Help Desk")',
@@ -86,6 +93,28 @@ const consultasAts = [
   'site:apply.workable.com (Brazil OR Brasil) ("Technical Support" OR "Application Support" OR "Support Engineer" OR "Implementation")',
 
   'site:jobs.smartrecruiters.com (Brazil OR Brasil) ("Technical Support" OR "Application Support" OR "Service Desk" OR "Implementation")'
+]
+
+/**
+ * Acrescento ATS relevantes no mercado brasileiro como fontes de
+ * descoberta.
+ *
+ * Nesta primeira versão não crio coletores específicos para eles.
+ * Utilizo a descoberta web existente e mantenho o fluxo de candidatura
+ * manual no site original.
+ */
+const consultasAtsComplementares = [
+  'site:vagas.solides.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas" OR "Analista de Infraestrutura" OR "Analista de Implantação")',
+
+  'site:pandape.infojobs.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas" OR "Analista de Infraestrutura" OR "Service Desk")',
+
+  'site:pandape.catho.com.br ("Analista de Suporte" OR "Suporte Técnico" OR "Analista de Sistemas" OR "Analista de Infraestrutura")',
+
+  'site:myworkdayjobs.com ("Analista de Suporte" OR "Technical Support" OR "Application Support" OR "IT Support") Brazil',
+
+  'site:myworkdayjobs.com ("Analista de Sistemas" OR "Analista de Infraestrutura" OR "Implementation Analyst" OR "Support Engineer") Brazil',
+
+  'site:myworkdaysite.com ("Technical Support" OR "Application Support" OR "IT Support" OR "Analista de Suporte") Brazil'
 ]
 
 /**
@@ -138,6 +167,7 @@ export const consultasBuscaVagas = [
     ...consultasLinkedIn,
     ...consultasIndeed,
     ...consultasAts,
+    ...consultasAtsComplementares,
     ...consultasPolos,
     ...consultasPortais,
     ...consultasRemotas
