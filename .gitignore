@@ -1,25 +1,45 @@
 # Dependências
 node_modules/
 
-# Build
+# Builds
 dist/
 .next/
+out/
+build/
+
+# Testes
+coverage/
+
+# Cache da aplicação
+.cache/
+**/.cache/
 
 # Variáveis de ambiente
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+
+# Next.js / Vercel
+.vercel/
+next-env.d.ts
+
+# TypeScript
+*.tsbuildinfo
 
 # Arquivos do sistema
 .DS_Store
 Thumbs.db
 
-# Editor
+# Certificados e arquivos locais
+*.pem
+
+# Editores
 .vscode/
 .idea/
