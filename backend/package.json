@@ -7,6 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "test:watch": "tsx --test --watch \"tests/**/*.test.ts\"",
+    "test:typecheck": "tsc -p tsconfig.test.json",
     "sync": "tsx src/scripts/sync-jobs.ts",
     "diagnose": "tsx src/scripts/diagnosticar-vagas-web.ts"
   },
