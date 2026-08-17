@@ -14,8 +14,11 @@ import {
   SlidersHorizontal,
   Sparkles,
   Target,
+  UserRound,
   X
 } from "lucide-react"
+
+import Link from "next/link"
 
 import { useRouter } from "next/navigation"
 
@@ -217,6 +220,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
       vagas
     }
   }, [dadosIniciais, statusLocais])
+
   /**
    * A mensagem desaparece alguns segundos depois.
    *
@@ -317,13 +321,6 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     [dados.vagas, vagaSelecionadaId]
   )
 
-  /**
-   * Eu centralizo o reset do lote nas funções que realmente alteram os
-   * filtros.
-   *
-   * Assim não preciso observar mudanças com useEffect apenas para
-   * executar outro setState.
-   */
   function alterarBusca(valor: string) {
     setBusca(valor)
 
@@ -360,11 +357,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
   }
 
-  async function alterarStatus(
-    vaga: VagaPainel,
-
-    novoStatus: StatusVaga
-  ) {
+  async function alterarStatus(vaga: VagaPainel, novoStatus: StatusVaga) {
     if (vaga.status === novoStatus) {
       return
     }
@@ -561,6 +554,17 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                 </button>
               )
             })}
+
+            <div className="my-3 border-t border-slate-200 dark:border-slate-800" />
+
+            <Link
+              href="/perfil"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
+            >
+              <UserRound size={18} />
+
+              <span className="flex-1 text-left">Perfil profissional</span>
+            </Link>
           </nav>
 
           <div className="mt-auto rounded-2xl bg-slate-50 p-4 dark:bg-slate-900/70">
@@ -600,19 +604,29 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={atualizarDados}
-                disabled={atualizandoPagina}
-                className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 sm:self-auto"
-              >
-                {atualizandoPagina ? (
-                  <LoaderCircle size={16} className="animate-spin" />
-                ) : (
-                  <RefreshCw size={16} />
-                )}
-                Atualizar dados
-              </button>
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                <Link
+                  href="/perfil"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-900 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 xl:hidden"
+                >
+                  <UserRound size={16} />
+                  Perfil profissional
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={atualizarDados}
+                  disabled={atualizandoPagina}
+                  className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  {atualizandoPagina ? (
+                    <LoaderCircle size={16} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={16} />
+                  )}
+                  Atualizar dados
+                </button>
+              </div>
             </header>
 
             <div className="mt-6">

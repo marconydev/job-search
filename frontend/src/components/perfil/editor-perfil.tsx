@@ -3,25 +3,31 @@
 import { useMemo, useState } from "react"
 
 import {
+  AlertTriangle,
   BriefcaseBusiness,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  FileText,
   GraduationCap,
   LoaderCircle,
   Plus,
   Save,
   SlidersHorizontal,
   Trash2,
+  Upload,
   UserRound,
   Wrench
 } from "lucide-react"
 
 import type {
+  CompetenciaPerfil,
   CursoProfissional,
   ExperienciaProfissional,
   FormacaoProfissional,
   PerfilProfissional,
-  PerfilProfissionalComMetadados
+  PerfilProfissionalComMetadados,
+  ResultadoImportacaoCurriculo
 } from "@/types/perfil"
 
 type Propriedades = {
@@ -46,7 +52,25 @@ type ListasTexto = {
   titulosExcluidos: string
 }
 
+type SelecaoImportacao = {
+  resumoProfissional: boolean
+
+  competencias: boolean[]
+
+  experiencias: boolean[]
+
+  formacoes: boolean[]
+
+  cursos: boolean[]
+}
+
+type CampoListaImportacao = "competencias" | "experiencias" | "formacoes" | "cursos"
+
 const LIMITE_COMPETENCIAS = 10
+
+const LIMITE_ARQUIVO_CURRICULO = 5 * 1024 * 1024
+
+const EXTENSOES_CURRICULO = new Set(["pdf", "docx", "txt"])
 
 /**
  * Eu mantenho opções padronizadas para evitar variações desnecessárias
@@ -96,6 +120,32 @@ function textoParaTermos(valor: string) {
         .filter(Boolean)
     )
   ]
+}
+
+function normalizarChave(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function formatarTamanhoArquivo(tamanho: number) {
+  if (tamanho < 1024) {
+    return `${tamanho} B`
+  }
+
+  if (tamanho < 1024 * 1024) {
+    return `${(tamanho / 1024).toFixed(1)} KB`
+  }
+
+  return `${(tamanho / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function extensaoArquivo(nome: string) {
+  return nome.split(".").pop()?.toLowerCase() ?? ""
 }
 
 /**
@@ -163,6 +213,157 @@ function montarPerfil(
   }
 }
 
+function mesclarCompetencias(
+  atuais: CompetenciaEditavel[],
+
+  novas: CompetenciaPerfil[]
+) {
+  const resultado = atuais.map(competencia => ({
+    ...competencia
+  }))
+
+  for (const competencia of novas) {
+    const chave = normalizarChave(competencia.nome)
+
+    const indiceExistente = resultado.findIndex(atual => normalizarChave(atual.nome) === chave)
+
+    if (indiceExistente === -1) {
+      resultado.push({
+        nome: competencia.nome,
+
+        termosTexto: termosParaTexto(competencia.termos)
+      })
+
+      continue
+    }
+
+    const existente = resultado[indiceExistente]
+
+    if (!existente) {
+      continue
+    }
+
+    const termos = [...new Set([...textoParaTermos(existente.termosTexto), ...competencia.termos])]
+
+    resultado[indiceExistente] = {
+      ...existente,
+
+      termosTexto: termosParaTexto(termos)
+    }
+  }
+
+  return resultado
+}
+
+function mesclarExperiencias(
+  atuais: ExperienciaProfissional[],
+
+  novas: ExperienciaProfissional[]
+) {
+  const resultado = [...atuais]
+
+  const chaves = new Set(
+    atuais.map(experiencia =>
+      normalizarChave([experiencia.empresa, experiencia.cargo, experiencia.periodo].join("|"))
+    )
+  )
+
+  for (const experiencia of novas) {
+    const chave = normalizarChave(
+      [experiencia.empresa, experiencia.cargo, experiencia.periodo].join("|")
+    )
+
+    if (!chave || chaves.has(chave)) {
+      continue
+    }
+
+    resultado.push(experiencia)
+
+    chaves.add(chave)
+  }
+
+  return resultado
+}
+
+function mesclarFormacoes(
+  atuais: FormacaoProfissional[],
+
+  novas: FormacaoProfissional[]
+) {
+  const resultado = [...atuais]
+
+  const chaves = new Set(
+    atuais.map(formacao =>
+      normalizarChave([formacao.instituicao, formacao.curso, formacao.periodo].join("|"))
+    )
+  )
+
+  for (const formacao of novas) {
+    const chave = normalizarChave(
+      [formacao.instituicao, formacao.curso, formacao.periodo].join("|")
+    )
+
+    if (!chave || chaves.has(chave)) {
+      continue
+    }
+
+    resultado.push(formacao)
+
+    chaves.add(chave)
+  }
+
+  return resultado
+}
+
+function mesclarCursos(
+  atuais: CursoProfissional[],
+
+  novos: CursoProfissional[]
+) {
+  const resultado = [...atuais]
+
+  const chaves = new Set(
+    atuais.map(curso => normalizarChave([curso.nome, curso.instituicao, curso.ano].join("|")))
+  )
+
+  for (const curso of novos) {
+    const chave = normalizarChave([curso.nome, curso.instituicao, curso.ano].join("|"))
+
+    if (!chave || chaves.has(chave)) {
+      continue
+    }
+
+    resultado.push(curso)
+
+    chaves.add(chave)
+  }
+
+  return resultado
+}
+
+function criarSelecaoInicial(
+  resultado: ResultadoImportacaoCurriculo,
+
+  perfil: PerfilProfissional
+): SelecaoImportacao {
+  return {
+    /**
+     * Se já existe um resumo profissional, eu não o substituo por padrão.
+     * O usuário pode marcar explicitamente a opção caso queira trocá-lo.
+     */
+    resumoProfissional:
+      !perfil.resumoProfissional.trim() && Boolean(resultado.sugestoes.resumoProfissional.trim()),
+
+    competencias: resultado.sugestoes.competencias.map(() => true),
+
+    experiencias: resultado.sugestoes.experiencias.map(() => true),
+
+    formacoes: resultado.sugestoes.formacoes.map(() => true),
+
+    cursos: resultado.sugestoes.cursos.map(() => true)
+  }
+}
+
 export function EditorPerfil({ dadosIniciais }: Propriedades) {
   const competenciasIniciais = criarCompetenciasEditaveis(dadosIniciais.perfil)
 
@@ -179,6 +380,15 @@ export function EditorPerfil({ dadosIniciais }: Propriedades) {
   const [salvando, setSalvando] = useState(false)
 
   const [erro, setErro] = useState<string | null>(null)
+
+  const [importandoCurriculo, setImportandoCurriculo] = useState(false)
+
+  const [resultadoImportacao, setResultadoImportacao] =
+    useState<ResultadoImportacaoCurriculo | null>(null)
+
+  const [selecaoImportacao, setSelecaoImportacao] = useState<SelecaoImportacao | null>(null)
+
+  const [mensagemImportacao, setMensagemImportacao] = useState<string | null>(null)
 
   /**
    * Eu salvo uma assinatura do último estado persistido.
@@ -211,6 +421,20 @@ export function EditorPerfil({ dadosIniciais }: Propriedades) {
 
   const possuiCompetenciasOcultas = competencias.length > LIMITE_COMPETENCIAS
 
+  const possuiSelecaoImportacao = useMemo(() => {
+    if (!selecaoImportacao) {
+      return false
+    }
+
+    return (
+      selecaoImportacao.resumoProfissional ||
+      selecaoImportacao.competencias.some(Boolean) ||
+      selecaoImportacao.experiencias.some(Boolean) ||
+      selecaoImportacao.formacoes.some(Boolean) ||
+      selecaoImportacao.cursos.some(Boolean)
+    )
+  }, [selecaoImportacao])
+
   function alterarListaTexto(
     campo: keyof ListasTexto,
 
@@ -228,10 +452,6 @@ export function EditorPerfil({ dadosIniciais }: Propriedades) {
   function adicionarCompetencia() {
     setErro(null)
 
-    /**
-     * Eu abro a lista completa para a nova competência ficar
-     * imediatamente visível.
-     */
     setExibirTodasCompetencias(true)
 
     setCompetencias(atuais => [
@@ -457,6 +677,155 @@ export function EditorPerfil({ dadosIniciais }: Propriedades) {
     }))
   }
 
+  function alternarSelecaoResumo() {
+    setSelecaoImportacao(atual => {
+      if (!atual) {
+        return atual
+      }
+
+      return {
+        ...atual,
+
+        resumoProfissional: !atual.resumoProfissional
+      }
+    })
+  }
+
+  function alternarSelecaoItem(
+    campo: CampoListaImportacao,
+
+    indice: number
+  ) {
+    setSelecaoImportacao(atual => {
+      if (!atual) {
+        return atual
+      }
+
+      return {
+        ...atual,
+
+        [campo]: atual[campo].map((selecionado, posicao) =>
+          posicao === indice ? !selecionado : selecionado
+        )
+      }
+    })
+  }
+
+  async function importarCurriculo(arquivo: File) {
+    setErro(null)
+
+    setMensagemImportacao(null)
+
+    setResultadoImportacao(null)
+
+    setSelecaoImportacao(null)
+
+    const extensao = extensaoArquivo(arquivo.name)
+
+    if (!EXTENSOES_CURRICULO.has(extensao)) {
+      setErro("Envie um currículo em PDF, DOCX ou TXT.")
+
+      return
+    }
+
+    if (arquivo.size > LIMITE_ARQUIVO_CURRICULO) {
+      setErro("O currículo deve ter no máximo 5 MB.")
+
+      return
+    }
+
+    setImportandoCurriculo(true)
+
+    try {
+      const dados = new FormData()
+
+      dados.append("arquivo", arquivo)
+
+      const resposta = await fetch("/api/perfil/importar", {
+        method: "POST",
+
+        body: dados
+      })
+
+      const retorno = await resposta.json()
+
+      if (!resposta.ok) {
+        throw new Error(retorno.mensagem ?? "Não foi possível analisar o currículo.")
+      }
+
+      const resultado = retorno as ResultadoImportacaoCurriculo
+
+      setResultadoImportacao(resultado)
+
+      setSelecaoImportacao(criarSelecaoInicial(resultado, perfil))
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível analisar o currículo.")
+    } finally {
+      setImportandoCurriculo(false)
+    }
+  }
+
+  function aplicarImportacao() {
+    if (!resultadoImportacao || !selecaoImportacao) {
+      return
+    }
+
+    const sugestoes = resultadoImportacao.sugestoes
+
+    const competenciasSelecionadas = sugestoes.competencias.filter(
+      (_competencia, indice) => selecaoImportacao.competencias[indice] === true
+    )
+
+    const experienciasSelecionadas = sugestoes.experiencias.filter(
+      (_experiencia, indice) => selecaoImportacao.experiencias[indice] === true
+    )
+
+    const formacoesSelecionadas = sugestoes.formacoes.filter(
+      (_formacao, indice) => selecaoImportacao.formacoes[indice] === true
+    )
+
+    const cursosSelecionados = sugestoes.cursos.filter(
+      (_curso, indice) => selecaoImportacao.cursos[indice] === true
+    )
+
+    setCompetencias(atuais => mesclarCompetencias(atuais, competenciasSelecionadas))
+
+    setPerfil(atual => ({
+      ...atual,
+
+      resumoProfissional:
+        selecaoImportacao.resumoProfissional && sugestoes.resumoProfissional.trim()
+          ? sugestoes.resumoProfissional
+          : atual.resumoProfissional,
+
+      experiencias: mesclarExperiencias(atual.experiencias, experienciasSelecionadas),
+
+      formacoes: mesclarFormacoes(atual.formacoes, formacoesSelecionadas),
+
+      cursos: mesclarCursos(atual.cursos, cursosSelecionados)
+    }))
+
+    if (competenciasSelecionadas.length > LIMITE_COMPETENCIAS) {
+      setExibirTodasCompetencias(true)
+    }
+
+    setResultadoImportacao(null)
+
+    setSelecaoImportacao(null)
+
+    setMensagemImportacao(
+      "Informações aplicadas ao editor. Revise os campos e clique em Salvar alterações para confirmar."
+    )
+  }
+
+  function cancelarImportacao() {
+    setResultadoImportacao(null)
+
+    setSelecaoImportacao(null)
+
+    setMensagemImportacao(null)
+  }
+
   async function salvarPerfil() {
     if (!possuiAlteracoes || salvando) {
       return
@@ -502,6 +871,8 @@ export function EditorPerfil({ dadosIniciais }: Propriedades) {
       setListasTexto(novasListas)
 
       setAssinaturaSalva(assinatura)
+
+      setMensagemImportacao("Perfil profissional salvo e vagas existentes reavaliadas.")
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : "Não foi possível salvar o perfil.")
     } finally {
@@ -511,6 +882,343 @@ export function EditorPerfil({ dadosIniciais }: Propriedades) {
 
   return (
     <div className="space-y-6 pb-20">
+      <section className="rounded-3xl border border-indigo-200 bg-indigo-50/50 p-6 shadow-sm dark:border-indigo-900 dark:bg-indigo-950/20">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white">
+              <FileText size={20} />
+            </div>
+
+            <div>
+              <h2 className="text-base font-semibold text-slate-950 dark:text-white">
+                Importar currículo
+              </h2>
+
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Importe um currículo para identificar resumo, competências, experiências, formação e
+                cursos. Nada será salvo sem sua revisão.
+              </p>
+
+              <p className="mt-1 text-xs text-slate-400">PDF, DOCX ou TXT • máximo 5 MB</p>
+            </div>
+          </div>
+
+          <label
+            className={[
+              "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition",
+              importandoCurriculo
+                ? "cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800"
+                : "cursor-pointer bg-indigo-600 text-white shadow-lg shadow-indigo-600/15 hover:bg-indigo-700"
+            ].join(" ")}
+          >
+            {importandoCurriculo ? (
+              <LoaderCircle size={17} className="animate-spin" />
+            ) : (
+              <Upload size={17} />
+            )}
+
+            {importandoCurriculo ? "Analisando..." : "Selecionar currículo"}
+
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              disabled={importandoCurriculo}
+              className="hidden"
+              onChange={evento => {
+                const arquivo = evento.currentTarget.files?.[0]
+
+                evento.currentTarget.value = ""
+
+                if (!arquivo) {
+                  return
+                }
+
+                void importarCurriculo(arquivo)
+              }}
+            />
+          </label>
+        </div>
+
+        {mensagemImportacao && (
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+
+            <span>{mensagemImportacao}</span>
+          </div>
+        )}
+
+        {resultadoImportacao && selecaoImportacao && (
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5 dark:border-slate-900">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                  <CheckCircle2 size={17} className="text-emerald-500" />
+                  Currículo analisado
+                </div>
+
+                <div className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                  {resultadoImportacao.arquivo.nome}
+                </div>
+
+                <div className="mt-1 text-xs text-slate-400">
+                  {formatarTamanhoArquivo(resultadoImportacao.arquivo.tamanho)}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={cancelarImportacao}
+                className="cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-900 dark:hover:text-white"
+              >
+                Cancelar revisão
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-6">
+              {resultadoImportacao.sugestoes.resumoProfissional && (
+                <div>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-indigo-300 dark:border-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={selecaoImportacao.resumoProfissional}
+                      onChange={alternarSelecaoResumo}
+                      className="mt-1 h-4 w-4 accent-indigo-600"
+                    />
+
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Resumo profissional
+                      </div>
+
+                      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                        {resultadoImportacao.sugestoes.resumoProfissional}
+                      </p>
+
+                      {perfil.resumoProfissional.trim() &&
+                        !selecaoImportacao.resumoProfissional && (
+                          <p className="mt-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+                            Seu resumo atual será mantido. Marque esta opção apenas se quiser
+                            substituí-lo.
+                          </p>
+                        )}
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Competências
+                  <span className="ml-2 text-xs font-normal text-slate-400">
+                    {resultadoImportacao.sugestoes.competencias.length} encontrada(s)
+                  </span>
+                </h3>
+
+                {resultadoImportacao.sugestoes.competencias.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {resultadoImportacao.sugestoes.competencias.map((competencia, indice) => (
+                      <label
+                        key={`${competencia.nome}-${indice}`}
+                        className={[
+                          "flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition",
+                          selecaoImportacao.competencias[indice]
+                            ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300"
+                            : "border-slate-200 bg-white text-slate-500 dark:border-slate-800 dark:bg-slate-900"
+                        ].join(" ")}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selecaoImportacao.competencias[indice] ?? false}
+                          onChange={() => alternarSelecaoItem("competencias", indice)}
+                          className="h-4 w-4 accent-indigo-600"
+                        />
+
+                        {competencia.nome}
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-500">
+                    Nenhuma competência foi reconhecida.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Experiências profissionais
+                  <span className="ml-2 text-xs font-normal text-slate-400">
+                    {resultadoImportacao.sugestoes.experiencias.length} encontrada(s)
+                  </span>
+                </h3>
+
+                <div className="mt-3 space-y-2">
+                  {resultadoImportacao.sugestoes.experiencias.map((experiencia, indice) => (
+                    <label
+                      key={`${experiencia.cargo}-${experiencia.empresa}-${indice}`}
+                      className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selecaoImportacao.experiencias[indice] ?? false}
+                        onChange={() => alternarSelecaoItem("experiencias", indice)}
+                        className="mt-1 h-4 w-4 accent-indigo-600"
+                      />
+
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {experiencia.cargo || "Cargo não identificado"}
+                        </div>
+
+                        <div className="mt-1 text-xs text-slate-500">
+                          {[experiencia.empresa, experiencia.periodo].filter(Boolean).join(" • ")}
+                        </div>
+
+                        {experiencia.descricao && (
+                          <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500">
+                            {experiencia.descricao}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+
+                  {resultadoImportacao.sugestoes.experiencias.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      Nenhuma experiência foi estruturada automaticamente.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Formação acadêmica
+                  <span className="ml-2 text-xs font-normal text-slate-400">
+                    {resultadoImportacao.sugestoes.formacoes.length} encontrada(s)
+                  </span>
+                </h3>
+
+                <div className="mt-3 space-y-2">
+                  {resultadoImportacao.sugestoes.formacoes.map((formacao, indice) => (
+                    <label
+                      key={`${formacao.curso}-${formacao.instituicao}-${indice}`}
+                      className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selecaoImportacao.formacoes[indice] ?? false}
+                        onChange={() => alternarSelecaoItem("formacoes", indice)}
+                        className="mt-1 h-4 w-4 accent-indigo-600"
+                      />
+
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {formacao.curso || "Curso não identificado"}
+                        </div>
+
+                        <div className="mt-1 text-xs text-slate-500">
+                          {[formacao.nivel, formacao.instituicao, formacao.periodo]
+                            .filter(Boolean)
+                            .join(" • ")}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+
+                  {resultadoImportacao.sugestoes.formacoes.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      Nenhuma formação foi estruturada automaticamente.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Cursos e certificações
+                  <span className="ml-2 text-xs font-normal text-slate-400">
+                    {resultadoImportacao.sugestoes.cursos.length} encontrado(s)
+                  </span>
+                </h3>
+
+                <div className="mt-3 space-y-2">
+                  {resultadoImportacao.sugestoes.cursos.map((curso, indice) => (
+                    <label
+                      key={`${curso.nome}-${curso.instituicao}-${indice}`}
+                      className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selecaoImportacao.cursos[indice] ?? false}
+                        onChange={() => alternarSelecaoItem("cursos", indice)}
+                        className="mt-1 h-4 w-4 accent-indigo-600"
+                      />
+
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {curso.nome}
+                        </div>
+
+                        <div className="mt-1 text-xs text-slate-500">
+                          {[curso.instituicao, curso.ano].filter(Boolean).join(" • ")}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+
+                  {resultadoImportacao.sugestoes.cursos.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      Nenhum curso ou certificação foi estruturado automaticamente.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {resultadoImportacao.avisos.length > 0 && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+                    <AlertTriangle size={17} />
+                    Pontos para revisar
+                  </div>
+
+                  <div className="mt-3 space-y-1">
+                    {resultadoImportacao.avisos.map((aviso, indice) => (
+                      <p
+                        key={indice}
+                        className="text-xs leading-5 text-amber-700 dark:text-amber-400"
+                      >
+                        {aviso}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end dark:border-slate-900">
+                <button
+                  type="button"
+                  onClick={cancelarImportacao}
+                  className="min-h-11 cursor-pointer rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!possuiSelecaoImportacao}
+                  onClick={aplicarImportacao}
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <CheckCircle2 size={17} />
+                  Aplicar ao meu perfil
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
@@ -983,6 +1691,7 @@ export function EditorPerfil({ dadosIniciais }: Propriedades) {
       <div
         className={[
           "fixed bottom-5 right-5 z-50 transition-all duration-300 ease-out",
+
           possuiAlteracoes || salvando
             ? "translate-y-0 opacity-100"
             : "pointer-events-none translate-y-3 opacity-0"

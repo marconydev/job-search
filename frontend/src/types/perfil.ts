@@ -61,3 +61,29 @@ export type PerfilProfissionalComMetadados = {
 
   atualizadoEm: string | null
 }
+
+export type SugestoesCurriculo = {
+  resumoProfissional: string
+
+  competencias: CompetenciaPerfil[]
+
+  experiencias: ExperienciaProfissional[]
+
+  formacoes: FormacaoProfissional[]
+
+  cursos: CursoProfissional[]
+}
+
+export type ResultadoImportacaoCurriculo = {
+  arquivo: {
+    nome: string
+
+    tipo: string
+
+    tamanho: number
+  }
+
+  sugestoes: SugestoesCurriculo
+
+  avisos: string[]
+}
