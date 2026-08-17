@@ -151,9 +151,8 @@ jobsRouter.post("/sync", async (request, response) => {
   const limiteSolicitado = Number(request.body?.limiteChamadasBrave)
 
   const limiteChamadasBrave = Number.isFinite(limiteSolicitado)
-    ? Math.min(6, Math.max(0, Math.floor(limiteSolicitado)))
-    : 6
-
+    ? Math.max(0, Math.floor(limiteSolicitado))
+    : 30
   try {
     const dadosPerfil = await obterPerfilProfissional()
 

@@ -45,10 +45,14 @@ async function coletarFontesDiretas(limite: number) {
 
 function normalizarLimiteBrave(valor: number | undefined) {
   if (typeof valor !== "number" || !Number.isFinite(valor)) {
-    return 6
+    return 30
   }
 
-  return Math.min(6, Math.max(0, Math.floor(valor)))
+  /**
+   * A camada de descoberta continua sendo a responsável pelos limites
+   * financeiro, diário e mensal definitivos.
+   */
+  return Math.max(0, Math.floor(valor))
 }
 
 export async function syncJobs(
