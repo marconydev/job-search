@@ -6,13 +6,14 @@ import { importJobs, type JobImportResult } from "./job-import.js"
 
 import { processarVagasWeb } from "./processamento-vagas-web.js"
 
+import type { PerfilProfissional } from "../types/perfil-profissional.js"
+
 type ResultadoFonte = JobImportResult & {
   error?: string
 }
 
 type OpcoesSincronizacao = {
   usarBrave?: boolean
-
   limiteChamadasBrave?: number
 }
 
@@ -31,13 +32,9 @@ async function coletarFontesDiretas(limite: number) {
 
       resultados.push({
         source: coletor.name,
-
         found: 0,
-
         inserted: 0,
-
         duplicates: 0,
-
         error: mensagem
       })
     }
@@ -46,13 +43,6 @@ async function coletarFontesDiretas(limite: number) {
   return resultados
 }
 
-/**
- * Eu normalizo o limite recebido antes de liberar qualquer chamada
- * Brave.
- *
- * Mesmo com autorização explícita, nunca permito mais que seis chamadas
- * em uma única sincronização.
- */
 function normalizarLimiteBrave(valor: number | undefined) {
   if (typeof valor !== "number" || !Number.isFinite(valor)) {
     return 6
@@ -61,14 +51,11 @@ function normalizarLimiteBrave(valor: number | undefined) {
   return Math.min(6, Math.max(0, Math.floor(valor)))
 }
 
-/**
- * Eu executo todo o Job Search por um único ponto de entrada.
- *
- * A Brave permanece desativada por padrão. Uma sincronização só pode
- * realizar novas buscas pagas quando essa autorização for recebida
- * explicitamente.
- */
-export async function syncJobs(limite = 100, opcoes: OpcoesSincronizacao = {}) {
+export async function syncJobs(
+  perfil: PerfilProfissional,
+  limite = 100,
+  opcoes: OpcoesSincronizacao = {}
+) {
   const usarBrave = opcoes.usarBrave === true
 
   const limiteBrave = usarBrave ? normalizarLimiteBrave(opcoes.limiteChamadasBrave) : 0
@@ -83,20 +70,17 @@ export async function syncJobs(limite = 100, opcoes: OpcoesSincronizacao = {}) {
 
   const fontes = await coletarFontesDiretas(limite)
 
-  const web = await processarVagasWeb({
+  const web = await processarVagasWeb(perfil, {
     salvarCompativeis: true,
-
     permitirBuscaLive: usarBrave,
-
     limiteChamadasBrave: limiteBrave
   })
 
-  const analise = await analyzePendingJobs()
+  const analise = await analyzePendingJobs(perfil)
 
   return {
     modo: {
       braveAutorizada: usarBrave,
-
       limiteBrave
     },
 
@@ -106,9 +90,7 @@ export async function syncJobs(limite = 100, opcoes: OpcoesSincronizacao = {}) {
 
     analise: {
       analisadas: analise.analyzed,
-
       relevantes: analise.relevant,
-
       descartadas: analise.discarded
     }
   }

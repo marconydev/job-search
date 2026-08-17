@@ -1,0 +1,13 @@
+# Padronizo arquivos de texto com LF em qualquer sistema operacional.
+* text=auto eol=lf
+
+# Arquivos binários não devem sofrer conversão de final de linha.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.zip binary

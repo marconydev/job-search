@@ -4,12 +4,12 @@ import { mkdir, writeFile } from "node:fs/promises"
 
 import { resolve } from "node:path"
 
+import { db } from "../database/connection.js"
+
+import { obterPerfilProfissional } from "../services/perfil-profissional-service.js"
+
 import { processarVagasWeb } from "../services/processamento-vagas-web.js"
 
-/**
- * Salvo o diagnóstico completo para conseguir revisar as oportunidades
- * encontradas sem precisar executar novamente uma busca na Brave.
- */
 async function salvarRelatorio(resultado: Awaited<ReturnType<typeof processarVagasWeb>>) {
   const diretorio = resolve(process.cwd(), ".cache")
 
@@ -36,12 +36,6 @@ async function salvarRelatorio(resultado: Awaited<ReturnType<typeof processarVag
   return arquivo
 }
 
-/**
- * Agrupo as páginas que ainda não possuem extração estruturada.
- *
- * Essas oportunidades não são descartadas. Elas continuam disponíveis
- * para análise pelo matcher usando título e descrição curta.
- */
 function mostrarFontesSomenteDescoberta(resultado: Awaited<ReturnType<typeof processarVagasWeb>>) {
   const grupos = new Map<string, typeof resultado.somenteDescoberta>()
 
@@ -55,7 +49,6 @@ function mostrarFontesSomenteDescoberta(resultado: Awaited<ReturnType<typeof pro
 
   console.log("")
   console.log("Fontes somente para descoberta")
-
   console.log("------------------------------")
 
   if (grupos.size === 0) {
@@ -70,21 +63,12 @@ function mostrarFontesSomenteDescoberta(resultado: Awaited<ReturnType<typeof pro
 
     console.log(`${provedor.toUpperCase()}: ${paginas.length}`)
 
-    /**
-     * Não mostro todas as páginas no terminal porque algumas fontes
-     * podem possuir dezenas de resultados.
-     *
-     * O relatório JSON continua guardando o conteúdo completo.
-     */
     const limiteExibicao = provedor === "linkedin" || provedor === "indeed" ? 10 : 5
 
     for (const pagina of paginas.slice(0, limiteExibicao)) {
       console.log("")
-
       console.log(pagina.titulo)
-
       console.log(pagina.url)
-
       console.log(`Busca: ${pagina.consulta}`)
     }
 
@@ -96,23 +80,16 @@ function mostrarFontesSomenteDescoberta(resultado: Awaited<ReturnType<typeof pro
   }
 }
 
-/**
- * Mostro as melhores oportunidades encontradas mesmo quando ainda não
- * consegui extrair completamente a página.
- *
- * Uso a mesma pontuação do matcher principal para não manter dois
- * sistemas diferentes de compatibilidade.
- */
 function mostrarRecomendacoesDescoberta(resultado: Awaited<ReturnType<typeof processarVagasWeb>>) {
   console.log("")
   console.log("Recomendações da descoberta")
-
   console.log("--------------------------")
 
   const recomendacoes = resultado.recomendacoesDescoberta.slice(0, 20)
 
   if (recomendacoes.length === 0) {
     console.log("")
+
     console.log("Nenhuma recomendação relevante foi encontrada no cache atual.")
 
     return
@@ -147,9 +124,6 @@ function mostrarRecomendacoesDescoberta(resultado: Awaited<ReturnType<typeof pro
   }
 }
 
-/**
- * Mostro as pendências agrupadas por tipo.
- */
 function mostrarPendencias(
   resultado: Awaited<ReturnType<typeof processarVagasWeb>>,
 
@@ -161,7 +135,6 @@ function mostrarPendencias(
 
   console.log("")
   console.log(`${tituloSecao} (${pendencias.length})`)
-
   console.log("--------------------------------")
 
   if (pendencias.length === 0) {
@@ -186,17 +159,14 @@ function mostrarPendencias(
   }
 }
 
-/**
- * Mostro somente as plataformas que passaram pela extração estruturada.
- */
 function mostrarResumoPorProvedor(resultado: Awaited<ReturnType<typeof processarVagasWeb>>) {
   console.log("")
   console.log("Fontes processadas")
-
   console.log("------------------")
 
   if (resultado.porProvedor.length === 0) {
     console.log("")
+
     console.log("Nenhuma fonte estruturada foi processada.")
 
     return
@@ -229,28 +199,10 @@ function mostrarResumoPorProvedor(resultado: Awaited<ReturnType<typeof processar
   }
 }
 
-/**
- * Verifico se solicitei explicitamente uma atualização pela Brave.
- *
- * Sem --live o diagnóstico trabalha exclusivamente com cache e não
- * realiza nenhuma chamada ao mecanismo de busca.
- */
 function devePermitirBuscaLive() {
   return process.argv.includes("--live")
 }
 
-/**
- * Permito reduzir ainda mais o limite de chamadas quando necessário.
- *
- * Exemplos:
- *
- * npm run diagnose -- --live
- *
- * npm run diagnose -- --live --limite=2
- *
- * Mesmo que seja informado um número maior, o serviço de descoberta
- * continua aplicando a proteção diária configurada no projeto.
- */
 function lerLimiteChamadasBrave() {
   const argumento = process.argv.find(item => item.startsWith("--limite="))
 
@@ -270,17 +222,11 @@ function lerLimiteChamadasBrave() {
 }
 
 /**
- * Executo o diagnóstico em modo seguro.
+ * O diagnóstico continua seguro por padrão:
  *
- * Por padrão:
- *
- * - não uso Brave;
- * - não salvo vagas no PostgreSQL;
- * - não altera o matcher persistido;
- * - usa somente dados encontrados anteriormente.
- *
- * A opção --live precisa ser informada explicitamente para permitir
- * novas chamadas à Brave.
+ * - usa somente cache quando --live não está presente;
+ * - não grava vagas;
+ * - usa o mesmo perfil profissional persistido pela aplicação.
  */
 async function executar() {
   const permitirBuscaLive = devePermitirBuscaLive()
@@ -289,11 +235,8 @@ async function executar() {
 
   console.log("")
   console.log("Diagnosticando vagas encontradas na web...")
-
   console.log("")
-
   console.log("Nenhuma vaga será gravada no banco nesta execução.")
-
   console.log("")
 
   if (permitirBuscaLive) {
@@ -309,7 +252,9 @@ async function executar() {
   console.log("")
 
   try {
-    const resultado = await processarVagasWeb({
+    const dadosPerfil = await obterPerfilProfissional()
+
+    const resultado = await processarVagasWeb(dadosPerfil.perfil, {
       salvarCompativeis: false,
 
       permitirBuscaLive,
@@ -319,7 +264,6 @@ async function executar() {
 
     console.log("")
     console.log("Resumo")
-
     console.log("------")
 
     console.log(`Páginas disponíveis:          ${resultado.paginasDescobertas}`)
@@ -350,10 +294,6 @@ async function executar() {
 
     mostrarResumoPorProvedor(resultado)
 
-    /**
-     * Mostro primeiro as recomendações porque elas são o resultado mais
-     * importante para o uso prático do Job Search.
-     */
     mostrarRecomendacoesDescoberta(resultado)
 
     mostrarFontesSomenteDescoberta(resultado)
@@ -385,6 +325,8 @@ async function executar() {
     console.error("Falha durante o diagnóstico:", erro)
 
     process.exitCode = 1
+  } finally {
+    await db.end()
   }
 }
 

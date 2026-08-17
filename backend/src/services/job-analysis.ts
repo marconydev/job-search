@@ -4,6 +4,7 @@ import { listJobs, listUnmatchedJobs } from "../repositories/job-repository.js"
 
 import { matchJob } from "./job-matcher.js"
 
+import type { PerfilProfissional } from "../types/perfil-profissional.js"
 import type { JobMatchStatus, StoredJob } from "../types/job.js"
 
 const RELEVANT_SCORE = 60
@@ -12,29 +13,20 @@ function getMatchStatus(score: number): JobMatchStatus {
   return score >= RELEVANT_SCORE ? "relevant" : "discarded"
 }
 
-/**
- * Eu concentro a análise em uma única função para utilizar exatamente a
- * mesma regra tanto em vagas novas quanto em uma reanálise completa.
- */
-async function analisarVagas(jobs: StoredJob[]) {
+async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
   let relevant = 0
-
   let discarded = 0
 
   for (const job of jobs) {
-    const match = matchJob(job)
+    const match = matchJob(job, perfil)
 
     const status = getMatchStatus(match.score)
 
     await saveJobMatch({
       jobId: job.id,
-
       localScore: match.score,
-
       matchedSkills: match.matchedSkills,
-
       reasons: match.reasons,
-
       status
     })
 
@@ -47,31 +39,19 @@ async function analisarVagas(jobs: StoredJob[]) {
 
   return {
     analyzed: jobs.length,
-
     relevant,
-
     discarded
   }
 }
 
-/**
- * Na sincronização normal eu continuo analisando somente vagas novas.
- */
-export async function analyzePendingJobs() {
+export async function analyzePendingJobs(perfil: PerfilProfissional) {
   const jobs = await listUnmatchedJobs()
 
-  return analisarVagas(jobs)
+  return analisarVagas(jobs, perfil)
 }
 
-/**
- * Quando meu perfil profissional muda, eu recalculo todas as vagas já
- * armazenadas.
- *
- * O saveJobMatch existente preserva decisões manuais como vista,
- * aplicada e ignorada.
- */
-export async function reanalisarTodasAsVagas() {
+export async function reanalisarTodasAsVagas(perfil: PerfilProfissional) {
   const jobs = await listJobs()
 
-  return analisarVagas(jobs)
+  return analisarVagas(jobs, perfil)
 }

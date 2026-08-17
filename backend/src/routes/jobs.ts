@@ -18,20 +18,14 @@ import { importJobs } from "../services/job-import.js"
 
 import { syncJobs } from "../services/job-sync.js"
 
-import type { NewJob } from "../types/job.js"
-
 import { obterStatusDescobertaWeb } from "../services/job-discovery.js"
 
-import { carregarPerfilProfissionalAtivo } from "../services/perfil-profissional-service.js"
+import { obterPerfilProfissional } from "../services/perfil-profissional-service.js"
+
+import type { NewJob } from "../types/job.js"
 
 const jobsRouter = Router()
 
-/**
- * Normalizo o limite utilizado pelas rotas de importação.
- *
- * Um limite máximo impede que um valor incorreto provoque uma coleta
- * muito maior do que o esperado.
- */
 function getImportLimit(value: unknown) {
   const requestedLimit = Number(value)
 
@@ -42,11 +36,6 @@ function getImportLimit(value: unknown) {
   return 100
 }
 
-/**
- * Listo todas as vagas armazenadas.
- *
- * Esta rota continua útil para administração e conferência.
- */
 jobsRouter.get("/", async (_request, response) => {
   try {
     const jobs = await listJobs()
@@ -61,9 +50,6 @@ jobsRouter.get("/", async (_request, response) => {
   }
 })
 
-/**
- * Entrego os dados necessários para montar o dashboard.
- */
 jobsRouter.get("/dashboard", async (_request, response) => {
   try {
     const [resumo, vagas] = await Promise.all([getJobDashboardSummary(), listDashboardJobMatches()])
@@ -82,11 +68,6 @@ jobsRouter.get("/dashboard", async (_request, response) => {
   }
 })
 
-/**
- * Retorno oportunidades que continuam disponíveis para análise.
- *
- * Incluo tanto novas quanto as que já foram vistas.
- */
 jobsRouter.get("/relevant", async (request, response) => {
   const requestedScore = Number(request.query.minScore)
 
@@ -100,9 +81,7 @@ jobsRouter.get("/relevant", async (request, response) => {
 
     return response.json({
       total: jobs.length,
-
       minScore,
-
       jobs
     })
   } catch (error) {
@@ -114,17 +93,6 @@ jobsRouter.get("/relevant", async (request, response) => {
   }
 })
 
-/**
- * Atualizo o estado de uma vaga pelo dashboard.
- *
- * Exemplos:
- *
- * PATCH /jobs/15/status
- * { "status": "viewed" }
- *
- * PATCH /jobs/15/status
- * { "status": "applied" }
- */
 jobsRouter.patch("/:id/status", async (request, response) => {
   const jobId = Number(request.params.id)
 
@@ -161,12 +129,6 @@ jobsRouter.patch("/:id/status", async (request, response) => {
   }
 })
 
-/**
- * Eu exponho somente informações de consumo e cache.
- *
- * Esta rota nunca executa uma busca. O frontend pode consultá-la sem
- * risco de consumir chamadas da Brave.
- */
 jobsRouter.get("/sync/status", async (_request, response) => {
   try {
     const status = await obterStatusDescobertaWeb()
@@ -181,12 +143,6 @@ jobsRouter.get("/sync/status", async (_request, response) => {
   }
 })
 
-/**
- * Eu executo a sincronização em modo seguro por padrão.
- *
- * A Brave somente pode ser habilitada quando o cliente envia
- * explicitamente { "usarBrave": true }.
- */
 jobsRouter.post("/sync", async (request, response) => {
   const limit = getImportLimit(request.query.limit)
 
@@ -199,11 +155,10 @@ jobsRouter.post("/sync", async (request, response) => {
     : 6
 
   try {
-    await carregarPerfilProfissionalAtivo()
+    const dadosPerfil = await obterPerfilProfissional()
 
-    const result = await syncJobs(limit, {
+    const result = await syncJobs(dadosPerfil.perfil, limit, {
       usarBrave,
-
       limiteChamadasBrave
     })
 
@@ -217,14 +172,11 @@ jobsRouter.post("/sync", async (request, response) => {
   }
 })
 
-/**
- * Analiso somente oportunidades que ainda não possuem match.
- */
 jobsRouter.post("/analyze", async (_request, response) => {
   try {
-    await carregarPerfilProfissionalAtivo()
+    const dadosPerfil = await obterPerfilProfissional()
 
-    const result = await analyzePendingJobs()
+    const result = await analyzePendingJobs(dadosPerfil.perfil)
 
     return response.json(result)
   } catch (error) {
@@ -236,9 +188,6 @@ jobsRouter.post("/analyze", async (_request, response) => {
   }
 })
 
-/**
- * Mantenho a importação isolada da Remotive para diagnóstico da fonte.
- */
 jobsRouter.post("/import/remotive", async (request, response) => {
   const limit = getImportLimit(request.query.limit)
 
@@ -257,9 +206,6 @@ jobsRouter.post("/import/remotive", async (request, response) => {
   }
 })
 
-/**
- * Permito cadastrar manualmente uma oportunidade.
- */
 jobsRouter.post("/", async (request, response) => {
   const { source, externalId, company, title, description, location, remote, url, publishedAt } =
     request.body
@@ -272,23 +218,14 @@ jobsRouter.post("/", async (request, response) => {
 
   const job: NewJob = {
     source,
-
     externalId,
-
     company,
-
     title,
-
     description,
-
     location: location || null,
-
     remote: remote ?? false,
-
     url,
-
     publishedAt: publishedAt || null,
-
     partial: false
   }
 

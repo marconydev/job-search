@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
-import { definirPerfilProfissionalAtivo, matchJob } from "../src/services/job-matcher.js"
+import { matchJob } from "../src/services/job-matcher.js"
 
 import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
 
@@ -75,30 +75,44 @@ function criarPerfil(): PerfilProfissional {
 function criarVaga(alteracoes: Partial<StoredJob> = {}): StoredJob {
   return {
     id: 1,
+
     source: "teste",
+
     external_id: "vaga-1",
+
     company: "Empresa Teste",
+
     title: "Analista de Suporte",
+
     description: "Suporte técnico utilizando SQL e PostgreSQL.",
+
     location: "Brasil",
+
     remote: false,
+
     url: "https://example.com/vaga",
+
     published_at: "2026-08-14",
+
     partial: false,
+
     created_at: "2026-08-14T12:00:00.000Z",
+
     ...alteracoes
   }
 }
 
 describe("job matcher", () => {
   test("prioriza uma vaga diretamente relacionada ao cargo principal", () => {
-    definirPerfilProfissionalAtivo(criarPerfil())
+    const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
         title: "Analista de Suporte",
+
         description: "Atuação com SQL, PostgreSQL, suporte técnico e análise de incidentes."
-      })
+      }),
+      perfil
     )
 
     assert.ok(resultado.score >= 60)
@@ -107,18 +121,20 @@ describe("job matcher", () => {
   })
 
   test("atribui pontuação adicional para vaga remota", () => {
-    definirPerfilProfissionalAtivo(criarPerfil())
+    const perfil = criarPerfil()
 
     const presencial = matchJob(
       criarVaga({
         remote: false
-      })
+      }),
+      perfil
     )
 
     const remota = matchJob(
       criarVaga({
         remote: true
-      })
+      }),
+      perfil
     )
 
     assert.equal(remota.score, Math.min(presencial.score + 10, 100))
@@ -127,13 +143,15 @@ describe("job matcher", () => {
   })
 
   test("rejeita vaga com localização incompatível", () => {
-    definirPerfilProfissionalAtivo(criarPerfil())
+    const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
         location: "Lisboa, Portugal",
+
         remote: false
-      })
+      }),
+      perfil
     )
 
     assert.equal(resultado.score, 0)
@@ -142,13 +160,15 @@ describe("job matcher", () => {
   })
 
   test("limita vaga de outra trilha profissional abaixo do corte de relevância", () => {
-    definirPerfilProfissionalAtivo(criarPerfil())
+    const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
         title: "Software Developer",
+
         description: "Desenvolvimento de aplicações utilizando SQL, PostgreSQL, Grafana e Zabbix."
-      })
+      }),
+      perfil
     )
 
     assert.ok(resultado.score <= 55)
@@ -161,13 +181,14 @@ describe("job matcher", () => {
   })
 
   test("reconhece competências sem contar tecnologias irrelevantes", () => {
-    definirPerfilProfissionalAtivo(criarPerfil())
+    const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
         description:
           "Suporte a ambientes PostgreSQL, SQL, Zabbix e Grafana. Conhecimento adicional em ferramenta inexistente."
-      })
+      }),
+      perfil
     )
 
     assert.deepEqual(
@@ -177,15 +198,18 @@ describe("job matcher", () => {
   })
 
   test("considera formação compatível para cargo ainda desconhecido", () => {
-    definirPerfilProfissionalAtivo(criarPerfil())
+    const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
         title: "Especialista de Operações Tecnológicas",
+
         description:
           "Requisito: formação superior em Ciência da Computação, Sistemas de Informação, Análise e Desenvolvimento de Sistemas ou áreas correlatas.",
+
         location: "Brasil"
-      })
+      }),
+      perfil
     )
 
     assert.ok(resultado.score >= 60)
@@ -194,16 +218,45 @@ describe("job matcher", () => {
   })
 
   test("rejeita título explicitamente excluído", () => {
-    definirPerfilProfissionalAtivo(criarPerfil())
+    const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
         title: "Senior Manager de Suporte"
-      })
+      }),
+      perfil
     )
 
     assert.equal(resultado.score, 0)
 
     assert.deepEqual(resultado.reasons, ["Cargo fora da senioridade ou do tipo de vaga buscado"])
+  })
+
+  test("não compartilha estado entre perfis diferentes", () => {
+    const perfilSuporte = criarPerfil()
+
+    const perfilDesenvolvimento: PerfilProfissional = {
+      ...criarPerfil(),
+
+      cargosPrincipais: ["software developer"],
+
+      cargosRelacionados: [],
+
+      cargosDesvio: ["analista de suporte"]
+    }
+
+    const vaga = criarVaga({
+      title: "Analista de Suporte",
+
+      description: "Suporte técnico utilizando SQL e PostgreSQL."
+    })
+
+    const resultadoSuporte = matchJob(vaga, perfilSuporte)
+
+    const resultadoDesenvolvimento = matchJob(vaga, perfilDesenvolvimento)
+
+    assert.ok(resultadoSuporte.score >= 60)
+
+    assert.ok(resultadoDesenvolvimento.score <= 55)
   })
 })

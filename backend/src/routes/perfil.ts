@@ -152,7 +152,7 @@ perfilRouter.put(
        * perfil deixou de ser salvo.
        */
       try {
-        const reanalise = await reanalisarTodasAsVagas()
+        const reanalise = await reanalisarTodasAsVagas(salvo.perfil)
 
         return response.json({
           ...salvo,

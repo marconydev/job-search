@@ -4,6 +4,8 @@ import { db } from "../database/connection.js"
 
 import { syncJobs } from "../services/job-sync.js"
 
+import { obterPerfilProfissional } from "../services/perfil-profissional-service.js"
+
 const LIMITE_PADRAO = 100
 
 async function executar() {
@@ -13,7 +15,9 @@ async function executar() {
   console.log("Brave protegida por limite diário de 6 chamadas.")
 
   try {
-    const resultado = await syncJobs(LIMITE_PADRAO)
+    const dadosPerfil = await obterPerfilProfissional()
+
+    const resultado = await syncJobs(dadosPerfil.perfil, LIMITE_PADRAO)
 
     console.log("")
     console.log("Fontes diretas")

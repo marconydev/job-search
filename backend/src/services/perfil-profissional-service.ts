@@ -1,11 +1,9 @@
-import { perfilBusca } from "../config/search-profile.js"
+import { criarPerfilProfissionalPadrao } from "../config/perfil-padrao.js"
 
 import {
   buscarPerfilProfissionalSalvo,
   salvarPerfilProfissionalNoBanco
 } from "../repositories/perfil-profissional-repository.js"
-
-import { definirPerfilProfissionalAtivo } from "./job-matcher.js"
 
 import type {
   CompetenciaPerfil,
@@ -14,40 +12,6 @@ import type {
   FormacaoProfissional,
   PerfilProfissional
 } from "../types/perfil-profissional.js"
-
-/**
- * Eu mantenho o arquivo search-profile.ts como configuração inicial.
- *
- * Depois do primeiro salvamento, o PostgreSQL passa a ser a fonte
- * principal do meu perfil profissional.
- */
-function criarPerfilPadrao(): PerfilProfissional {
-  return {
-    resumoProfissional: "",
-
-    cargosPrincipais: [...perfilBusca.cargosPrincipais],
-
-    cargosRelacionados: [...perfilBusca.cargosRelacionados],
-
-    cargosDesvio: [...perfilBusca.cargosDesvio],
-
-    competencias: perfilBusca.competencias.map(competencia => ({
-      nome: competencia.nome,
-
-      termos: [...competencia.termos]
-    })),
-
-    experiencias: [],
-
-    formacoes: [],
-
-    cursos: [],
-
-    localizacoesAceitas: [...perfilBusca.localizacoesAceitas],
-
-    titulosExcluidos: [...perfilBusca.titulosExcluidos]
-  }
-}
 
 function normalizarTexto(valor: unknown) {
   return typeof valor === "string" ? valor.trim() : ""
@@ -89,7 +53,6 @@ function normalizarCompetencias(valor: unknown): CompetenciaPerfil[] {
 
       return {
         nome,
-
         termos: normalizarLista(registro.termos)
       }
     })
@@ -119,11 +82,8 @@ function normalizarExperiencias(valor: unknown): ExperienciaProfissional[] {
 
       return {
         empresa,
-
         cargo,
-
         periodo: normalizarTexto(registro.periodo),
-
         descricao: normalizarTexto(registro.descricao)
       }
     })
@@ -153,11 +113,8 @@ function normalizarFormacoes(valor: unknown): FormacaoProfissional[] {
 
       return {
         instituicao,
-
         curso,
-
         nivel: normalizarTexto(registro.nivel),
-
         periodo: normalizarTexto(registro.periodo)
       }
     })
@@ -185,18 +142,13 @@ function normalizarCursos(valor: unknown): CursoProfissional[] {
 
       return {
         nome,
-
         instituicao: normalizarTexto(registro.instituicao),
-
         ano: normalizarTexto(registro.ano)
       }
     })
     .filter((item): item is CursoProfissional => item !== null)
 }
 
-/**
- * Eu valido e normalizo tudo que chega da interface antes de salvar.
- */
 export function normalizarPerfilProfissional(valor: unknown): PerfilProfissional {
   if (!valor || typeof valor !== "object") {
     throw new Error("Perfil profissional inválido")
@@ -227,10 +179,6 @@ export function normalizarPerfilProfissional(valor: unknown): PerfilProfissional
   }
 }
 
-/**
- * Eu retorno o perfil salvo ou, enquanto ele ainda não existir, a
- * configuração inicial do projeto.
- */
 export async function obterPerfilProfissional() {
   const salvo = await buscarPerfilProfissionalSalvo()
 
@@ -239,7 +187,7 @@ export async function obterPerfilProfissional() {
   }
 
   return {
-    perfil: criarPerfilPadrao(),
+    perfil: criarPerfilProfissionalPadrao(),
 
     nomeArquivoOrigem: null,
 
@@ -247,32 +195,11 @@ export async function obterPerfilProfissional() {
   }
 }
 
-/**
- * Eu carrego o perfil do PostgreSQL para a memória utilizada pelo
- * matcher.
- */
-export async function carregarPerfilProfissionalAtivo() {
-  const dados = await obterPerfilProfissional()
-
-  definirPerfilProfissionalAtivo(dados.perfil)
-
-  return dados
-}
-
-/**
- * Quando salvo o perfil, ele passa a valer imediatamente para novas
- * análises sem precisar reiniciar o servidor.
- */
 export async function salvarPerfilProfissional(
   valor: unknown,
-
   nomeArquivoOrigem: string | null = null
 ) {
   const perfil = normalizarPerfilProfissional(valor)
 
-  const salvo = await salvarPerfilProfissionalNoBanco(perfil, nomeArquivoOrigem)
-
-  definirPerfilProfissionalAtivo(salvo.perfil)
-
-  return salvo
+  return salvarPerfilProfissionalNoBanco(perfil, nomeArquivoOrigem)
 }
