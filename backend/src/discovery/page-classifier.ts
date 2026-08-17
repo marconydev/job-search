@@ -36,6 +36,18 @@ function ehDominioAgregador(hostname: string) {
   return [...dominiosAgregadores].some(dominio => ehDominio(hostname, dominio))
 }
 
+function ehDominioWorkable(hostname: string) {
+  if (hostname === "apply.workable.com" || hostname === "jobs.workable.com") {
+    return true
+  }
+
+  if (!hostname.endsWith(".workable.com")) {
+    return false
+  }
+
+  return !["api.workable.com", "help.workable.com"].includes(hostname)
+}
+
 export function identificarProvedorPagina(url: string): ProvedorPagina {
   try {
     const urlAnalisada = new URL(url)
@@ -62,7 +74,7 @@ export function identificarProvedorPagina(url: string): ProvedorPagina {
       return "greenhouse"
     }
 
-    if (hostname === "apply.workable.com" || hostname === "jobs.workable.com") {
+    if (ehDominioWorkable(hostname)) {
       return "workable"
     }
 

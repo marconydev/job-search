@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 
 import { resolve } from "node:path"
 
-import { gerarConsultasBuscaVagas, type ConsultaBuscaVaga } from "../config/search-queries.js"
+import { gerarConsultasBuscaVagas } from "../config/search-queries.js"
 
 import { buscarNaWeb } from "../discovery/brave-search.js"
 
@@ -166,11 +166,7 @@ function registroFoiConsultadoHoje(registro: RegistroConsultaCache) {
   return formatarDataLocal(data) === obterDataLocal()
 }
 
-function timestampConsulta(
-  cache: CacheBuscas,
-
-  consulta: string
-) {
+function timestampConsulta(cache: CacheBuscas, consulta: string) {
   const registro = cache.consultas[consulta]
 
   if (!registro) {
@@ -183,18 +179,12 @@ function timestampConsulta(
 }
 
 /**
- * As 16 buscas de núcleo são priorizadas uma vez por dia.
+ * Eu priorizo as estratégias diárias e depois uso o saldo disponível
+ * para rotacionar as pesquisas detalhadas.
  *
- * O saldo diário restante é usado nas consultas detalhadas que estão há
- * mais tempo sem execução.
+ * Uma consulta já executada hoje não precisa ser repetida.
  */
-function selecionarConsultas(
-  cache: CacheBuscas,
-
-  perfil: PerfilProfissional,
-
-  limite: number
-) {
+function selecionarConsultas(cache: CacheBuscas, perfil: PerfilProfissional, limite: number) {
   const configuradas = gerarConsultasBuscaVagas(perfil)
 
   const pendentesHoje = configuradas.filter(consulta => {
@@ -221,51 +211,17 @@ function selecionarConsultas(
 }
 
 /**
- * Ao trocar o perfil ou o gerador de consultas, eu removo do cache
- * somente estratégias que deixaram de existir.
+ * Eu considero qualquer resultado ainda válido no cache para descobrir
+ * quando ocorreu a última busca.
  *
- * O histórico financeiro de chamadas permanece intacto.
+ * Não amarro mais esse cálculo somente às estratégias atualmente
+ * configuradas porque uma mudança no perfil não invalida imediatamente
+ * as páginas que já encontrei.
  */
-async function removerConsultasObsoletas(
-  cache: CacheBuscas,
-
-  perfil: PerfilProfissional
-) {
-  const atuais = gerarConsultasBuscaVagas(perfil)
-
-  const permitidas = new Set(atuais.map(consulta => consulta.texto))
-
-  let alterado = false
-
-  for (const consulta of Object.keys(cache.consultas)) {
-    if (permitidas.has(consulta)) {
-      continue
-    }
-
-    delete cache.consultas[consulta]
-
-    alterado = true
-  }
-
-  if (alterado) {
-    await salvarCache(cache)
-  }
-}
-
-function obterUltimaAtualizacao(
-  cache: CacheBuscas,
-
-  consultas: ConsultaBuscaVaga[]
-) {
+function obterUltimaAtualizacao(cache: CacheBuscas) {
   let ultima: number | null = null
 
-  for (const consulta of consultas) {
-    const registro = cache.consultas[consulta.texto]
-
-    if (!registro) {
-      continue
-    }
-
+  for (const registro of Object.values(cache.consultas)) {
     const horario = new Date(registro.consultadoEm).getTime()
 
     if (!Number.isFinite(horario)) {
@@ -281,9 +237,9 @@ function obterUltimaAtualizacao(
 }
 
 /**
- * Esta função apenas lê o status.
+ * Eu apenas leio o consumo e a situação atual do cache.
  *
- * Nenhuma chamada Brave é executada aqui.
+ * Nenhuma chamada Brave é executada nesta função.
  */
 export async function obterStatusDescobertaWeb(
   perfil: PerfilProfissional
@@ -304,13 +260,16 @@ export async function obterStatusDescobertaWeb(
 
   const chamadasRestantes = Math.min(restanteDiario, restanteMensal)
 
-  const consultasComCache = consultas.filter(consulta => Boolean(cache.consultas[consulta.texto]))
+  /**
+   * Eu mantenho no cache resultados de estratégias antigas enquanto
+   * ainda estiverem dentro do TTL.
+   *
+   * Alterar o perfil ou a forma de gerar consultas não deve apagar uma
+   * vaga que eu encontrei ontem.
+   */
+  const registrosCache = Object.values(cache.consultas)
 
-  const consultasAtivas = consultas.filter(consulta => {
-    const registro = cache.consultas[consulta.texto]
-
-    return Boolean(registro && registroAindaEhUtil(registro))
-  }).length
+  const consultasAtivas = registrosCache.filter(registroAindaEhUtil).length
 
   return {
     data: hoje,
@@ -329,11 +288,11 @@ export async function obterStatusDescobertaWeb(
 
     consultasConfiguradas: consultas.length,
 
-    consultasEmCache: consultasComCache.length,
+    consultasEmCache: registrosCache.length,
 
     consultasAtivas,
 
-    ultimaAtualizacao: obterUltimaAtualizacao(cache, consultas)
+    ultimaAtualizacao: obterUltimaAtualizacao(cache)
   }
 }
 
@@ -361,11 +320,15 @@ function normalizarUrlParaComparacao(url: string) {
   }
 }
 
+/**
+ * Eu executo novas pesquisas somente quando a chamada foi explicitamente
+ * autorizada.
+ *
+ * O controle financeiro final continua nesta camada.
+ */
 async function atualizarBuscasLive(
   cache: CacheBuscas,
-
   perfil: PerfilProfissional,
-
   limiteSolicitado: number
 ) {
   const hoje = obterDataLocal()
@@ -421,6 +384,10 @@ async function atualizarBuscasLive(
   )
 
   for (const consulta of consultas) {
+    /**
+     * Eu registro a tentativa antes da requisição para que uma eventual
+     * interrupção do processo não permita ultrapassar o orçamento.
+     */
     cache.chamadasPorDia[hoje] = (cache.chamadasPorDia[hoje] ?? 0) + 1
 
     await salvarCache(cache)
@@ -444,6 +411,12 @@ async function atualizarBuscasLive(
 
       console.log(`Brave: ${resultado.paginas.length} resultado(s) recebido(s).`)
 
+      /**
+       * Somente uma chamada concluída substitui o resultado daquela
+       * consulta.
+       *
+       * Se a chamada falhar, mantenho o cache anterior.
+       */
       cache.consultas[consulta.texto] = {
         consultadoEm: new Date().toISOString(),
 
@@ -485,6 +458,10 @@ async function atualizarBuscasLive(
   )
 }
 
+/**
+ * Eu reutilizo todas as páginas ainda dentro do período válido,
+ * independentemente de a consulta que as encontrou continuar ativa.
+ */
 function carregarPaginasCache(cache: CacheBuscas) {
   const paginas: PaginaDescoberta[] = []
 
@@ -500,19 +477,16 @@ function carregarPaginasCache(cache: CacheBuscas) {
 }
 
 /**
- * O perfil agora participa também da geração das pesquisas.
+ * A descoberta funciona em modo cache-first.
  *
- * Removi o fallback do antigo ultimo-diagnostico-web.json.
- * A descoberta operacional passa a ter uma única origem de cache.
+ * O perfil define quais novas consultas podem ser executadas, mas não
+ * elimina resultados anteriores ainda válidos.
  */
 export async function descobrirPaginasVagas(
   perfil: PerfilProfissional,
-
   opcoes: OpcoesDescoberta = {}
 ): Promise<PaginaClassificada[]> {
   const cache = await carregarCache()
-
-  await removerConsultasObsoletas(cache, perfil)
 
   if (opcoes.permitirBuscaLive) {
     await atualizarBuscasLive(cache, perfil, opcoes.limiteChamadas ?? LIMITE_DIARIO_BRAVE)

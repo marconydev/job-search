@@ -107,7 +107,15 @@ export type ModoSincronizacao = {
 export type ResultadoFonteSincronizacao = {
   source: string
 
+  /**
+   * Total bruto devolvido pela API ou pelo board ATS.
+   */
   found: number
+
+  /**
+   * Total que passou pelo filtro profissional antes da persistência.
+   */
+  matched: number
 
   inserted: number
 

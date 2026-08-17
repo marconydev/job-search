@@ -42,6 +42,8 @@ import {
   paginaTemSinalBrasil
 } from "./vagas-web/triagem-vagas-web.js"
 
+import { registrarFontesAtsDescobertas } from "./fontes-ats.js"
+
 type OpcoesProcessamentoWeb = {
   salvarCompativeis?: boolean
 
@@ -336,6 +338,15 @@ export async function processarVagasWeb(
 
     limiteChamadas: opcoes.limiteChamadasBrave
   })
+
+  /**
+   * Toda página de ATS encontrada também pode virar uma fonte direta.
+   *
+   * Faço isso antes da triagem porque até uma vaga que não seja perfeita
+   * para o perfil pode revelar uma empresa cujo board possui outras vagas
+   * interessantes.
+   */
+  await registrarFontesAtsDescobertas(paginas)
 
   const paginasRelacionadas = paginas.filter(pagina => paginaPareceRelacionada(pagina, perfil))
 

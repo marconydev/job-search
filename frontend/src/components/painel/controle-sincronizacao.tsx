@@ -32,9 +32,8 @@ type ResultadoExibicao = {
   /**
    * Eu considero este número como tentativas contabilizadas no orçamento.
    *
-   * O backend registra o consumo antes da chamada para proteger o limite,
-   * então uma tentativa não significa necessariamente uma resposta bem
-   * sucedida da Brave.
+   * Uma tentativa não significa obrigatoriamente uma resposta
+   * bem-sucedida da Brave.
    */
   tentativasBrave: number
 }
@@ -58,11 +57,8 @@ function formatarUltimaAtualizacao(valor: string | null) {
 
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
-
     month: "2-digit",
-
     hour: "2-digit",
-
     minute: "2-digit"
   }).format(data)
 }
@@ -70,27 +66,24 @@ function formatarUltimaAtualizacao(valor: string | null) {
 function obterNomePlataforma(provedor: string) {
   const nomes: Record<string, string> = {
     gupy: "Gupy",
-
     linkedin: "LinkedIn",
-
     indeed: "Indeed",
-
     lever: "Lever",
-
     greenhouse: "Greenhouse",
-
     workable: "Workable",
-
     smartrecruiters: "SmartRecruiters",
-
+    ashby: "Ashby",
+    recruitee: "Recruitee",
+    workday: "Workday",
+    solides: "Sólides",
+    pandape: "Pandapé",
+    vagas: "Vagas.com",
+    infojobs: "InfoJobs",
+    catho: "Catho",
     "remote-ok": "Remote OK",
-
     remotive: "Remotive",
-
     agregador: "Outros portais",
-
     desconhecido: "Outros sites",
-
     "pagina-propria": "Página da empresa"
   }
 
@@ -100,11 +93,24 @@ function obterNomePlataforma(provedor: string) {
 function obterNomeFonteDireta(fonte: string) {
   const nomes: Record<string, string> = {
     remotive: "Remotive",
-
-    "remote-ok": "Remote OK"
+    "remote-ok": "Remote OK",
+    jobicy: "Jobicy",
+    arbeitnow: "Arbeitnow"
   }
 
-  return nomes[fonte] ?? fonte
+  const nomeDireto = nomes[fonte]
+
+  if (nomeDireto) {
+    return nomeDireto
+  }
+
+  if (fonte.startsWith("ats:")) {
+    const [, provedor, ...identificador] = fonte.split(":")
+
+    return [obterNomePlataforma(provedor), identificador.join(":")].filter(Boolean).join(" · ")
+  }
+
+  return fonte
 }
 
 async function consultarStatusSincronizacao(): Promise<StatusSincronizacao> {
@@ -139,10 +145,9 @@ export function ControleSincronizacao() {
   const [erro, setErro] = useState<string | null>(null)
 
   /**
-   * No primeiro carregamento eu consulto somente os contadores e o
-   * estado atual do cache.
+   * No primeiro carregamento eu consulto somente consumo e cache.
    *
-   * Esta consulta não executa nenhuma pesquisa Brave.
+   * Isso nunca executa Brave.
    */
   useEffect(() => {
     let ativo = true
@@ -156,7 +161,6 @@ export function ControleSincronizacao() {
         }
 
         setStatus(dados)
-
         setErro(null)
       } catch (erroCapturado) {
         if (!ativo) {
@@ -208,22 +212,13 @@ export function ControleSincronizacao() {
     return dados
   }
 
-  /**
-   * Eu mantenho os dois modos de sincronização claramente separados.
-   *
-   * O econômico nunca autoriza Brave.
-   *
-   * A busca web só é iniciada depois da confirmação explícita.
-   */
   async function executarSincronizacao(usarBrave: boolean) {
     const modo: ModoEmExecucao = usarBrave ? "brave" : "economico"
 
     const chamadasAntes = status?.chamadasHoje ?? 0
 
     setModoEmExecucao(modo)
-
     setErro(null)
-
     setResultado(null)
 
     try {
@@ -265,7 +260,6 @@ export function ControleSincronizacao() {
 
       setResultado({
         dados,
-
         tentativasBrave
       })
 
@@ -304,6 +298,11 @@ export function ControleSincronizacao() {
 
     const encontradasFontes = fontes.reduce((total, fonte) => total + fonte.found, 0)
 
+    const aderentesFontes = fontes.reduce(
+      (total, fonte) => total + (fonte.matched ?? fonte.inserted + fonte.duplicates),
+      0
+    )
+
     const novasFontes = fontes.reduce((total, fonte) => total + fonte.inserted, 0)
 
     const duplicadasFontes = fontes.reduce((total, fonte) => total + fonte.duplicates, 0)
@@ -313,12 +312,16 @@ export function ControleSincronizacao() {
     const novasWeb =
       resultado.dados.web.importadas + resultado.dados.web.persistenciaDescoberta.novas
 
+    const novasOportunidades = novasFontes + novasWeb
+
     const falhasWeb = resultado.dados.web.falhas + resultado.dados.web.persistenciaDescoberta.falhas
 
     return {
       fontesVerificadas: fontes.length,
 
       encontradasFontes,
+
+      aderentesFontes,
 
       novasFontes,
 
@@ -328,19 +331,12 @@ export function ControleSincronizacao() {
 
       novasWeb,
 
+      novasOportunidades,
+
       falhasWeb
     }
   }, [resultado])
 
-  /**
-   * Os provedores estruturados aparecem em porProvedor.
-   *
-   * LinkedIn, Indeed, portais e demais fontes que não possuem extrator
-   * estruturado próprio ficam em somenteDescoberta.
-   *
-   * Eu combino os dois conjuntos para mostrar de forma mais clara de
-   * onde vieram as páginas disponíveis nesta sincronização.
-   */
   const plataformasDescobertas = useMemo<PlataformaDescoberta[]>(() => {
     if (!resultado) {
       return []
@@ -359,12 +355,27 @@ export function ControleSincronizacao() {
     return [...totais.entries()]
       .map(([provedor, quantidade]) => ({
         provedor,
-
         quantidade
       }))
       .filter(plataforma => plataforma.quantidade > 0)
       .sort((primeira, segunda) => segunda.quantidade - primeira.quantidade)
   }, [resultado])
+
+  const possuiDadosWeb = Boolean(
+    resultado &&
+    (resultado.dados.web.paginasDescobertas > 0 ||
+      resultado.dados.web.paginasDeListagem > 0 ||
+      resultado.dados.web.paginasSelecionadas > 0 ||
+      resultado.dados.web.vagasExtraidas > 0 ||
+      resultado.dados.web.importadas > 0 ||
+      resultado.dados.web.persistenciaDescoberta.novas > 0 ||
+      resultado.dados.web.persistenciaDescoberta.atualizadas > 0 ||
+      resultado.dados.web.duplicadas > 0 ||
+      resultado.dados.web.falhas > 0 ||
+      resultado.dados.web.persistenciaDescoberta.falhas > 0)
+  )
+
+  const possuiAnaliseMatcher = Boolean(resultado && resultado.dados.analise.analisadas > 0)
 
   return (
     <>
@@ -381,8 +392,8 @@ export function ControleSincronizacao() {
               </div>
 
               <p className="mt-1.5 max-w-2xl text-xs leading-5 text-slate-500">
-                Atualize as fontes diretas sem custo ou execute a busca web completa para procurar
-                novas oportunidades nas principais plataformas.
+                Atualize as fontes diretas e ATS sem custo ou execute a busca web completa para
+                procurar novas oportunidades nas principais plataformas.
               </p>
             </div>
 
@@ -463,8 +474,8 @@ export function ControleSincronizacao() {
                   </div>
 
                   <p className="mt-1 min-h-10 text-xs leading-5 text-slate-500">
-                    Atualiza fontes diretas, reaproveita o cache e executa novamente o matcher sem
-                    consumir consultas da Brave.
+                    Atualiza fontes diretas, consulta ATS aprendidos, reaproveita o cache e executa
+                    novamente o matcher sem consumir Brave.
                   </p>
 
                   <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
@@ -708,7 +719,7 @@ export function ControleSincronizacao() {
 
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-                <div className="text-[11px] font-medium text-slate-500">Diretas</div>
+                <div className="text-[11px] font-medium text-slate-500">Consultadas</div>
 
                 <div className="mt-1 text-xl font-bold tabular-nums">
                   {resumoResultado.encontradasFontes}
@@ -717,11 +728,11 @@ export function ControleSincronizacao() {
 
               <div className="rounded-2xl bg-emerald-50 p-3 dark:bg-emerald-950/20">
                 <div className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                  Novas web
+                  Novas oportunidades
                 </div>
 
                 <div className="mt-1 text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-                  {resumoResultado.novasWeb}
+                  {resumoResultado.novasOportunidades}
                 </div>
               </div>
 
@@ -748,7 +759,7 @@ export function ControleSincronizacao() {
               <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <Database size={15} className="text-slate-500" />
-                  Fontes diretas
+                  Fontes diretas e ATS
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
@@ -758,10 +769,16 @@ export function ControleSincronizacao() {
                     {resumoResultado.fontesVerificadas}
                   </div>
 
-                  <div className="text-slate-500">Encontradas</div>
+                  <div className="text-slate-500">Retornadas pelas fontes</div>
 
                   <div className="text-right font-semibold">
                     {resumoResultado.encontradasFontes}
+                  </div>
+
+                  <div className="text-slate-500">Aderentes ao perfil</div>
+
+                  <div className="text-right font-semibold text-indigo-600 dark:text-indigo-400">
+                    {resumoResultado.aderentesFontes}
                   </div>
 
                   <div className="text-slate-500">Novas</div>
@@ -801,6 +818,10 @@ export function ControleSincronizacao() {
                         </div>
 
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                          <span>
+                            Aderentes: {fonte.matched ?? fonte.inserted + fonte.duplicates}
+                          </span>
+
                           <span>Novas: {fonte.inserted}</span>
 
                           <span>Duplicadas: {fonte.duplicates}</span>
@@ -823,82 +844,105 @@ export function ControleSincronizacao() {
                   Descoberta web e cache
                 </div>
 
-                <p className="mt-1 text-[11px] leading-5 text-slate-500">
-                  Os números abaixo combinam resultados recentes da descoberta web com páginas ainda
-                  válidas no cache.
-                </p>
+                {possuiDadosWeb ? (
+                  <>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                      Resultados recentes da descoberta web combinados com páginas ainda válidas no
+                      cache.
+                    </p>
 
-                <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                  <div className="text-slate-500">Páginas disponíveis</div>
+                    <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                      <div className="text-slate-500">Páginas disponíveis</div>
 
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.paginasDescobertas}
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.paginasDescobertas}
+                      </div>
+
+                      <div className="text-slate-500">Descartadas na triagem</div>
+
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.descartadasPorTitulo}
+                      </div>
+
+                      <div className="text-slate-500">Páginas de listagem</div>
+
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.paginasDeListagem}
+                      </div>
+
+                      <div className="text-slate-500">ATS selecionadas</div>
+
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.paginasSelecionadas}
+                      </div>
+
+                      <div className="text-slate-500">Vagas extraídas</div>
+
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.vagasExtraidas}
+                      </div>
+
+                      <div className="text-slate-500">Compatíveis com Brasil</div>
+
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.compativeisBrasil}
+                      </div>
+
+                      <div className="text-slate-500">Novas estruturadas</div>
+
+                      <div className="text-right font-semibold text-emerald-600">
+                        {resultado.dados.web.importadas}
+                      </div>
+
+                      <div className="text-slate-500">Novas da descoberta</div>
+
+                      <div className="text-right font-semibold text-emerald-600">
+                        {resultado.dados.web.persistenciaDescoberta.novas}
+                      </div>
+
+                      <div className="text-slate-500">Atualizadas</div>
+
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.persistenciaDescoberta.atualizadas}
+                      </div>
+
+                      <div className="text-slate-500">Duplicadas estruturadas</div>
+
+                      <div className="text-right font-semibold">
+                        {resultado.dados.web.duplicadas}
+                      </div>
+
+                      <div className="text-slate-500">Falhas de processamento</div>
+
+                      <div
+                        className={[
+                          "text-right font-semibold",
+
+                          resumoResultado.falhasWeb > 0 ? "text-rose-600" : ""
+                        ].join(" ")}
+                      >
+                        {resumoResultado.falhasWeb}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-950">
+                    <div className="flex items-start gap-2">
+                      <Globe2 size={15} className="mt-0.5 shrink-0 text-slate-400" />
+
+                      <div>
+                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Nenhum dado de descoberta web no cache
+                        </div>
+
+                        <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                          A seção será preenchida após uma nova busca web. As fontes diretas e ATS
+                          continuam funcionando normalmente.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="text-slate-500">Descartadas na triagem</div>
-
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.descartadasPorTitulo}
-                  </div>
-
-                  <div className="text-slate-500">Páginas de listagem</div>
-
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.paginasDeListagem}
-                  </div>
-
-                  <div className="text-slate-500">ATS selecionadas</div>
-
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.paginasSelecionadas}
-                  </div>
-
-                  <div className="text-slate-500">Vagas extraídas</div>
-
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.vagasExtraidas}
-                  </div>
-
-                  <div className="text-slate-500">Compatíveis com Brasil</div>
-
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.compativeisBrasil}
-                  </div>
-
-                  <div className="text-slate-500">Novas estruturadas</div>
-
-                  <div className="text-right font-semibold text-emerald-600">
-                    {resultado.dados.web.importadas}
-                  </div>
-
-                  <div className="text-slate-500">Novas da descoberta</div>
-
-                  <div className="text-right font-semibold text-emerald-600">
-                    {resultado.dados.web.persistenciaDescoberta.novas}
-                  </div>
-
-                  <div className="text-slate-500">Atualizadas</div>
-
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.persistenciaDescoberta.atualizadas}
-                  </div>
-
-                  <div className="text-slate-500">Duplicadas estruturadas</div>
-
-                  <div className="text-right font-semibold">{resultado.dados.web.duplicadas}</div>
-
-                  <div className="text-slate-500">Falhas de processamento</div>
-
-                  <div
-                    className={[
-                      "text-right font-semibold",
-
-                      resumoResultado.falhasWeb > 0 ? "text-rose-600" : ""
-                    ].join(" ")}
-                  >
-                    {resumoResultado.falhasWeb}
-                  </div>
-                </div>
+                )}
               </div>
 
               {plataformasDescobertas.length > 0 && (
@@ -937,25 +981,44 @@ export function ControleSincronizacao() {
                   Matcher
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                  <div className="text-slate-500">Analisadas</div>
+                {possuiAnaliseMatcher ? (
+                  <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                    <div className="text-slate-500">Analisadas</div>
 
-                  <div className="text-right font-semibold">
-                    {resultado.dados.analise.analisadas}
+                    <div className="text-right font-semibold">
+                      {resultado.dados.analise.analisadas}
+                    </div>
+
+                    <div className="text-slate-500">Relevantes</div>
+
+                    <div className="text-right font-semibold text-emerald-600">
+                      {resultado.dados.analise.relevantes}
+                    </div>
+
+                    <div className="text-slate-500">Descartadas</div>
+
+                    <div className="text-right font-semibold">
+                      {resultado.dados.analise.descartadas}
+                    </div>
                   </div>
+                ) : (
+                  <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-950">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-500" />
 
-                  <div className="text-slate-500">Relevantes</div>
+                      <div>
+                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Nenhuma nova vaga pendente para análise
+                        </div>
 
-                  <div className="text-right font-semibold text-emerald-600">
-                    {resultado.dados.analise.relevantes}
+                        <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                          As oportunidades recebidas nesta sincronização já haviam sido analisadas
+                          anteriormente.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="text-slate-500">Descartadas</div>
-
-                  <div className="text-right font-semibold">
-                    {resultado.dados.analise.descartadas}
-                  </div>
-                </div>
+                )}
               </div>
 
               {resultado.dados.modo.braveAutorizada && (
