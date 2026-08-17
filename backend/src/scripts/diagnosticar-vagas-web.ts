@@ -207,7 +207,7 @@ function lerLimiteChamadasBrave() {
   const argumento = process.argv.find(item => item.startsWith("--limite="))
 
   if (!argumento) {
-    return 6
+    return 30
   }
 
   const partes = argumento.split("=")
@@ -215,10 +215,10 @@ function lerLimiteChamadasBrave() {
   const valor = Number(partes[1])
 
   if (!Number.isInteger(valor) || valor <= 0) {
-    return 6
+    return 30
   }
 
-  return Math.min(valor, 6)
+  return Math.min(valor, 30)
 }
 
 /**

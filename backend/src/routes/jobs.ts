@@ -131,7 +131,9 @@ jobsRouter.patch("/:id/status", async (request, response) => {
 
 jobsRouter.get("/sync/status", async (_request, response) => {
   try {
-    const status = await obterStatusDescobertaWeb()
+    const dadosPerfil = await obterPerfilProfissional()
+
+    const status = await obterStatusDescobertaWeb(dadosPerfil.perfil)
 
     return response.json(status)
   } catch (error) {

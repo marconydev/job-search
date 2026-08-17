@@ -2,13 +2,15 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 
 import { resolve } from "node:path"
 
-import { consultasBuscaVagas } from "../config/search-queries.js"
+import { gerarConsultasBuscaVagas, type ConsultaBuscaVaga } from "../config/search-queries.js"
 
 import { buscarNaWeb } from "../discovery/brave-search.js"
 
 import { classificarPagina } from "../discovery/page-classifier.js"
 
 import type { PaginaClassificada, PaginaDescoberta } from "../types/discovery.js"
+
+import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 type OpcoesDescoberta = {
   permitirBuscaLive?: boolean
@@ -27,27 +29,7 @@ type CacheBuscas = {
 
   consultas: Record<string, RegistroConsultaCache>
 
-  /**
-   * Eu mantenho o consumo por data porque isso me permite controlar
-   * tanto o limite diário quanto o orçamento acumulado do mês.
-   */
   chamadasPorDia: Record<string, number>
-}
-
-type DiagnosticoAnterior = {
-  geradoEm?: string
-
-  resultado?: {
-    somenteDescoberta?: Array<{
-      titulo: string
-
-      url: string
-
-      descricao: string | null
-
-      consulta: string
-    }>
-  }
 }
 
 export type StatusDescobertaWeb = {
@@ -74,23 +56,10 @@ export type StatusDescobertaWeb = {
   ultimaAtualizacao: string | null
 }
 
-/**
- * Com o orçamento atual eu trabalho com 30 consultas diárias.
- *
- * Em um mês de 31 dias isso representa no máximo 930 chamadas,
- * mantendo uma margem antes do limite mensal de 1.000.
- */
 const LIMITE_DIARIO_BRAVE = 30
 
 const LIMITE_MENSAL_BRAVE = 1000
 
-/**
- * Eu continuo reaproveitando resultados recentes durante sete dias.
- *
- * Isso não impede uma consulta de ser atualizada novamente. O cache
- * serve para complementar a cobertura quando executo o modo econômico
- * ou quando alguma plataforma não retorna a vaga em uma busca posterior.
- */
 const DIAS_MAXIMOS_CACHE = 7
 
 const parametrosRastreamento = new Set([
@@ -147,34 +116,24 @@ async function salvarCache(cache: CacheBuscas) {
   await writeFile(caminhoCache(), JSON.stringify(cache, null, 2), "utf8")
 }
 
-/**
- * Eu uso a data local da máquina onde o backend está executando.
- *
- * Como a aplicação é de uso pessoal, isso evita que o contador diário
- * seja reiniciado no meio do dia por diferença entre UTC e horário local.
- */
-function obterDataLocal() {
-  const agora = new Date()
+function formatarDataLocal(data: Date) {
+  const ano = data.getFullYear()
 
-  const ano = agora.getFullYear()
+  const mes = String(data.getMonth() + 1).padStart(2, "0")
 
-  const mes = String(agora.getMonth() + 1).padStart(2, "0")
-
-  const dia = String(agora.getDate()).padStart(2, "0")
+  const dia = String(data.getDate()).padStart(2, "0")
 
   return `${ano}-${mes}-${dia}`
+}
+
+function obterDataLocal() {
+  return formatarDataLocal(new Date())
 }
 
 function obterMesLocal() {
   return obterDataLocal().slice(0, 7)
 }
 
-/**
- * Eu calculo o consumo mensal a partir do próprio histórico diário.
- *
- * Desta forma não preciso manter dois contadores independentes que
- * poderiam acabar divergindo entre si.
- */
 function obterChamadasDoMes(cache: CacheBuscas) {
   const mesAtual = obterMesLocal()
 
@@ -197,7 +156,21 @@ function registroAindaEhUtil(registro: RegistroConsultaCache) {
   return idade <= limite
 }
 
-function timestampConsulta(cache: CacheBuscas, consulta: string) {
+function registroFoiConsultadoHoje(registro: RegistroConsultaCache) {
+  const data = new Date(registro.consultadoEm)
+
+  if (Number.isNaN(data.getTime())) {
+    return false
+  }
+
+  return formatarDataLocal(data) === obterDataLocal()
+}
+
+function timestampConsulta(
+  cache: CacheBuscas,
+
+  consulta: string
+) {
   const registro = cache.consultas[consulta]
 
   if (!registro) {
@@ -210,30 +183,89 @@ function timestampConsulta(cache: CacheBuscas, consulta: string) {
 }
 
 /**
- * Eu escolho primeiro as consultas que nunca executei e depois as que
- * estão há mais tempo sem atualização.
+ * As 16 buscas de núcleo são priorizadas uma vez por dia.
  *
- * Hoje o conjunto principal possui até 30 estratégias e pode ser
- * executado integralmente em um único dia. Mesmo assim mantenho a
- * ordenação porque ela protege a cobertura caso eu execute menos
- * consultas manualmente em algum momento.
+ * O saldo diário restante é usado nas consultas detalhadas que estão há
+ * mais tempo sem execução.
  */
-function ordenarConsultas(cache: CacheBuscas) {
-  return [...consultasBuscaVagas].sort(
-    (primeira, segunda) => timestampConsulta(cache, primeira) - timestampConsulta(cache, segunda)
-  )
+function selecionarConsultas(
+  cache: CacheBuscas,
+
+  perfil: PerfilProfissional,
+
+  limite: number
+) {
+  const configuradas = gerarConsultasBuscaVagas(perfil)
+
+  const pendentesHoje = configuradas.filter(consulta => {
+    const registro = cache.consultas[consulta.texto]
+
+    return !registro || !registroFoiConsultadoHoje(registro)
+  })
+
+  const diarias = pendentesHoje
+    .filter(consulta => consulta.recorrencia === "diaria")
+    .sort(
+      (primeira, segunda) =>
+        timestampConsulta(cache, primeira.texto) - timestampConsulta(cache, segunda.texto)
+    )
+
+  const rotativas = pendentesHoje
+    .filter(consulta => consulta.recorrencia === "rotativa")
+    .sort(
+      (primeira, segunda) =>
+        timestampConsulta(cache, primeira.texto) - timestampConsulta(cache, segunda.texto)
+    )
+
+  return [...diarias, ...rotativas].slice(0, limite)
 }
 
 /**
- * Eu encontro a última consulta realmente concluída e armazenada.
+ * Ao trocar o perfil ou o gerador de consultas, eu removo do cache
+ * somente estratégias que deixaram de existir.
  *
- * Uma tentativa que falhou pode consumir orçamento, mas não deve ser
- * apresentada como uma atualização bem-sucedida.
+ * O histórico financeiro de chamadas permanece intacto.
  */
-function obterUltimaAtualizacao(cache: CacheBuscas) {
+async function removerConsultasObsoletas(
+  cache: CacheBuscas,
+
+  perfil: PerfilProfissional
+) {
+  const atuais = gerarConsultasBuscaVagas(perfil)
+
+  const permitidas = new Set(atuais.map(consulta => consulta.texto))
+
+  let alterado = false
+
+  for (const consulta of Object.keys(cache.consultas)) {
+    if (permitidas.has(consulta)) {
+      continue
+    }
+
+    delete cache.consultas[consulta]
+
+    alterado = true
+  }
+
+  if (alterado) {
+    await salvarCache(cache)
+  }
+}
+
+function obterUltimaAtualizacao(
+  cache: CacheBuscas,
+
+  consultas: ConsultaBuscaVaga[]
+) {
   let ultima: number | null = null
 
-  for (const registro of Object.values(cache.consultas)) {
+  for (const consulta of consultas) {
+    const registro = cache.consultas[consulta.texto]
+
+    if (!registro) {
+      continue
+    }
+
     const horario = new Date(registro.consultadoEm).getTime()
 
     if (!Number.isFinite(horario)) {
@@ -245,22 +277,20 @@ function obterUltimaAtualizacao(cache: CacheBuscas) {
     }
   }
 
-  if (ultima === null) {
-    return null
-  }
-
-  return new Date(ultima).toISOString()
+  return ultima === null ? null : new Date(ultima).toISOString()
 }
 
 /**
- * Eu disponibilizo o consumo da descoberta sem realizar nenhuma
- * pesquisa na Brave.
+ * Esta função apenas lê o status.
  *
- * O frontend pode consultar este status com segurança sempre que
- * precisar atualizar os indicadores do painel.
+ * Nenhuma chamada Brave é executada aqui.
  */
-export async function obterStatusDescobertaWeb(): Promise<StatusDescobertaWeb> {
+export async function obterStatusDescobertaWeb(
+  perfil: PerfilProfissional
+): Promise<StatusDescobertaWeb> {
   const cache = await carregarCache()
+
+  const consultas = gerarConsultasBuscaVagas(perfil)
 
   const hoje = obterDataLocal()
 
@@ -272,15 +302,15 @@ export async function obterStatusDescobertaWeb(): Promise<StatusDescobertaWeb> {
 
   const restanteMensal = Math.max(0, LIMITE_MENSAL_BRAVE - chamadasMes)
 
-  /**
-   * O que realmente posso utilizar agora é sempre o menor saldo entre
-   * o limite diário e o limite mensal.
-   */
   const chamadasRestantes = Math.min(restanteDiario, restanteMensal)
 
-  const registros = Object.values(cache.consultas)
+  const consultasComCache = consultas.filter(consulta => Boolean(cache.consultas[consulta.texto]))
 
-  const consultasAtivas = registros.filter(registroAindaEhUtil).length
+  const consultasAtivas = consultas.filter(consulta => {
+    const registro = cache.consultas[consulta.texto]
+
+    return Boolean(registro && registroAindaEhUtil(registro))
+  }).length
 
   return {
     data: hoje,
@@ -297,64 +327,16 @@ export async function obterStatusDescobertaWeb(): Promise<StatusDescobertaWeb> {
 
     chamadasRestantesMes: restanteMensal,
 
-    consultasConfiguradas: consultasBuscaVagas.length,
+    consultasConfiguradas: consultas.length,
 
-    consultasEmCache: registros.length,
+    consultasEmCache: consultasComCache.length,
 
     consultasAtivas,
 
-    ultimaAtualizacao: obterUltimaAtualizacao(cache)
+    ultimaAtualizacao: obterUltimaAtualizacao(cache, consultas)
   }
 }
 
-/**
- * Eu recupero páginas do último diagnóstico para não perder resultados
- * que já haviam sido encontrados antes da criação do cache atual.
- */
-async function carregarDiagnosticoAnterior(): Promise<PaginaDescoberta[]> {
-  const arquivo = resolve(process.cwd(), ".cache", "ultimo-diagnostico-web.json")
-
-  try {
-    const conteudo = await readFile(arquivo, "utf8")
-
-    const diagnostico = JSON.parse(conteudo) as DiagnosticoAnterior
-
-    if (!diagnostico.geradoEm) {
-      return []
-    }
-
-    const geradoEm = new Date(diagnostico.geradoEm).getTime()
-
-    const idade = Date.now() - geradoEm
-
-    const limite = DIAS_MAXIMOS_CACHE * 24 * 60 * 60 * 1000
-
-    if (!Number.isFinite(geradoEm) || idade > limite) {
-      return []
-    }
-
-    return (diagnostico.resultado?.somenteDescoberta ?? []).map(pagina => ({
-      origem: "cache-diagnostico",
-
-      consulta: pagina.consulta,
-
-      titulo: pagina.titulo,
-
-      url: pagina.url,
-
-      descricao: pagina.descricao
-    }))
-  } catch {
-    return []
-  }
-}
-
-/**
- * Eu removo parâmetros que normalmente servem apenas para rastreamento.
- *
- * Assim a mesma vaga encontrada em consultas diferentes não aparece
- * várias vezes apenas porque a URL possui parâmetros diferentes.
- */
 function normalizarUrlParaComparacao(url: string) {
   try {
     const urlNormalizada = new URL(url)
@@ -379,15 +361,13 @@ function normalizarUrlParaComparacao(url: string) {
   }
 }
 
-/**
- * Eu faço novas pesquisas somente quando a execução foi explicitamente
- * autorizada.
- *
- * O limite diário e o teto mensal são aplicados aqui, na camada mais
- * próxima da chamada Brave. Desta forma outra rota ou serviço não
- * consegue ultrapassar acidentalmente o orçamento definido.
- */
-async function atualizarBuscasLive(cache: CacheBuscas, limiteSolicitado: number) {
+async function atualizarBuscasLive(
+  cache: CacheBuscas,
+
+  perfil: PerfilProfissional,
+
+  limiteSolicitado: number
+) {
   const hoje = obterDataLocal()
 
   const consumidoHoje = cache.chamadasPorDia[hoje] ?? 0
@@ -416,7 +396,15 @@ async function atualizarBuscasLive(cache: CacheBuscas, limiteSolicitado: number)
     return
   }
 
-  const consultas = ordenarConsultas(cache).slice(0, limiteExecucao)
+  const consultas = selecionarConsultas(cache, perfil, limiteExecucao)
+
+  if (consultas.length === 0) {
+    console.log("")
+
+    console.log("Brave: todas as estratégias selecionáveis já foram executadas hoje.")
+
+    return
+  }
 
   let consultasComSucesso = 0
 
@@ -433,15 +421,6 @@ async function atualizarBuscasLive(cache: CacheBuscas, limiteSolicitado: number)
   )
 
   for (const consulta of consultas) {
-    /**
-     * Eu contabilizo a tentativa antes da requisição.
-     *
-     * Isso impede que uma queda inesperada do processo permita ultrapassar
-     * o orçamento em uma nova execução.
-     *
-     * O contador representa consumo/tentativas. Sucesso e falha são
-     * acompanhados separadamente para não mascarar erros da Brave.
-     */
     cache.chamadasPorDia[hoje] = (cache.chamadasPorDia[hoje] ?? 0) + 1
 
     await salvarCache(cache)
@@ -452,10 +431,12 @@ async function atualizarBuscasLive(cache: CacheBuscas, limiteSolicitado: number)
 
     console.log(`Brave: pesquisando ${numeroChamada}/${LIMITE_DIARIO_BRAVE}`)
 
-    console.log(`Consulta: ${consulta}`)
+    console.log(`Plataforma: ${consulta.plataforma} | Família: ${consulta.familia}`)
+
+    console.log(`Consulta: ${consulta.texto}`)
 
     try {
-      const resultado = await buscarNaWeb(consulta)
+      const resultado = await buscarNaWeb(consulta.texto)
 
       consultasComSucesso++
 
@@ -463,13 +444,7 @@ async function atualizarBuscasLive(cache: CacheBuscas, limiteSolicitado: number)
 
       console.log(`Brave: ${resultado.paginas.length} resultado(s) recebido(s).`)
 
-      /**
-       * Somente uma pesquisa concluída substitui o cache daquela consulta.
-       *
-       * Se a Brave falhar, mantenho o resultado anterior para não perder
-       * oportunidades que ainda estejam dentro da validade de sete dias.
-       */
-      cache.consultas[consulta] = {
+      cache.consultas[consulta.texto] = {
         consultadoEm: new Date().toISOString(),
 
         paginas: resultado.paginas
@@ -479,7 +454,7 @@ async function atualizarBuscasLive(cache: CacheBuscas, limiteSolicitado: number)
     } catch (erro) {
       consultasComFalha++
 
-      console.error(`Falha na consulta Brave: ${consulta}`)
+      console.error(`Falha na consulta Brave: ${consulta.texto}`)
 
       if (erro instanceof Error) {
         console.error(erro.message)
@@ -510,9 +485,6 @@ async function atualizarBuscasLive(cache: CacheBuscas, limiteSolicitado: number)
   )
 }
 
-/**
- * Eu reúno somente os registros de cache ainda considerados recentes.
- */
 function carregarPaginasCache(cache: CacheBuscas) {
   const paginas: PaginaDescoberta[] = []
 
@@ -528,48 +500,37 @@ function carregarPaginasCache(cache: CacheBuscas) {
 }
 
 /**
- * A descoberta continua funcionando em modo cache-first.
+ * O perfil agora participa também da geração das pesquisas.
  *
- * Quando permitirBuscaLive não estiver habilitado, nenhuma chamada à
- * Brave será feita.
- *
- * Quando estiver habilitado, primeiro atualizo as consultas permitidas
- * pelo orçamento e depois reúno cache, diagnóstico anterior e resultados
- * recém-obtidos.
+ * Removi o fallback do antigo ultimo-diagnostico-web.json.
+ * A descoberta operacional passa a ter uma única origem de cache.
  */
 export async function descobrirPaginasVagas(
+  perfil: PerfilProfissional,
+
   opcoes: OpcoesDescoberta = {}
 ): Promise<PaginaClassificada[]> {
   const cache = await carregarCache()
 
+  await removerConsultasObsoletas(cache, perfil)
+
   if (opcoes.permitirBuscaLive) {
-    await atualizarBuscasLive(cache, opcoes.limiteChamadas ?? LIMITE_DIARIO_BRAVE)
+    await atualizarBuscasLive(cache, perfil, opcoes.limiteChamadas ?? LIMITE_DIARIO_BRAVE)
   }
 
-  const paginasCache = carregarPaginasCache(cache)
+  const paginas = carregarPaginasCache(cache)
 
-  const paginasAnteriores = await carregarDiagnosticoAnterior()
+  const descobertas = new Map<string, PaginaClassificada>()
 
-  const todasPaginas = [...paginasAnteriores, ...paginasCache]
-
-  /**
-   * Uma oportunidade pode ser encontrada pelo LinkedIn, por uma consulta
-   * geral e por uma busca específica de tecnologia.
-   *
-   * Eu normalizo a URL e mantenho somente uma ocorrência antes de
-   * continuar o processamento.
-   */
-  const paginasDescobertas = new Map<string, PaginaClassificada>()
-
-  for (const pagina of todasPaginas) {
+  for (const pagina of paginas) {
     const chave = normalizarUrlParaComparacao(pagina.url)
 
-    if (paginasDescobertas.has(chave)) {
+    if (descobertas.has(chave)) {
       continue
     }
 
-    paginasDescobertas.set(chave, classificarPagina(pagina))
+    descobertas.set(chave, classificarPagina(pagina))
   }
 
-  return [...paginasDescobertas.values()]
+  return [...descobertas.values()]
 }

@@ -83,6 +83,12 @@ export type StatusSincronizacao = {
 
   chamadasRestantes: number
 
+  limiteMensal: number
+
+  chamadasMes: number
+
+  chamadasRestantesMes: number
+
   consultasConfiguradas: number
 
   consultasEmCache: number
@@ -118,6 +124,42 @@ export type ResultadoPersistenciaDescoberta = {
   falhas: number
 }
 
+export type ResultadoFonteWeb = {
+  provedor: string
+
+  encontradas: number
+
+  vagasValidas: number
+
+  compativeisBrasil: number
+
+  incompativeisBrasil: number
+
+  indefinidas: number
+
+  importadas: number
+
+  duplicadas: number
+
+  semDadosObrigatorios: number
+
+  falhas: number
+
+  ignoradas: number
+}
+
+export type PaginaSomenteDescoberta = {
+  provedor: string
+
+  titulo: string
+
+  url: string
+
+  descricao: string | null
+
+  consulta: string
+}
+
 export type ResultadoWebSincronizacao = {
   paginasDescobertas: number
 
@@ -146,6 +188,10 @@ export type ResultadoWebSincronizacao = {
   falhas: number
 
   persistenciaDescoberta: ResultadoPersistenciaDescoberta
+
+  porProvedor: ResultadoFonteWeb[]
+
+  somenteDescoberta: PaginaSomenteDescoberta[]
 }
 
 export type ResultadoAnaliseSincronizacao = {

@@ -4,7 +4,9 @@ const URL_BRAVE_SEARCH = "https://api.search.brave.com/res/v1/web/search"
 
 type ResultadoWebBrave = {
   title: string
+
   url: string
+
   description?: string
 }
 
@@ -18,15 +20,6 @@ type RespostaBraveSearch = {
   }
 }
 
-/**
- * Faço somente uma chamada à Brave para cada estratégia configurada.
- *
- * Cada chamada solicita até 20 resultados, que é o limite máximo do
- * endpoint Web Search.
- *
- * O controle financeiro e de quantidade de chamadas continua sendo
- * responsabilidade da camada de descoberta.
- */
 export async function buscarNaWeb(
   consulta: string,
   quantidade = 20
@@ -43,22 +36,16 @@ export async function buscarNaWeb(
 
   url.searchParams.set("count", String(Math.min(Math.max(quantidade, 1), 20)))
 
-  /**
-   * Priorizo resultados brasileiros, mas não restrinjo o idioma.
-   *
-   * Muitas vagas disponíveis para profissionais no Brasil são publicadas
-   * em inglês mesmo quando aceitam candidatos brasileiros.
-   */
   url.searchParams.set("country", "BR")
 
   /**
-   * Como a sincronização passa a ter cobertura diária, busco a última
-   * semana.
+   * Uso o último mês para aumentar a cobertura.
    *
-   * Isso cobre eventuais atrasos de indexação sem trazer um mês inteiro
-   * de resultados repetidos em todas as execuções.
+   * A aplicação já possui deduplicação própria, então prefiro recuperar
+   * novamente uma vaga existente a deixar uma oportunidade válida de
+   * fora porque o mecanismo de busca atribuiu uma data antiga à página.
    */
-  url.searchParams.set("freshness", "pw")
+  url.searchParams.set("freshness", "pm")
 
   url.searchParams.set("result_filter", "web")
 
@@ -78,6 +65,7 @@ export async function buscarNaWeb(
     throw new Error(
       [
         `Brave Search respondeu com status ${resposta.status}.`,
+
         detalhe ? `Detalhe: ${detalhe}` : ""
       ]
         .filter(Boolean)

@@ -14,6 +14,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Target,
   X
 } from "lucide-react"
 
@@ -28,7 +29,20 @@ type ModoEmExecucao = "economico" | "brave" | null
 type ResultadoExibicao = {
   dados: ResultadoSincronizacao
 
-  chamadasBraveUtilizadas: number
+  /**
+   * Eu considero este número como tentativas contabilizadas no orçamento.
+   *
+   * O backend registra o consumo antes da chamada para proteger o limite,
+   * então uma tentativa não significa necessariamente uma resposta bem
+   * sucedida da Brave.
+   */
+  tentativasBrave: number
+}
+
+type PlataformaDescoberta = {
+  provedor: string
+
+  quantidade: number
 }
 
 function formatarUltimaAtualizacao(valor: string | null) {
@@ -51,6 +65,46 @@ function formatarUltimaAtualizacao(valor: string | null) {
 
     minute: "2-digit"
   }).format(data)
+}
+
+function obterNomePlataforma(provedor: string) {
+  const nomes: Record<string, string> = {
+    gupy: "Gupy",
+
+    linkedin: "LinkedIn",
+
+    indeed: "Indeed",
+
+    lever: "Lever",
+
+    greenhouse: "Greenhouse",
+
+    workable: "Workable",
+
+    smartrecruiters: "SmartRecruiters",
+
+    "remote-ok": "Remote OK",
+
+    remotive: "Remotive",
+
+    agregador: "Outros portais",
+
+    desconhecido: "Outros sites",
+
+    "pagina-propria": "Página da empresa"
+  }
+
+  return nomes[provedor] ?? provedor
+}
+
+function obterNomeFonteDireta(fonte: string) {
+  const nomes: Record<string, string> = {
+    remotive: "Remotive",
+
+    "remote-ok": "Remote OK"
+  }
+
+  return nomes[fonte] ?? fonte
 }
 
 async function consultarStatusSincronizacao(): Promise<StatusSincronizacao> {
@@ -85,8 +139,10 @@ export function ControleSincronizacao() {
   const [erro, setErro] = useState<string | null>(null)
 
   /**
-   * No primeiro carregamento eu consulto somente o estado do cache e
-   * do contador diário. Esta operação não executa uma busca Brave.
+   * No primeiro carregamento eu consulto somente os contadores e o
+   * estado atual do cache.
+   *
+   * Esta consulta não executa nenhuma pesquisa Brave.
    */
   useEffect(() => {
     let ativo = true
@@ -130,9 +186,17 @@ export function ControleSincronizacao() {
 
   const chamadasRestantes = status?.chamadasRestantes ?? 0
 
-  const limiteDiario = status?.limiteDiario ?? 6
+  const limiteDiario = status?.limiteDiario ?? 30
 
-  const chamadasUsadas = status?.chamadasHoje ?? 0
+  const chamadasHoje = status?.chamadasHoje ?? 0
+
+  const limiteMensal = status?.limiteMensal ?? 1000
+
+  const chamadasMes = status?.chamadasMes ?? 0
+
+  const chamadasRestantesMes = status?.chamadasRestantesMes ?? 0
+
+  const limiteMensalAtingido = Boolean(status && chamadasRestantesMes <= 0)
 
   const podeUsarBrave = Boolean(status && chamadasRestantes > 0 && !sincronizando)
 
@@ -145,10 +209,11 @@ export function ControleSincronizacao() {
   }
 
   /**
-   * Eu mantenho os dois modos separados por autorização explícita.
+   * Eu mantenho os dois modos de sincronização claramente separados.
    *
-   * O modo econômico sempre envia Brave desativada.
-   * A busca web só recebe autorização depois da confirmação do usuário.
+   * O econômico nunca autoriza Brave.
+   *
+   * A busca web só é iniciada depois da confirmação explícita.
    */
   async function executarSincronizacao(usarBrave: boolean) {
     const modo: ModoEmExecucao = usarBrave ? "brave" : "economico"
@@ -196,12 +261,12 @@ export function ControleSincronizacao() {
         console.error("Não foi possível atualizar o contador após a sincronização:", erroStatus)
       }
 
-      const chamadasBraveUtilizadas = Math.max(0, chamadasDepois - chamadasAntes)
+      const tentativasBrave = Math.max(0, chamadasDepois - chamadasAntes)
 
       setResultado({
         dados,
 
-        chamadasBraveUtilizadas
+        tentativasBrave
       })
 
       setModal("resultado")
@@ -245,6 +310,11 @@ export function ControleSincronizacao() {
 
     const fontesComFalha = fontes.filter(fonte => Boolean(fonte.error)).length
 
+    const novasWeb =
+      resultado.dados.web.importadas + resultado.dados.web.persistenciaDescoberta.novas
+
+    const falhasWeb = resultado.dados.web.falhas + resultado.dados.web.persistenciaDescoberta.falhas
+
     return {
       fontesVerificadas: fontes.length,
 
@@ -254,8 +324,46 @@ export function ControleSincronizacao() {
 
       duplicadasFontes,
 
-      fontesComFalha
+      fontesComFalha,
+
+      novasWeb,
+
+      falhasWeb
     }
+  }, [resultado])
+
+  /**
+   * Os provedores estruturados aparecem em porProvedor.
+   *
+   * LinkedIn, Indeed, portais e demais fontes que não possuem extrator
+   * estruturado próprio ficam em somenteDescoberta.
+   *
+   * Eu combino os dois conjuntos para mostrar de forma mais clara de
+   * onde vieram as páginas disponíveis nesta sincronização.
+   */
+  const plataformasDescobertas = useMemo<PlataformaDescoberta[]>(() => {
+    if (!resultado) {
+      return []
+    }
+
+    const totais = new Map<string, number>()
+
+    for (const fonte of resultado.dados.web.porProvedor ?? []) {
+      totais.set(fonte.provedor, (totais.get(fonte.provedor) ?? 0) + fonte.encontradas)
+    }
+
+    for (const pagina of resultado.dados.web.somenteDescoberta ?? []) {
+      totais.set(pagina.provedor, (totais.get(pagina.provedor) ?? 0) + 1)
+    }
+
+    return [...totais.entries()]
+      .map(([provedor, quantidade]) => ({
+        provedor,
+
+        quantidade
+      }))
+      .filter(plataforma => plataforma.quantidade > 0)
+      .sort((primeira, segunda) => segunda.quantidade - primeira.quantidade)
   }, [resultado])
 
   return (
@@ -273,8 +381,8 @@ export function ControleSincronizacao() {
               </div>
 
               <p className="mt-1.5 max-w-2xl text-xs leading-5 text-slate-500">
-                Escolha como deseja atualizar as oportunidades. A busca Brave nunca é executada sem
-                autorização.
+                Atualize as fontes diretas sem custo ou execute a busca web completa para procurar
+                novas oportunidades nas principais plataformas.
               </p>
             </div>
 
@@ -284,18 +392,34 @@ export function ControleSincronizacao() {
                 Consultando consumo...
               </div>
             ) : status ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 lg:justify-end">
+              <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 lg:max-w-xl lg:justify-end">
                 <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                   <Search size={13} />
-                  Brave:
+                  Brave hoje:
                   <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                    {chamadasUsadas} / {limiteDiario}
+                    {chamadasHoje} / {limiteDiario}
                   </strong>
                 </span>
 
                 <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                   <Database size={13} />
-                  Cache ativo:
+                  Mês:
+                  <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                    {chamadasMes} / {limiteMensal}
+                  </strong>
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <Target size={13} />
+                  Estratégias:
+                  <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                    {status.consultasConfiguradas}
+                  </strong>
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <Database size={13} />
+                  Cache:
                   <strong className="font-semibold text-slate-700 dark:text-slate-300">
                     {status.consultasAtivas}
                   </strong>
@@ -334,13 +458,13 @@ export function ControleSincronizacao() {
                     </h3>
 
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                      Recomendado
+                      Sem Brave
                     </span>
                   </div>
 
                   <p className="mt-1 min-h-10 text-xs leading-5 text-slate-500">
-                    Atualiza fontes diretas, cache, oportunidades existentes e matcher sem consumir
-                    Brave.
+                    Atualiza fontes diretas, reaproveita o cache e executa novamente o matcher sem
+                    consumir consultas da Brave.
                   </p>
 
                   <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
@@ -376,13 +500,19 @@ export function ControleSincronizacao() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    Busca web adicional
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      Busca web completa
+                    </h3>
+
+                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                      Busca diária
+                    </span>
+                  </div>
 
                   <p className="mt-1 min-h-10 text-xs leading-5 text-slate-500">
-                    Amplia a descoberta com novas consultas Brave quando ainda existe saldo
-                    disponível no dia.
+                    Pesquisa novas vagas nas estratégias configuradas para Gupy, LinkedIn, Indeed,
+                    Workday, Sólides, portais, ATS e demais fontes.
                   </p>
 
                   <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
@@ -391,8 +521,12 @@ export function ControleSincronizacao() {
                     {carregandoStatus
                       ? "Consultando disponibilidade..."
                       : chamadasRestantes > 0
-                        ? `${chamadasRestantes} consulta${chamadasRestantes !== 1 ? "s" : ""} disponível${chamadasRestantes !== 1 ? "is" : ""} hoje`
-                        : "Nenhuma consulta disponível hoje"}
+                        ? `${chamadasRestantes} consulta${
+                            chamadasRestantes !== 1 ? "s" : ""
+                          } disponível${chamadasRestantes !== 1 ? "is" : ""} hoje`
+                        : limiteMensalAtingido
+                          ? "Limite mensal atingido"
+                          : "Limite diário atingido"}
                   </div>
                 </div>
               </div>
@@ -412,7 +546,11 @@ export function ControleSincronizacao() {
                   <>
                     <Globe2 size={16} />
 
-                    {chamadasRestantes > 0 ? "Buscar novas vagas na web" : "Limite Brave atingido"}
+                    {chamadasRestantes > 0
+                      ? "Buscar novas vagas na web"
+                      : limiteMensalAtingido
+                        ? "Limite mensal atingido"
+                        : "Limite diário atingido"}
                   </>
                 )}
               </button>
@@ -439,7 +577,7 @@ export function ControleSincronizacao() {
                   id="titulo-confirmacao-brave"
                   className="mt-4 text-lg font-bold text-slate-950 dark:text-white"
                 >
-                  Autorizar busca Brave?
+                  Autorizar busca web?
                 </h2>
               </div>
 
@@ -455,7 +593,8 @@ export function ControleSincronizacao() {
             </div>
 
             <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-400">
-              Esta operação autoriza explicitamente novas pesquisas na Brave.
+              Esta operação autoriza novas pesquisas na Brave e usa somente o saldo ainda disponível
+              no orçamento configurado.
             </p>
 
             <div className="mt-4 rounded-2xl bg-amber-50 p-4 dark:bg-amber-950/20">
@@ -468,14 +607,33 @@ export function ControleSincronizacao() {
               </div>
 
               <p className="mt-1 text-xs leading-5 text-amber-700/80 dark:text-amber-300/80">
-                consulta
-                {chamadasRestantes !== 1 ? "s" : ""} Brave restante
-                {chamadasRestantes !== 1 ? "s" : ""} hoje.
+                tentativa
+                {chamadasRestantes !== 1 ? "s" : ""} disponível
+                {chamadasRestantes !== 1 ? "is" : ""} para hoje.
               </p>
             </div>
 
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-800">
+                <div className="text-[11px] text-slate-500">Hoje</div>
+
+                <div className="mt-1 text-sm font-bold">
+                  {chamadasHoje} / {limiteDiario}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-800">
+                <div className="text-[11px] text-slate-500">Mês</div>
+
+                <div className="mt-1 text-sm font-bold">
+                  {chamadasMes} / {limiteMensal}
+                </div>
+              </div>
+            </div>
+
             <p className="mt-4 text-xs leading-5 text-slate-500">
-              O backend continua aplicando o limite diário mesmo após esta autorização.
+              O backend aplica tanto o limite diário quanto o limite mensal mesmo depois desta
+              autorização.
             </p>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
@@ -515,7 +673,7 @@ export function ControleSincronizacao() {
           aria-modal="true"
           aria-labelledby="titulo-resultado-sincronizacao"
         >
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
@@ -550,7 +708,7 @@ export function ControleSincronizacao() {
 
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-                <div className="text-[11px] font-medium text-slate-500">Encontradas</div>
+                <div className="text-[11px] font-medium text-slate-500">Diretas</div>
 
                 <div className="mt-1 text-xl font-bold tabular-nums">
                   {resumoResultado.encontradasFontes}
@@ -559,29 +717,29 @@ export function ControleSincronizacao() {
 
               <div className="rounded-2xl bg-emerald-50 p-3 dark:bg-emerald-950/20">
                 <div className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                  Novas diretas
+                  Novas web
                 </div>
 
                 <div className="mt-1 text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-                  {resumoResultado.novasFontes}
+                  {resumoResultado.novasWeb}
                 </div>
               </div>
 
               <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-                <div className="text-[11px] font-medium text-slate-500">Duplicadas</div>
+                <div className="text-[11px] font-medium text-slate-500">Páginas disponíveis</div>
 
                 <div className="mt-1 text-xl font-bold tabular-nums">
-                  {resumoResultado.duplicadasFontes}
+                  {resultado.dados.web.paginasDescobertas}
                 </div>
               </div>
 
               <div className="rounded-2xl bg-indigo-50 p-3 dark:bg-indigo-950/20">
                 <div className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
-                  Brave usada
+                  Tentativas Brave
                 </div>
 
                 <div className="mt-1 text-xl font-bold tabular-nums text-indigo-700 dark:text-indigo-300">
-                  {resultado.chamadasBraveUtilizadas}
+                  {resultado.tentativasBrave}
                 </div>
               </div>
             </div>
@@ -626,22 +784,94 @@ export function ControleSincronizacao() {
                     </>
                   )}
                 </div>
+
+                {resultado.dados.fontes.length > 0 && (
+                  <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                    {resultado.dados.fontes.map(fonte => (
+                      <div
+                        key={fonte.source}
+                        className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-slate-950"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {obterNomeFonteDireta(fonte.source)}
+                          </span>
+
+                          <span className="text-xs font-bold tabular-nums">{fonte.found}</span>
+                        </div>
+
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                          <span>Novas: {fonte.inserted}</span>
+
+                          <span>Duplicadas: {fonte.duplicates}</span>
+                        </div>
+
+                        {fonte.error && (
+                          <div className="mt-2 text-[11px] leading-5 text-rose-600 dark:text-rose-400">
+                            {fonte.error}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <Globe2 size={15} className="text-indigo-500" />
-                  Descoberta e cache
+                  Descoberta web e cache
                 </div>
 
+                <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                  Os números abaixo combinam resultados recentes da descoberta web com páginas ainda
+                  válidas no cache.
+                </p>
+
                 <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                  <div className="text-slate-500">Páginas descobertas</div>
+                  <div className="text-slate-500">Páginas disponíveis</div>
 
                   <div className="text-right font-semibold">
                     {resultado.dados.web.paginasDescobertas}
                   </div>
 
-                  <div className="text-slate-500">Novas oportunidades</div>
+                  <div className="text-slate-500">Descartadas na triagem</div>
+
+                  <div className="text-right font-semibold">
+                    {resultado.dados.web.descartadasPorTitulo}
+                  </div>
+
+                  <div className="text-slate-500">Páginas de listagem</div>
+
+                  <div className="text-right font-semibold">
+                    {resultado.dados.web.paginasDeListagem}
+                  </div>
+
+                  <div className="text-slate-500">ATS selecionadas</div>
+
+                  <div className="text-right font-semibold">
+                    {resultado.dados.web.paginasSelecionadas}
+                  </div>
+
+                  <div className="text-slate-500">Vagas extraídas</div>
+
+                  <div className="text-right font-semibold">
+                    {resultado.dados.web.vagasExtraidas}
+                  </div>
+
+                  <div className="text-slate-500">Compatíveis com Brasil</div>
+
+                  <div className="text-right font-semibold">
+                    {resultado.dados.web.compativeisBrasil}
+                  </div>
+
+                  <div className="text-slate-500">Novas estruturadas</div>
+
+                  <div className="text-right font-semibold text-emerald-600">
+                    {resultado.dados.web.importadas}
+                  </div>
+
+                  <div className="text-slate-500">Novas da descoberta</div>
 
                   <div className="text-right font-semibold text-emerald-600">
                     {resultado.dados.web.persistenciaDescoberta.novas}
@@ -653,13 +883,53 @@ export function ControleSincronizacao() {
                     {resultado.dados.web.persistenciaDescoberta.atualizadas}
                   </div>
 
-                  <div className="text-slate-500">Falhas</div>
+                  <div className="text-slate-500">Duplicadas estruturadas</div>
 
-                  <div className="text-right font-semibold">
-                    {resultado.dados.web.persistenciaDescoberta.falhas}
+                  <div className="text-right font-semibold">{resultado.dados.web.duplicadas}</div>
+
+                  <div className="text-slate-500">Falhas de processamento</div>
+
+                  <div
+                    className={[
+                      "text-right font-semibold",
+
+                      resumoResultado.falhasWeb > 0 ? "text-rose-600" : ""
+                    ].join(" ")}
+                  >
+                    {resumoResultado.falhasWeb}
                   </div>
                 </div>
               </div>
+
+              {plataformasDescobertas.length > 0 && (
+                <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Globe2 size={15} className="text-indigo-500" />
+                    Plataformas encontradas
+                  </div>
+
+                  <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                    Quantidade de páginas disponíveis por origem após classificação e deduplicação.
+                  </p>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {plataformasDescobertas.map(plataforma => (
+                      <div
+                        key={plataforma.provedor}
+                        className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-slate-950"
+                      >
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                          {obterNomePlataforma(plataforma.provedor)}
+                        </span>
+
+                        <strong className="text-xs font-bold tabular-nums text-slate-800 dark:text-slate-200">
+                          {plataforma.quantidade}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                 <div className="flex items-center gap-2 text-sm font-semibold">
@@ -687,20 +957,62 @@ export function ControleSincronizacao() {
                   </div>
                 </div>
               </div>
+
+              {resultado.dados.modo.braveAutorizada && (
+                <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                    <Search size={15} />
+                    Consumo Brave
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                    <div className="text-slate-500">Tentativas nesta execução</div>
+
+                    <div className="text-right font-semibold">{resultado.tentativasBrave}</div>
+
+                    <div className="text-slate-500">Consumo hoje</div>
+
+                    <div className="text-right font-semibold">
+                      {status?.chamadasHoje ?? chamadasHoje} /{" "}
+                      {status?.limiteDiario ?? limiteDiario}
+                    </div>
+
+                    <div className="text-slate-500">Consumo no mês</div>
+
+                    <div className="text-right font-semibold">
+                      {status?.chamadasMes ?? chamadasMes} / {status?.limiteMensal ?? limiteMensal}
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-[11px] leading-5 text-indigo-700/80 dark:text-indigo-300/80">
+                    Tentativas contabilizadas não significam necessariamente respostas
+                    bem-sucedidas. O backend registra no terminal quantas consultas concluíram com
+                    sucesso, quantas falharam e quantos resultados foram recebidos.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex flex-col gap-3 rounded-2xl bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950">
-              <div className="flex items-center gap-2 text-xs text-slate-500">
+              <div className="flex items-start gap-2 text-xs leading-5 text-slate-500">
                 <ShieldCheck
                   size={14}
                   className={
-                    resultado.dados.modo.braveAutorizada ? "text-indigo-500" : "text-emerald-500"
+                    resultado.dados.modo.braveAutorizada
+                      ? "mt-0.5 shrink-0 text-indigo-500"
+                      : "mt-0.5 shrink-0 text-emerald-500"
                   }
                 />
 
-                {resultado.dados.modo.braveAutorizada
-                  ? `${resultado.chamadasBraveUtilizadas} chamada${resultado.chamadasBraveUtilizadas !== 1 ? "s" : ""} Brave utilizada${resultado.chamadasBraveUtilizadas !== 1 ? "s" : ""}.`
-                  : "Nenhuma chamada Brave foi autorizada."}
+                <span>
+                  {resultado.dados.modo.braveAutorizada
+                    ? `${resultado.tentativasBrave} tentativa${
+                        resultado.tentativasBrave !== 1 ? "s" : ""
+                      } Brave contabilizada${
+                        resultado.tentativasBrave !== 1 ? "s" : ""
+                      } nesta execução.`
+                    : "Nenhuma chamada Brave foi autorizada."}
+                </span>
               </div>
 
               <button

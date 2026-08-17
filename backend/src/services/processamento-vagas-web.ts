@@ -331,7 +331,7 @@ export async function processarVagasWeb(
 ): Promise<ResultadoProcessamentoWeb> {
   const salvarCompativeis = opcoes.salvarCompativeis ?? false
 
-  const paginas = await descobrirPaginasVagas({
+  const paginas = await descobrirPaginasVagas(perfil, {
     permitirBuscaLive: opcoes.permitirBuscaLive,
 
     limiteChamadas: opcoes.limiteChamadasBrave
