@@ -31,8 +31,41 @@ export type ResultadoFonteAts = JobImportResult & {
   error?: string
 }
 
+/**
+ * Os segmentos de pathname permanecem codificados pela URL.
+ *
+ * Eu decodifico o identificador antes de persistir a fonte porque os
+ * coletores fazem o encode novamente ao montar a chamada da API.
+ *
+ * Exemplo:
+ *
+ * PAR%20Technology
+ *        ↓
+ * PAR Technology
+ *        ↓
+ * encodeURIComponent no coletor
+ *        ↓
+ * PAR%20Technology
+ *
+ * Se a origem possuir uma codificação inválida, mantenho o valor original
+ * em vez de impedir o processamento das demais fontes.
+ */
 function obterPrimeiroSegmento(url: URL) {
-  return url.pathname.split("/").filter(Boolean)[0] ?? null
+  const segmento = url.pathname.split("/").filter(Boolean)[0]
+
+  if (!segmento) {
+    return null
+  }
+
+  try {
+    const decodificado = decodeURIComponent(segmento).trim()
+
+    return decodificado || null
+  } catch {
+    const original = segmento.trim()
+
+    return original || null
+  }
 }
 
 function identificarFonteWorkable(

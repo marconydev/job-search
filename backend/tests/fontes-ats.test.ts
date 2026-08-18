@@ -139,6 +139,34 @@ describe("aprendizado de fontes ATS", () => {
     assert.equal(fonte?.provedor, "ashby")
   })
 
+  test("decodifica identificador Ashby presente na URL", () => {
+    const fonte = identificarFonteAtsDaPagina(
+      criarPagina({
+        provedor: "ashby",
+
+        url: "https://jobs.ashbyhq.com/PAR%20Technology/abc123"
+      })
+    )
+
+    assert.equal(fonte?.identificador, "PAR Technology")
+
+    assert.equal(fonte?.provedor, "ashby")
+  })
+
+  test("não interrompe o aprendizado quando o segmento possui codificação inválida", () => {
+    const fonte = identificarFonteAtsDaPagina(
+      criarPagina({
+        provedor: "ashby",
+
+        url: "https://jobs.ashbyhq.com/empresa%ZZ/abc123"
+      })
+    )
+
+    assert.equal(fonte?.identificador, "empresa%ZZ")
+
+    assert.equal(fonte?.provedor, "ashby")
+  })
+
   test("identifica careers site Recruitee", () => {
     const fonte = identificarFonteAtsDaPagina(
       criarPagina({
