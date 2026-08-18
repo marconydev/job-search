@@ -5,8 +5,11 @@ import type { JobMatchStatus, NewJobMatch, UserJobStatus } from "../types/job.js
 /**
  * Salvo ou atualizo o resultado produzido pelo matcher.
  *
- * Se eu já tiver tomado uma decisão manual sobre a oportunidade,
- * preservo essa decisão quando o matcher for executado novamente.
+ * Preservo decisões manuais definitivas como aplicada e ignorada.
+ *
+ * Uma vaga apenas visualizada continua como "viewed" enquanto permanecer
+ * relevante, mas pode ser descartada posteriormente se uma nova análise
+ * identificar incompatibilidade.
  */
 export async function saveJobMatch(match: NewJobMatch) {
   const result = await db.query(
@@ -44,10 +47,14 @@ export async function saveJobMatch(match: NewJobMatch) {
           status_updated_at =
             CASE
               WHEN job_matches.status IN (
-                'viewed',
                 'applied',
                 'ignored'
               )
+                THEN job_matches.status_updated_at
+
+              WHEN
+                job_matches.status = 'viewed'
+                AND EXCLUDED.status = 'relevant'
                 THEN job_matches.status_updated_at
 
               WHEN job_matches.status
@@ -62,11 +69,15 @@ export async function saveJobMatch(match: NewJobMatch) {
           status =
             CASE
               WHEN job_matches.status IN (
-                'viewed',
                 'applied',
                 'ignored'
               )
                 THEN job_matches.status
+
+              WHEN
+                job_matches.status = 'viewed'
+                AND EXCLUDED.status = 'relevant'
+                THEN 'viewed'
 
               ELSE
                 EXCLUDED.status
@@ -91,6 +102,9 @@ export async function saveJobMatch(match: NewJobMatch) {
  *
  * Isso evita que ela desapareça da lista principal apenas porque eu
  * abri o anúncio uma vez.
+ *
+ * Se uma reanálise posterior identificar que a vaga deve ser descartada,
+ * ela deixa de aparecer normalmente.
  */
 export async function listRelevantJobMatches(minScore: number) {
   const result = await db.query(
@@ -151,10 +165,10 @@ export async function listRelevantJobMatches(minScore: number) {
 }
 
 /**
- * Esta será a consulta principal utilizada pelo frontend.
+ * Esta é a consulta principal utilizada pelo frontend.
  *
- * Não mostro descartadas automaticamente porque elas não precisam
- * ocupar espaço no dashboard operacional.
+ * Não mostro descartadas automaticamente porque elas não precisam ocupar
+ * espaço no dashboard operacional.
  */
 export async function listDashboardJobMatches() {
   const result = await db.query(`
@@ -207,8 +221,7 @@ export async function listDashboardJobMatches() {
 }
 
 /**
- * Calculo os indicadores apresentados nos cards superiores do
- * dashboard.
+ * Calculo os indicadores apresentados nos cards superiores do dashboard.
  */
 export async function getJobDashboardSummary() {
   const result = await db.query(`
@@ -328,7 +341,7 @@ export async function updateJobMatchStatus(jobId: number, status: UserJobStatus)
 
 /**
  * Uso esta validação também na rota para não aceitar qualquer texto
- * recebido do frontend.
+ * recebido pelo frontend.
  */
 export function isUserJobStatus(value: unknown): value is UserJobStatus {
   const statuses: JobMatchStatus[] = ["relevant", "viewed", "applied", "ignored"]

@@ -33,6 +33,10 @@ next-env.d.ts
 # TypeScript
 *.tsbuildinfo
 
+# Backups locais
+backups/
+*.backup
+
 # Arquivos do sistema
 .DS_Store
 Thumbs.db

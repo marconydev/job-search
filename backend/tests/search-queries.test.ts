@@ -148,6 +148,53 @@ describe("gerador de consultas de vagas", () => {
     assert.equal(unicas.size, consultas.length)
   })
 
+  test("restringe as buscas gerais e empresariais ao Brasil", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    /**
+     * As pesquisas regionais já possuem cidades brasileiras explícitas.
+     *
+     * Aqui eu valido principalmente as consultas gerais, rotativas e de
+     * empresas, que antes podiam procurar vagas globais ou LATAM.
+     */
+    const consultasNacionais = consultas.filter(consulta => consulta.familia !== "regional")
+
+    for (const consulta of consultasNacionais) {
+      const texto = consulta.texto.toLowerCase()
+
+      assert.ok(
+        texto.includes("brasil") || texto.includes("brazil"),
+        `Consulta sem restrição ao Brasil: ${consulta.texto}`
+      )
+
+      assert.equal(texto.includes("latam"), false, `Consulta ainda contém LATAM: ${consulta.texto}`)
+
+      assert.equal(
+        texto.includes("latin america"),
+        false,
+        `Consulta ainda contém Latin America: ${consulta.texto}`
+      )
+
+      assert.equal(
+        texto.includes("worldwide"),
+        false,
+        `Consulta ainda contém Worldwide: ${consulta.texto}`
+      )
+
+      assert.equal(
+        texto.includes("anywhere"),
+        false,
+        `Consulta ainda contém Anywhere: ${consulta.texto}`
+      )
+
+      assert.equal(
+        texto.includes(" global "),
+        false,
+        `Consulta ainda contém Global: ${consulta.texto}`
+      )
+    }
+  })
+
   test("mantém as consultas dentro de tamanho seguro", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 

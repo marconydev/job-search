@@ -2,6 +2,8 @@ import type { NewJob, StoredJob } from "../types/job.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
+import { avaliarElegibilidadeBrasil } from "./elegibilidade-localizacao.js"
+
 import { matchJob } from "./job-matcher.js"
 
 /**
@@ -40,10 +42,24 @@ function criarVagaTemporaria(vaga: NewJob): StoredJob {
 }
 
 /**
+ * Localização é um pré-requisito, não um componente opcional do score.
+ *
+ * Eu só deixo a vaga chegar ao matcher quando consigo confirmar que ela
+ * pertence ao Brasil.
+ *
+ * "Remote", "Worldwide", "LATAM" ou localização indefinida não passam.
+ */
+function vagaEhDoBrasil(vaga: NewJob) {
+  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
+
+  return elegibilidade.situacao === "compativel"
+}
+
+/**
  * Eu filtro antes da persistência.
  *
- * Isso evita armazenar centenas de vagas que o próprio matcher já sabe
- * que não possuem aderência mínima ao perfil profissional.
+ * Primeiro valido território brasileiro e somente depois calculo a
+ * aderência profissional.
  */
 export function filtrarVagasAderentes(
   vagas: NewJob[],
@@ -51,6 +67,10 @@ export function filtrarVagasAderentes(
   pontuacaoMinima = 60
 ) {
   return vagas.filter(vaga => {
+    if (!vagaEhDoBrasil(vaga)) {
+      return false
+    }
+
     const resultado = matchJob(criarVagaTemporaria(vaga), perfil)
 
     return resultado.score >= pontuacaoMinima

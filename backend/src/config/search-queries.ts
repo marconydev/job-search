@@ -267,10 +267,12 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
 }
 
 /**
- * As consultas gerais precisam trazer tanto oportunidades nacionais
- * quanto vagas remotas que aceitem candidatos do Brasil ou LATAM.
+ * Toda descoberta deve permanecer restrita ao território brasileiro.
+ *
+ * "Remote", "LATAM", "Worldwide" e termos semelhantes não comprovam que
+ * a oportunidade pertence ao Brasil, portanto não entram na consulta.
  */
-const CONTEXTO_LOCALIZACAO = '(Brasil OR Brazil OR LATAM OR "Latin America" OR remoto OR remote)'
+const CONTEXTO_LOCALIZACAO = "(Brasil OR Brazil)"
 
 /**
  * Nas buscas regionais eu concentro os principais portais que costumam
@@ -533,11 +535,18 @@ function criarExpressaoValores(valores: string[]) {
 function montarConsulta(plataforma: PlataformaBusca, termos: string[]) {
   const expressao = `(${criarExpressaoTermos(termos)})`
 
+  /**
+   * Mesmo em portais globais eu exijo Brasil/Brazil na descoberta.
+   *
+   * O filtro geográfico posterior continua sendo a autoridade final,
+   * mas esta restrição evita desperdiçar chamadas Brave com resultados
+   * claramente internacionais.
+   */
   if (plataforma.id === "web") {
     return `${expressao} ${CONTEXTO_LOCALIZACAO}`
   }
 
-  return `${plataforma.escopo} ${expressao}`
+  return `${plataforma.escopo} ` + `${expressao} ` + CONTEXTO_LOCALIZACAO
 }
 
 /**
@@ -552,7 +561,15 @@ function montarConsultaEmpresas(empresas: string[], termos: string[]) {
 
   const expressaoCargos = `(${criarExpressaoTermos(termos)})`
 
-  return `${expressaoEmpresas} ` + `${expressaoCargos} ` + "(vaga OR vagas OR careers OR jobs)"
+  /**
+   * Os cargos já dão um sinal forte de oportunidade profissional.
+   *
+   * Mantenho apenas "vagas" e "jobs" como reforço de intenção para não
+   * alongar excessivamente as consultas estratégicas.
+   *
+   * A localização continua obrigatoriamente restrita ao Brasil.
+   */
+  return `${expressaoEmpresas} ` + `${expressaoCargos} ` + "(vagas OR jobs) " + CONTEXTO_LOCALIZACAO
 }
 
 /**

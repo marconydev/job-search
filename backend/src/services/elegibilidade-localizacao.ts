@@ -5,6 +5,7 @@ function normalizarTexto(valor: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
 }
@@ -23,62 +24,124 @@ function contemAlgumTermo(texto: string, termos: string[]) {
   return termos.some(termo => contemTermo(texto, termo))
 }
 
+/**
+ * Aqui eu considero somente sinais que realmente permitem associar a
+ * oportunidade ao território brasileiro.
+ *
+ * Regiões globais, LATAM ou simplesmente "remote" não são suficientes.
+ */
 const localizacoesBrasil = [
   "brasil",
   "brazil",
-  "sao paulo",
-  "rio de janeiro",
-  "minas gerais",
-  "belo horizonte",
-  "parana",
-  "curitiba",
-  "santa catarina",
-  "florianopolis",
-  "rio grande do sul",
-  "porto alegre",
-  "pernambuco",
-  "recife",
-  "paraiba",
-  "joao pessoa",
+
+  "acre",
+  "alagoas",
+  "amapa",
+  "amazonas",
   "bahia",
-  "salvador",
   "ceara",
-  "fortaleza",
-  "goias",
-  "goiania",
   "distrito federal",
-  "brasilia",
   "espirito santo",
-  "vitoria",
-  "uberlandia",
-  "barbacena",
-  "abaete",
+  "goias",
+  "maranhao",
+  "mato grosso",
+  "mato grosso do sul",
+  "minas gerais",
+  "para",
+  "paraiba",
+  "parana",
+  "pernambuco",
+  "piaui",
+  "rio de janeiro",
+  "rio grande do norte",
+  "rio grande do sul",
+  "rondonia",
+  "roraima",
+  "santa catarina",
+  "sao paulo",
+  "sergipe",
+  "tocantins",
+
+  "joao pessoa",
+  "campina grande",
+  "recife",
+  "fortaleza",
+  "salvador",
   "campinas",
+  "barueri",
+  "osasco",
+  "sao carlos",
+  "ribeirao preto",
+  "sorocaba",
+  "belo horizonte",
+  "uberlandia",
+  "vitoria",
+  "curitiba",
+  "londrina",
+  "maringa",
+  "florianopolis",
+  "blumenau",
   "joinville",
-  "campina grande"
+  "porto alegre",
+  "caxias do sul",
+  "brasilia",
+  "goiania",
+  "anapolis",
+  "campo grande",
+  "cuiaba"
 ]
 
-const regioesCompativeis = [
+const ufsBrasil = [
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO"
+]
+
+/**
+ * Esses termos indicam alcance internacional, mas não uma vaga
+ * localizada no Brasil.
+ */
+const regioesGlobais = [
   "worldwide",
   "anywhere",
   "global",
   "latin america",
   "latam",
   "south america",
-  "americas"
+  "americas",
+  "world",
+  "emea",
+  "europe",
+  "apac"
 ]
 
-const localizacoesIncompativeis = [
-  "germany",
-  "alemanha",
-  "europe",
-  "europa",
-  "european union",
-  "emea",
-
+const localizacoesEstrangeiras = [
   "united states",
   "usa",
-
   "canada",
 
   "united kingdom",
@@ -88,20 +151,32 @@ const localizacoesIncompativeis = [
   "spain",
   "france",
   "italy",
+  "germany",
   "netherlands",
   "poland",
   "sweden",
   "norway",
+  "lithuania",
+  "lituania",
+  "serbia",
+  "servia",
+  "romania",
+  "hungary",
+  "croatia",
+  "czech republic",
+  "czechia",
+  "estonia",
+  "latvia",
 
   "south africa",
 
   "india",
+  "pakistan",
 
   "australia",
   "new zealand",
 
   "japan",
-  "apac",
   "singapore",
 
   "united arab emirates",
@@ -136,57 +211,71 @@ const indicadoresRestricao = [
   "right to work in"
 ]
 
-const indicadoresContratacao = [
-  "able to hire in",
-  "currently able to hire in",
-  "open to candidates in",
-  "open to applicants in",
-  "we hire in",
-  "hiring in",
-  "hiring countries",
-  "countries:"
+/**
+ * Em descrições sem um campo de localização estruturado, aceito apenas
+ * frases que realmente indiquem que o local da vaga é o Brasil.
+ *
+ * Não considero "we hire in Brazil" suficiente, pois isso também aparece
+ * em vagas globais.
+ */
+const indicadoresLocalizacaoBrasil = [
+  "based in brazil",
+  "based in brasil",
+  "located in brazil",
+  "located in brasil",
+  "location brazil",
+  "location brasil",
+  "work location brazil",
+  "work location brasil",
+  "workplace brazil",
+  "workplace brasil",
+  "remote brazil",
+  "remote brasil",
+  "brazil remote",
+  "brasil remote",
+  "brasil remoto",
+  "brasil remota",
+  "remoto brasil",
+  "remota brasil",
+  "vaga remota brasil",
+  "vaga remota no brasil",
+  "trabalho remoto brasil",
+  "trabalho remoto no brasil",
+  "home office brazil",
+  "home office brasil"
 ]
 
-const ufsBrasil = [
-  "AC",
-  "AL",
-  "AP",
-  "AM",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MT",
-  "MS",
-  "MG",
-  "PA",
-  "PB",
-  "PR",
-  "PE",
-  "PI",
-  "RJ",
-  "RN",
-  "RS",
-  "RO",
-  "RR",
-  "SC",
-  "SP",
-  "SE",
-  "TO"
-]
+function localizacaoTemUfBrasileira(localizacao: string) {
+  const texto = localizacao.trim()
+
+  if (!texto) {
+    return false
+  }
+
+  if (/^BR$/i.test(texto)) {
+    return true
+  }
+
+  return ufsBrasil.some(uf => {
+    const padrao = new RegExp(`(^|[\\s,;/|()\\-–—])${uf}($|[\\s,;/|()\\-–—])`, "i")
+
+    return padrao.test(texto)
+  })
+}
 
 /**
- * Reconheço padrões brasileiros muito comuns em títulos da Gupy,
- * como "(SP)", "/RS" ou "- PB".
+ * Reconheço padrões como:
  *
- * Exijo também algum termo português relacionado ao nosso contexto para
- * reduzir a chance de interpretar uma sigla estrangeira como estado brasileiro.
+ * Analista de Suporte - SP
+ * Técnico de TI / PB
+ * Analista de Sistemas (PR)
+ *
+ * Exijo contexto profissional em português para reduzir falsos positivos
+ * com siglas estrangeiras.
  */
 function tituloTemUfBrasileira(titulo: string) {
   const possuiContextoPortugues =
-    /\b(analista|atendente|suporte|tecnico|sistemas|implantacao|infraestrutura|garantia|fiscal)\b/i.test(
+    /\b(analista|atendente|suporte|tecnico|técnico|sistemas|implantacao|implantação|infraestrutura|dados|monitoramento)\b/i.test(
       titulo
     )
 
@@ -195,7 +284,16 @@ function tituloTemUfBrasileira(titulo: string) {
   }
 
   return ufsBrasil.some(uf => {
-    const padrao = new RegExp(`(\\/|\\(|-|,\\s*)${uf}(\\)|\\b)`, "i")
+    /**
+     * Aceito formatos comuns encontrados nos títulos das vagas:
+     *
+     * Analista de Suporte - SP
+     * Analista de Suporte-SP
+     * Analista de Suporte / SP
+     * Analista de Suporte (SP)
+     * Analista de Suporte, SP
+     */
+    const padrao = new RegExp(`(?:\\/|\\(|-|,\\s*)\\s*${uf}(?:\\)|\\b)`, "i")
 
     return padrao.test(titulo)
   })
@@ -206,31 +304,23 @@ function descricaoRestringeParaOutroPais(descricao: string) {
     return false
   }
 
-  return contemAlgumTermo(descricao, localizacoesIncompativeis)
+  return contemAlgumTermo(descricao, localizacoesEstrangeiras)
 }
 
-function descricaoConfirmaBrasil(descricao: string) {
-  if (!contemTermo(descricao, "brazil") && !contemTermo(descricao, "brasil")) {
-    return false
-  }
-
-  for (const indicador of indicadoresContratacao) {
-    const indice = descricao.indexOf(indicador)
-
-    if (indice === -1) {
-      continue
-    }
-
-    const trecho = descricao.slice(indice, indice + 1000)
-
-    if (contemTermo(trecho, "brazil") || contemTermo(trecho, "brasil")) {
-      return true
-    }
-  }
-
-  return false
+function descricaoIndicaLocalizacaoBrasil(descricao: string) {
+  return contemAlgumTermo(descricao, indicadoresLocalizacaoBrasil)
 }
 
+/**
+ * A regra é propositalmente conservadora:
+ *
+ * - comprovação de Brasil -> compatível;
+ * - comprovação de outro país/região global -> incompatível;
+ * - sem informação suficiente -> indefinida.
+ *
+ * Tanto "incompatível" quanto "indefinida" são descartadas pelo pipeline
+ * de importação. Assim uma vaga remota nunca entra apenas por ser remota.
+ */
 export function avaliarElegibilidadeBrasil(
   localizacao: string | null,
   descricao: string | null = null,
@@ -262,39 +352,39 @@ export function avaliarElegibilidadeBrasil(
 
   if (
     contemAlgumTermo(textoReferencia, localizacoesBrasil) ||
+    localizacaoTemUfBrasileira(localizacao ?? "") ||
     tituloTemUfBrasileira(titulo ?? "")
   ) {
     return {
       situacao: "compativel",
 
-      motivo: "O título ou a localização indica uma oportunidade compatível com o Brasil."
+      motivo: "A localização da oportunidade indica território brasileiro."
     }
   }
 
-  if (contemAlgumTermo(textoReferencia, regioesCompativeis)) {
+  if (descricaoIndicaLocalizacaoBrasil(textoDescricao)) {
     return {
       situacao: "compativel",
 
-      motivo: "A região informada inclui candidatos localizados no Brasil."
+      motivo: "A descrição informa explicitamente que a localização da vaga é o Brasil."
     }
   }
 
-  if (descricaoConfirmaBrasil(textoDescricao)) {
+  if (contemAlgumTermo(textoReferencia, regioesGlobais)) {
     return {
-      situacao: "compativel",
+      situacao: "incompativel",
 
-      motivo:
-        "A descrição confirma explicitamente que a empresa pode contratar candidatos no Brasil."
+      motivo: "A vaga é global ou regional e não está localizada especificamente no Brasil."
     }
   }
 
-  if (contemAlgumTermo(textoReferencia, localizacoesIncompativeis)) {
+  if (contemAlgumTermo(textoReferencia, localizacoesEstrangeiras)) {
     return {
       situacao: "incompativel",
 
       motivo: localizacao
-        ? `A localização informada não é compatível com o Brasil: ${localizacao}.`
-        : "O título indica uma oportunidade restrita a outro país ou região."
+        ? `A localização informada está fora do Brasil: ${localizacao}.`
+        : "O título indica uma oportunidade localizada fora do Brasil."
     }
   }
 
@@ -302,7 +392,7 @@ export function avaliarElegibilidadeBrasil(
     return {
       situacao: "indefinida",
 
-      motivo: "A vaga não informou localização suficiente para confirmar a elegibilidade no Brasil."
+      motivo: "A vaga não informou localização suficiente para confirmar que está no Brasil."
     }
   }
 
@@ -314,13 +404,13 @@ export function avaliarElegibilidadeBrasil(
     return {
       situacao: "indefinida",
 
-      motivo: "A vaga é remota, mas ainda não informa de quais países aceita candidatos."
+      motivo: "A vaga é remota, mas não informa que a oportunidade está localizada no Brasil."
     }
   }
 
   return {
     situacao: "indefinida",
 
-    motivo: `Não consegui confirmar se a localização "${localizacao}" aceita candidatos no Brasil.`
+    motivo: `Não consegui confirmar que a localização "${localizacao}" pertence ao Brasil.`
   }
 }

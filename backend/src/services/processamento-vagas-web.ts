@@ -27,6 +27,8 @@ import type {
 
 import { converterVagaWebParaNovaVaga } from "./conversao-vaga-web.js"
 
+import { avaliarElegibilidadeBrasil } from "./elegibilidade-localizacao.js"
+
 import { descobrirPaginasVagas } from "./job-discovery.js"
 
 import { matchJob as avaliarVaga } from "./job-matcher.js"
@@ -38,8 +40,7 @@ import {
   paginaEhListagem,
   paginaEstaIndisponivel,
   paginaPareceConteudoInformativo,
-  paginaPareceRelacionada,
-  paginaTemSinalBrasil
+  paginaPareceRelacionada
 } from "./vagas-web/triagem-vagas-web.js"
 
 import { registrarFontesAtsDescobertas } from "./fontes-ats.js"
@@ -110,7 +111,9 @@ function avaliarPaginaDescoberta(
     return null
   }
 
-  if (!paginaTemSinalBrasil(pagina)) {
+  const elegibilidadeBrasil = avaliarElegibilidadeBrasil(null, pagina.descricao, pagina.titulo)
+
+  if (elegibilidadeBrasil.situacao !== "compativel") {
     return null
   }
 
