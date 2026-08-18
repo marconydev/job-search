@@ -20,6 +20,18 @@ type PlataformaBusca = {
   escopo: string
 }
 
+type GrupoEmpresas = {
+  id: string
+
+  empresas: string[]
+}
+
+type RegiaoPrioritaria = {
+  id: string
+
+  localizacoes: string[]
+}
+
 const ORDEM_FAMILIAS: NomeFamilia[] = [
   "suporte",
   "sistemas",
@@ -30,10 +42,10 @@ const ORDEM_FAMILIAS: NomeFamilia[] = [
 ]
 
 /**
- * Eu mantenho aqui somente os ambientes nos quais quero procurar vagas.
+ * Eu mantenho aqui os portais gerais nos quais quero procurar vagas.
  *
- * Os cargos não ficam mais duplicados nesta configuração.
- * Eles vêm diretamente do perfil profissional salvo.
+ * Os cargos continuam vindo do perfil profissional. Assim não duplico
+ * nomenclaturas entre o perfil e a estratégia de descoberta.
  */
 const PLATAFORMAS_BUSCA: PlataformaBusca[] = [
   {
@@ -118,6 +130,93 @@ const PLATAFORMAS_BUSCA: PlataformaBusca[] = [
   }
 ]
 
+/**
+ * Além das buscas gerais, eu priorizo empresas que possuem volume
+ * relevante de oportunidades em tecnologia, operações, suporte,
+ * implantação, sistemas, infraestrutura e dados.
+ *
+ * Não crio uma chamada por empresa. Agrupo organizações relacionadas
+ * para preservar o orçamento diário da Brave.
+ */
+const GRUPOS_EMPRESAS_PRIORITARIAS: GrupoEmpresas[] = [
+  {
+    id: "financeiro",
+
+    empresas: ["Itaú", "Bradesco", "Safra", "Sicredi", "Sicoob", "BTG Pactual", "XP"]
+  },
+  {
+    id: "fintech",
+
+    empresas: [
+      "Nubank",
+      "Neon",
+      "Mercado Livre",
+      "Mercado Pago",
+      "PicPay",
+      "Inter",
+      "PagBank",
+      "Stone",
+      "C6 Bank",
+      "Cielo"
+    ]
+  },
+  {
+    id: "tecnologia",
+
+    empresas: [
+      "TOTVS",
+      "Accenture",
+      "Senior Sistemas",
+      "Softplan",
+      "TIVIT",
+      "Matera",
+      "Serasa Experian",
+      "Dock"
+    ]
+  }
+]
+
+/**
+ * As buscas gerais continuam nacionais.
+ *
+ * Estas regiões recebem apenas uma prioridade adicional porque concentram
+ * muitos empregadores de tecnologia e podem ficar escondidas em uma
+ * pesquisa nacional muito ampla.
+ */
+const REGIOES_PRIORITARIAS: RegiaoPrioritaria[] = [
+  {
+    id: "sudeste",
+
+    localizacoes: [
+      "São Paulo",
+      "Campinas",
+      "Barueri",
+      "Belo Horizonte",
+      "Uberlândia",
+      "Rio de Janeiro",
+      "Vitória"
+    ]
+  },
+  {
+    id: "sul",
+
+    localizacoes: [
+      "Curitiba",
+      "Florianópolis",
+      "Blumenau",
+      "Joinville",
+      "Porto Alegre",
+      "Londrina",
+      "Maringá"
+    ]
+  },
+  {
+    id: "centro-oeste",
+
+    localizacoes: ["Brasília", "Goiânia", "Campo Grande", "Cuiabá", "Anápolis"]
+  }
+]
+
 const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
   suporte: [
     "support",
@@ -172,6 +271,16 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
  * quanto vagas remotas que aceitem candidatos do Brasil ou LATAM.
  */
 const CONTEXTO_LOCALIZACAO = '(Brasil OR Brazil OR LATAM OR "Latin America" OR remoto OR remote)'
+
+/**
+ * Nas buscas regionais eu concentro os principais portais que costumam
+ * devolver páginas individuais de vagas.
+ *
+ * Isso reduz a chance de consumir uma chamada estratégica com páginas
+ * institucionais ou artigos.
+ */
+const ESCOPO_VAGAS_REGIONAIS =
+  "(site:gupy.io OR site:linkedin.com/jobs/view OR site:br.indeed.com/viewjob OR site:myworkdayjobs.com)"
 
 function normalizarTexto(valor: string) {
   return valor
@@ -299,7 +408,7 @@ function localizarTermoPreferido(termos: string[], preferencias: string[]) {
 }
 
 /**
- * Esta expressão é pesquisada diariamente em TODAS as plataformas.
+ * Esta expressão é pesquisada diariamente em todas as plataformas gerais.
  *
  * O restante das nomenclaturas entra nas consultas rotativas.
  */
@@ -360,15 +469,68 @@ function criarNucleoDiario(familias: Record<NomeFamilia, string[]>) {
   return [...unicos.values()].slice(0, 8)
 }
 
+/**
+ * As consultas estratégicas precisam ser menores que o núcleo geral.
+ *
+ * Seleciono até um cargo representativo por família. Dessa maneira uma
+ * única pesquisa consegue procurar suporte, sistemas, infraestrutura,
+ * implantação e dados sem ficar longa demais.
+ */
+function criarNucleoEstrategico(familias: Record<NomeFamilia, string[]>) {
+  const candidatos = [
+    localizarTermoPreferido(familias.suporte, ["analista de suporte", "technical support"]),
+
+    localizarTermoPreferido(familias.sistemas, ["analista de sistemas", "application support"]),
+
+    localizarTermoPreferido(familias.infraestrutura, ["analista de infraestrutura", "noc analyst"]),
+
+    localizarTermoPreferido(familias.implantacao, [
+      "analista de implantacao",
+      "implementation analyst"
+    ]),
+
+    localizarTermoPreferido(familias.dados, ["analista de dados", "data analyst"])
+  ].filter((termo): termo is string => Boolean(termo))
+
+  const unicos = new Map<string, string>()
+
+  for (const termo of candidatos) {
+    unicos.set(normalizarTexto(termo), termo)
+  }
+
+  const todos = [
+    ...familias.suporte,
+    ...familias.sistemas,
+    ...familias.infraestrutura,
+    ...familias.implantacao,
+    ...familias.dados,
+    ...familias.geral
+  ]
+
+  for (const termo of todos) {
+    if (unicos.size >= 5) {
+      break
+    }
+
+    const chave = normalizarTexto(termo)
+
+    if (!unicos.has(chave)) {
+      unicos.set(chave, termo)
+    }
+  }
+
+  return [...unicos.values()].slice(0, 5)
+}
+
 function criarExpressaoTermos(termos: string[]) {
   return termos.map(termo => `"${termo}"`).join(" OR ")
 }
 
-function montarConsulta(
-  plataforma: PlataformaBusca,
+function criarExpressaoValores(valores: string[]) {
+  return valores.map(valor => `"${valor}"`).join(" OR ")
+}
 
-  termos: string[]
-) {
+function montarConsulta(plataforma: PlataformaBusca, termos: string[]) {
   const expressao = `(${criarExpressaoTermos(termos)})`
 
   if (plataforma.id === "web") {
@@ -379,14 +541,80 @@ function montarConsulta(
 }
 
 /**
- * Eu gero duas camadas:
+ * Nas empresas prioritárias eu ainda exijo algum sinal de página de vaga.
+ *
+ * A decisão final continua sendo feita pela triagem e pelo matcher. A
+ * presença da empresa apenas aumenta a chance de a Brave descobrir a
+ * oportunidade; ela nunca aumenta o score da vaga.
+ */
+function montarConsultaEmpresas(empresas: string[], termos: string[]) {
+  const expressaoEmpresas = `(${criarExpressaoValores(empresas)})`
+
+  const expressaoCargos = `(${criarExpressaoTermos(termos)})`
+
+  return `${expressaoEmpresas} ` + `${expressaoCargos} ` + "(vaga OR vagas OR careers OR jobs)"
+}
+
+/**
+ * Para regiões prioritárias eu uso somente portais que costumam devolver
+ * páginas individuais.
+ *
+ * A localização é usada apenas na descoberta. Ela não substitui a
+ * validação de localização feita posteriormente.
+ */
+function montarConsultaRegional(localizacoes: string[], termos: string[]) {
+  const expressaoCargos = `(${criarExpressaoTermos(termos)})`
+
+  const expressaoLocalizacoes = `(${criarExpressaoValores(localizacoes)})`
+
+  return `${ESCOPO_VAGAS_REGIONAIS} ` + `${expressaoCargos} ` + expressaoLocalizacoes
+}
+
+function criarConsultasEstrategicas(familias: Record<NomeFamilia, string[]>): ConsultaBuscaVaga[] {
+  const nucleo = criarNucleoEstrategico(familias)
+
+  if (nucleo.length === 0) {
+    return []
+  }
+
+  const consultas: ConsultaBuscaVaga[] = []
+
+  for (const grupo of GRUPOS_EMPRESAS_PRIORITARIAS) {
+    consultas.push({
+      texto: montarConsultaEmpresas(grupo.empresas, nucleo),
+
+      plataforma: `empresas-${grupo.id}`,
+
+      familia: "empresas",
+
+      recorrencia: "diaria"
+    })
+  }
+
+  for (const regiao of REGIOES_PRIORITARIAS) {
+    consultas.push({
+      texto: montarConsultaRegional(regiao.localizacoes, nucleo),
+
+      plataforma: `regiao-${regiao.id}`,
+
+      familia: "regional",
+
+      recorrencia: "diaria"
+    })
+  }
+
+  return consultas
+}
+
+/**
+ * Eu gero três camadas:
  *
  * 1. uma pesquisa diária ampla em cada plataforma;
- * 2. uma matriz rotativa com todas as nomenclaturas do perfil em
- *    todas as plataformas.
+ * 2. seis pesquisas estratégicas por empresas e regiões;
+ * 3. uma matriz rotativa com todas as nomenclaturas do perfil.
  *
- * O job-discovery escolhe até 30 chamadas por dia e mantém a rotação
- * das consultas detalhadas pelo horário da última execução.
+ * O job-discovery continua responsável por respeitar o limite de 30
+ * chamadas e por rotacionar o que não couber na execução atual.
  */
 export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBuscaVaga[] {
   const familias = criarFamilias(perfil)
@@ -410,6 +638,8 @@ export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBu
       recorrencia: "diaria"
     })
   }
+
+  consultas.push(...criarConsultasEstrategicas(familias))
 
   const pacotesPorFamilia = new Map<NomeFamilia, string[][]>()
 
@@ -450,8 +680,9 @@ export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBu
   }
 
   /**
-   * Algumas consultas do núcleo podem coincidir exatamente com um pacote.
-   * Eu removo a duplicidade sem perder a prioridade diária.
+   * Algumas consultas podem coincidir exatamente.
+   *
+   * Eu removo a duplicidade sem perder a prioridade das consultas diárias.
    */
   const unicas = new Map<string, ConsultaBuscaVaga>()
 

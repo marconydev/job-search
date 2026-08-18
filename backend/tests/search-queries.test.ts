@@ -44,13 +44,80 @@ describe("gerador de consultas de vagas", () => {
 
     const diarias = consultas.filter(consulta => consulta.recorrencia === "diaria")
 
-    assert.ok(diarias.length >= 10)
+    assert.ok(diarias.length >= 22)
 
     assert.ok(diarias.some(consulta => consulta.plataforma === "gupy"))
 
     assert.ok(diarias.some(consulta => consulta.plataforma === "linkedin"))
 
     assert.ok(diarias.some(consulta => consulta.plataforma === "indeed"))
+  })
+
+  test("prioriza bancos fintechs e empresas de tecnologia", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const estrategicas = consultas.filter(consulta => consulta.familia === "empresas")
+
+    assert.equal(estrategicas.length, 3)
+
+    const texto = estrategicas.map(consulta => consulta.texto.toLowerCase()).join("\n")
+
+    const empresasEsperadas = [
+      "itaú",
+      "bradesco",
+      "safra",
+      "sicredi",
+      "nubank",
+      "neon",
+      "mercado livre",
+      "mercado pago",
+      "picpay",
+      "inter",
+      "pagbank",
+      "stone",
+      "c6 bank",
+      "totvs",
+      "accenture",
+      "senior sistemas",
+      "softplan",
+      "tivit",
+      "matera",
+      "serasa experian"
+    ]
+
+    for (const empresa of empresasEsperadas) {
+      assert.ok(texto.includes(empresa), `Empresa estratégica ausente: ${empresa}`)
+    }
+  })
+
+  test("prioriza sudeste sul e centro oeste sem remover a busca nacional", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const regionais = consultas.filter(consulta => consulta.familia === "regional")
+
+    assert.equal(regionais.length, 3)
+
+    assert.ok(regionais.some(consulta => consulta.plataforma === "regiao-sudeste"))
+
+    assert.ok(regionais.some(consulta => consulta.plataforma === "regiao-sul"))
+
+    assert.ok(regionais.some(consulta => consulta.plataforma === "regiao-centro-oeste"))
+
+    const texto = regionais.map(consulta => consulta.texto.toLowerCase()).join("\n")
+
+    assert.ok(texto.includes("são paulo"))
+
+    assert.ok(texto.includes("blumenau"))
+
+    assert.ok(texto.includes("brasília"))
+
+    /**
+     * A consulta web geral continua existindo, portanto a prioridade
+     * regional não transforma a busca em uma busca apenas local.
+     */
+    assert.ok(
+      consultas.some(consulta => consulta.plataforma === "web" && consulta.texto.includes("Brasil"))
+    )
   })
 
   test("inclui todos os cargos buscados em alguma consulta", () => {

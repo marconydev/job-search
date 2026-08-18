@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+
 import { describe, test } from "node:test"
 
 import { matchJob } from "../src/services/job-matcher.js"
@@ -140,6 +141,43 @@ describe("job matcher", () => {
     assert.equal(remota.score, Math.min(presencial.score + 10, 100))
 
     assert.ok(remota.reasons.includes("Vaga remota"))
+  })
+
+  test("aceita cidade brasileira quando o perfil aceita Brasil", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        location: "São Paulo, SP"
+      }),
+      perfil
+    )
+
+    assert.ok(resultado.score >= 60)
+
+    assert.ok(resultado.reasons.includes("Localização compatível"))
+  })
+
+  test("aceita localidades prioritárias do sul e centro oeste", () => {
+    const perfil = criarPerfil()
+
+    const blumenau = matchJob(
+      criarVaga({
+        location: "Blumenau, SC"
+      }),
+      perfil
+    )
+
+    const brasilia = matchJob(
+      criarVaga({
+        location: "Brasília, DF"
+      }),
+      perfil
+    )
+
+    assert.ok(blumenau.score >= 60)
+
+    assert.ok(brasilia.score >= 60)
   })
 
   test("rejeita vaga com localização incompatível", () => {

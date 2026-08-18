@@ -4,7 +4,9 @@ import type { JobMatch as CorrespondenciaVaga, StoredJob as VagaArmazenada } fro
 
 type FamiliaFormacao = {
   nome: string
+
   termosPerfil: string[]
+
   termosVaga: string[]
 }
 
@@ -69,6 +71,107 @@ const FAMILIAS_FORMACAO: FamiliaFormacao[] = [
   }
 ]
 
+/**
+ * Estes sinais são utilizados somente quando o perfil aceita vagas
+ * localizadas no Brasil.
+ *
+ * No campo de localização das fontes é comum receber cidade, estado ou
+ * apenas a sigla da UF em vez da palavra "Brasil".
+ */
+const SINAIS_LOCALIZACAO_BRASIL = [
+  "acre",
+  "ac",
+  "alagoas",
+  "al",
+  "amapa",
+  "ap",
+  "amazonas",
+  "am",
+  "bahia",
+  "ba",
+  "ceara",
+  "ce",
+  "distrito federal",
+  "df",
+  "espirito santo",
+  "es",
+  "goias",
+  "go",
+  "maranhao",
+  "ma",
+  "mato grosso",
+  "mt",
+  "mato grosso do sul",
+  "ms",
+  "minas gerais",
+  "mg",
+  "para",
+  "pa",
+  "paraiba",
+  "pb",
+  "parana",
+  "pr",
+  "pernambuco",
+  "pe",
+  "piaui",
+  "pi",
+  "rio de janeiro",
+  "rj",
+  "rio grande do norte",
+  "rn",
+  "rio grande do sul",
+  "rs",
+  "rondonia",
+  "ro",
+  "roraima",
+  "rr",
+  "santa catarina",
+  "sc",
+  "sao paulo",
+  "sp",
+  "sergipe",
+  "se",
+  "tocantins",
+  "to",
+
+  "joao pessoa",
+  "campina grande",
+  "recife",
+  "fortaleza",
+  "salvador",
+
+  "sao paulo",
+  "campinas",
+  "barueri",
+  "osasco",
+  "sao carlos",
+  "ribeirao preto",
+  "sorocaba",
+
+  "belo horizonte",
+  "uberlandia",
+
+  "rio de janeiro",
+  "vitoria",
+
+  "curitiba",
+  "londrina",
+  "maringa",
+
+  "florianopolis",
+  "blumenau",
+  "joinville",
+
+  "porto alegre",
+  "caxias do sul",
+
+  "brasilia",
+  "goiania",
+  "anapolis",
+  "campo grande",
+  "cuiaba"
+]
+
 function normalizarTexto(valor: string) {
   return valor
     .normalize("NFD")
@@ -92,6 +195,7 @@ function removerHtml(valor: string) {
 
 function contemExpressao(texto: string, termo: string) {
   const textoNormalizado = ` ${normalizarTexto(texto)} `
+
   const termoNormalizado = normalizarTexto(termo)
 
   if (!termoNormalizado) {
@@ -115,6 +219,18 @@ function encontrarCompetencias(texto: string, perfil: PerfilProfissional) {
     .map(competencia => competencia.nome)
 }
 
+function perfilAceitaBrasil(perfil: PerfilProfissional) {
+  return perfil.localizacoesAceitas.some(localizacao => {
+    const normalizada = normalizarTexto(localizacao)
+
+    return normalizada === "brasil" || normalizada === "brazil"
+  })
+}
+
+function localizacaoPareceBrasileira(localizacao: string) {
+  return contemAlgum(localizacao, SINAIS_LOCALIZACAO_BRASIL)
+}
+
 function localizacaoEhCompativel(localizacao: string, perfil: PerfilProfissional) {
   if (!localizacao) {
     return true
@@ -124,7 +240,22 @@ function localizacaoEhCompativel(localizacao: string, perfil: PerfilProfissional
     return true
   }
 
-  return localizacao === "remote" || localizacao === "remoto" || localizacao === "remota"
+  if (localizacao === "remote" || localizacao === "remoto" || localizacao === "remota") {
+    return true
+  }
+
+  /**
+   * Se o perfil aceita o Brasil como um todo, também aceito cidades e
+   * estados brasileiros reconhecidos.
+   *
+   * Isso evita rejeitar "São Paulo, SP" apenas porque a fonte não
+   * escreveu explicitamente a palavra "Brasil".
+   */
+  if (perfilAceitaBrasil(perfil) && localizacaoPareceBrasileira(localizacao)) {
+    return true
+  }
+
+  return false
 }
 
 /**
@@ -351,10 +482,12 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
 
   if (vaga.remote) {
     pontuacao += 10
+
     motivos.push("Vaga remota")
   }
 
   pontuacao += 10
+
   motivos.push("Localização compatível")
 
   const textoPesquisavel = `${titulo} ${descricao}`
