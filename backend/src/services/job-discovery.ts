@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { readFile } from "node:fs/promises"
 
 import { resolve } from "node:path"
 
@@ -8,6 +8,17 @@ import { buscarNaWeb } from "../discovery/brave-search.js"
 
 import { classificarPagina } from "../discovery/page-classifier.js"
 
+import {
+  buscarControleBuscaWeb,
+  cacheBuscaEhValido,
+  salvarControleBuscaWeb
+} from "../repositories/controle-busca-web-repository.js"
+
+import type {
+  CacheBuscas,
+  RegistroConsultaCache
+} from "../repositories/controle-busca-web-repository.js"
+
 import type { PaginaClassificada, PaginaDescoberta } from "../types/discovery.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
@@ -16,20 +27,6 @@ type OpcoesDescoberta = {
   permitirBuscaLive?: boolean
 
   limiteChamadas?: number
-}
-
-type RegistroConsultaCache = {
-  consultadoEm: string
-
-  paginas: PaginaDescoberta[]
-}
-
-type CacheBuscas = {
-  versao: 1
-
-  consultas: Record<string, RegistroConsultaCache>
-
-  chamadasPorDia: Record<string, number>
 }
 
 export type StatusDescobertaWeb = {
@@ -76,7 +73,7 @@ const parametrosRastreamento = new Set([
   "jobBoardSource"
 ])
 
-function caminhoCache() {
+function caminhoCacheLegado() {
   return resolve(process.cwd(), ".cache", "brave-buscas.json")
 }
 
@@ -90,30 +87,57 @@ function criarCacheVazio(): CacheBuscas {
   }
 }
 
-async function carregarCache() {
+/**
+ * Eu leio o arquivo antigo somente para fazer a migração inicial.
+ *
+ * Depois que o estado existir no PostgreSQL este arquivo deixa de ser
+ * utilizado pela aplicação.
+ */
+async function carregarCacheLegado(): Promise<CacheBuscas | null> {
   try {
-    const conteudo = await readFile(caminhoCache(), "utf8")
+    const conteudo = await readFile(caminhoCacheLegado(), "utf8")
 
-    const cache = JSON.parse(conteudo) as CacheBuscas
+    const dados = JSON.parse(conteudo) as unknown
 
-    if (cache.versao !== 1 || !cache.consultas || !cache.chamadasPorDia) {
-      return criarCacheVazio()
+    if (!cacheBuscaEhValido(dados)) {
+      return null
     }
 
-    return cache
+    return dados
   } catch {
-    return criarCacheVazio()
+    return null
   }
 }
 
+/**
+ * O PostgreSQL agora é a fonte oficial do cache e do consumo Brave.
+ *
+ * Se ainda não houver estado no banco, tento importar automaticamente
+ * o antigo brave-buscas.json. Isso preserva o histórico de consumo já
+ * registrado antes desta mudança.
+ */
+async function carregarCache() {
+  const armazenado = await buscarControleBuscaWeb()
+
+  if (armazenado) {
+    return armazenado
+  }
+
+  const legado = await carregarCacheLegado()
+
+  const cache = legado ?? criarCacheVazio()
+
+  await salvarControleBuscaWeb(cache)
+
+  if (legado) {
+    console.log("Brave: cache local anterior importado para o PostgreSQL.")
+  }
+
+  return cache
+}
+
 async function salvarCache(cache: CacheBuscas) {
-  const diretorio = resolve(process.cwd(), ".cache")
-
-  await mkdir(diretorio, {
-    recursive: true
-  })
-
-  await writeFile(caminhoCache(), JSON.stringify(cache, null, 2), "utf8")
+  await salvarControleBuscaWeb(cache)
 }
 
 function formatarDataLocal(data: Date) {
