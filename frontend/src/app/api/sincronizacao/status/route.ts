@@ -6,11 +6,36 @@ export const runtime = "nodejs"
 
 export const dynamic = "force-dynamic"
 
+type RespostaBackend = {
+  message?: unknown
+
+  [chave: string]: unknown
+}
+
+async function lerRespostaBackend(resposta: Response): Promise<RespostaBackend> {
+  const texto = await resposta.text()
+
+  if (!texto.trim()) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(texto) as RespostaBackend
+  } catch {
+    return {
+      message: texto.trim()
+    }
+  }
+}
+
 /**
- * Eu mantenho esta consulta separada da sincronização real.
+ * Esta rota apenas lê:
  *
- * Esta rota apenas lê o contador e o estado atual do cache. Consultá-la
- * pelo dashboard não consome nenhuma chamada da Brave.
+ * - orçamento Brave;
+ * - cache;
+ * - execução atual ou anterior da sincronização.
+ *
+ * Nenhuma chamada Brave é realizada aqui.
  */
 export async function GET() {
   try {
@@ -18,12 +43,15 @@ export async function GET() {
       cache: "no-store"
     })
 
-    const dados = await resposta.json()
+    const dados = await lerRespostaBackend(resposta)
 
     if (!resposta.ok) {
       return NextResponse.json(
         {
-          mensagem: dados.message ?? "Não foi possível consultar o status da sincronização."
+          mensagem:
+            typeof dados.message === "string"
+              ? dados.message
+              : "Não foi possível consultar o status da sincronização."
         },
         {
           status: resposta.status

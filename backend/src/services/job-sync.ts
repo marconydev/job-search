@@ -21,10 +21,31 @@ type ResultadoFonte = JobImportResult & {
   error?: string
 }
 
+export type EtapaSincronizacao = "fontes_diretas" | "web" | "ats" | "analise"
+
 type OpcoesSincronizacao = {
   usarBrave?: boolean
 
   limiteChamadasBrave?: number
+
+  aoAtualizarEtapa?: (etapa: EtapaSincronizacao) => Promise<void> | void
+}
+
+/**
+ * No ambiente gratuito eu prefiro distribuir a coleta ATS entre várias
+ * execuções em vez de tentar processar todos os boards de uma vez.
+ *
+ * O repositório já prioriza fontes nunca consultadas e depois as mais
+ * antigas, portanto essa redução preserva a rotação.
+ */
+const LIMITE_FONTES_ATS_POR_EXECUCAO = 12
+
+const LIMITE_VAGAS_POR_FONTE_ATS = 200
+
+async function atualizarEtapa(opcoes: OpcoesSincronizacao, etapa: EtapaSincronizacao) {
+  if (opcoes.aoAtualizarEtapa) {
+    await opcoes.aoAtualizarEtapa(etapa)
+  }
 }
 
 /**
@@ -122,17 +143,20 @@ export async function syncJobs(
   /**
    * Primeiro consulto as APIs globais sem custo Brave.
    */
+  await atualizarEtapa(opcoes, "fontes_diretas")
+
   const fontesDiretas = await coletarFontesDiretas(perfil, limite)
 
   /**
-   * Também reaproveito as vagas que já existem no banco para aprender
-   * boards de ATS sem depender de uma nova busca web.
+   * Reaproveito vagas existentes para aprender boards sem consumir Brave.
    */
   await registrarFontesAtsDosJobsExistentes()
 
   /**
    * Depois processo o cache web ou executo Brave quando autorizada.
    */
+  await atualizarEtapa(opcoes, "web")
+
   const web = await processarVagasWeb(perfil, {
     salvarCompativeis: true,
 
@@ -144,16 +168,24 @@ export async function syncJobs(
   /**
    * O processamento web pode ter descoberto novas empresas.
    *
-   * Por isso consulto os ATS depois dele.
+   * Eu consulto um subconjunto das fontes aprendidas por rodada para
+   * manter o consumo de memória e CPU adequado ao ambiente gratuito.
    */
-  const fontesAts = await coletarFontesAtsAprendidas(perfil, 40, 500)
+  await atualizarEtapa(opcoes, "ats")
+
+  const fontesAts = await coletarFontesAtsAprendidas(
+    perfil,
+    LIMITE_FONTES_ATS_POR_EXECUCAO,
+    LIMITE_VAGAS_POR_FONTE_ATS
+  )
 
   const fontes: ResultadoFonte[] = [...fontesDiretas, ...fontesAts]
 
   /**
-   * Somente depois de todas as entradas terem sido concluídas eu analiso
-   * os registros que ainda não possuem job_match.
+   * Por último analiso somente registros que ainda não possuem match.
    */
+  await atualizarEtapa(opcoes, "analise")
+
   const analise = await analyzePendingJobs(perfil)
 
   return {

@@ -12,15 +12,17 @@ import {
   updateJobMatchStatus
 } from "../repositories/job-match-repository.js"
 
+import { obterEstadoSincronizacao } from "../repositories/estado-sincronizacao-repository.js"
+
 import { analyzePendingJobs } from "../services/job-analysis.js"
 
 import { importJobs } from "../services/job-import.js"
 
-import { syncJobs } from "../services/job-sync.js"
-
 import { obterStatusDescobertaWeb } from "../services/job-discovery.js"
 
 import { obterPerfilProfissional } from "../services/perfil-profissional-service.js"
+
+import { iniciarSincronizacaoAssincrona } from "../services/sincronizacao-assincrona.js"
 
 import type { NewJob } from "../types/job.js"
 
@@ -56,7 +58,9 @@ jobsRouter.get("/dashboard", async (_request, response) => {
 
     return response.json({
       resumo,
+
       total: vagas.length,
+
       vagas
     })
   } catch (error) {
@@ -81,7 +85,9 @@ jobsRouter.get("/relevant", async (request, response) => {
 
     return response.json({
       total: jobs.length,
+
       minScore,
+
       jobs
     })
   } catch (error) {
@@ -129,13 +135,29 @@ jobsRouter.patch("/:id/status", async (request, response) => {
   }
 })
 
+/**
+ * Esta rota agora combina:
+ *
+ * - orçamento/cache Brave;
+ * - estado da execução em segundo plano.
+ *
+ * Consultá-la nunca inicia uma sincronização nem consome Brave.
+ */
 jobsRouter.get("/sync/status", async (_request, response) => {
   try {
     const dadosPerfil = await obterPerfilProfissional()
 
-    const status = await obterStatusDescobertaWeb(dadosPerfil.perfil)
+    const [statusDescoberta, execucao] = await Promise.all([
+      obterStatusDescobertaWeb(dadosPerfil.perfil),
 
-    return response.json(status)
+      obterEstadoSincronizacao()
+    ])
+
+    return response.json({
+      ...statusDescoberta,
+
+      execucao
+    })
   } catch (error) {
     console.error("Erro ao consultar status da descoberta:", error)
 
@@ -145,6 +167,16 @@ jobsRouter.get("/sync/status", async (_request, response) => {
   }
 })
 
+/**
+ * Esta rota não espera mais a sincronização inteira terminar.
+ *
+ * Ela apenas:
+ *
+ * 1. valida os parâmetros;
+ * 2. adquire a trava no PostgreSQL;
+ * 3. agenda o trabalho em segundo plano;
+ * 4. responde HTTP 202.
+ */
 jobsRouter.post("/sync", async (request, response) => {
   const limit = getImportLimit(request.query.limit)
 
@@ -155,20 +187,34 @@ jobsRouter.post("/sync", async (request, response) => {
   const limiteChamadasBrave = Number.isFinite(limiteSolicitado)
     ? Math.max(0, Math.floor(limiteSolicitado))
     : 30
+
   try {
     const dadosPerfil = await obterPerfilProfissional()
 
-    const result = await syncJobs(dadosPerfil.perfil, limit, {
+    const inicio = await iniciarSincronizacaoAssincrona(dadosPerfil.perfil, limit, {
       usarBrave,
+
       limiteChamadasBrave
     })
 
-    return response.json(result)
+    if (!inicio.iniciada) {
+      return response.status(409).json({
+        message: "Já existe uma sincronização em andamento.",
+
+        execucao: inicio.execucao
+      })
+    }
+
+    return response.status(202).json({
+      message: "Sincronização iniciada.",
+
+      execucao: inicio.execucao
+    })
   } catch (error) {
-    console.error("Erro ao sincronizar vagas:", error)
+    console.error("Erro ao iniciar sincronização:", error)
 
     return response.status(500).json({
-      message: "Não foi possível sincronizar as vagas"
+      message: "Não foi possível iniciar a sincronização"
     })
   }
 })
@@ -219,14 +265,23 @@ jobsRouter.post("/", async (request, response) => {
 
   const job: NewJob = {
     source,
+
     externalId,
+
     company,
+
     title,
+
     description,
+
     location: location || null,
+
     remote: remote ?? false,
+
     url,
+
     publishedAt: publishedAt || null,
+
     partial: false
   }
 

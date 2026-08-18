@@ -12,12 +12,12 @@ type CorpoSincronizacao = {
   limiteChamadasBrave?: number
 }
 
-/**
- * Eu apenas normalizo o valor recebido pelo frontend.
- *
- * O controle definitivo de orçamento continua sendo feito no backend,
- * onde existem os limites diário e mensal.
- */
+type RespostaBackend = {
+  message?: unknown
+
+  [chave: string]: unknown
+}
+
 function normalizarLimiteBrave(valor: unknown) {
   if (typeof valor !== "number" || !Number.isFinite(valor)) {
     return 0
@@ -27,10 +27,37 @@ function normalizarLimiteBrave(valor: unknown) {
 }
 
 /**
- * Eu mantenho a Brave desativada por padrão também na camada Next.
+ * Eu não assumo mais que toda resposta HTTP possui um JSON completo.
  *
- * Uma busca real só é autorizada quando o cliente envia explicitamente
- * usarBrave=true.
+ * Se uma infraestrutura intermediária encerrar a conexão ou devolver
+ * corpo vazio, a rota continua produzindo uma resposta controlada.
+ */
+async function lerRespostaBackend(resposta: Response): Promise<RespostaBackend> {
+  const texto = await resposta.text()
+
+  if (!texto.trim()) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(texto) as RespostaBackend
+  } catch {
+    return {
+      message: texto.trim()
+    }
+  }
+}
+
+function obterMensagem(dados: RespostaBackend, fallback: string) {
+  return typeof dados.message === "string" ? dados.message : fallback
+}
+
+/**
+ * Esta rota agora espera somente o backend confirmar que a execução foi
+ * iniciada.
+ *
+ * O trabalho pesado continua no Render e o frontend acompanha o estado
+ * posteriormente através de /api/sincronizacao/status.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -39,12 +66,6 @@ export async function POST(request: NextRequest) {
     try {
       corpo = (await request.json()) as CorpoSincronizacao
     } catch {
-      /**
-       * Uma requisição sem corpo continua sendo tratada como segura.
-       *
-       * Ausência de parâmetros nunca representa autorização para usar
-       * consultas Brave.
-       */
       corpo = {}
     }
 
@@ -68,26 +89,30 @@ export async function POST(request: NextRequest) {
       cache: "no-store"
     })
 
-    const dados = await resposta.json()
+    const dados = await lerRespostaBackend(resposta)
 
-    if (!resposta.ok) {
-      return NextResponse.json(
-        {
-          mensagem: dados.message ?? "Não foi possível atualizar as oportunidades."
-        },
-        {
-          status: resposta.status
-        }
+    /**
+     * Converto a nomenclatura do backend para o padrão usado pelas rotas
+     * do frontend, mas preservo os demais campos como execucao.
+     */
+    const retorno = {
+      ...dados,
+
+      mensagem: obterMensagem(
+        dados,
+        resposta.ok ? "Sincronização iniciada." : "Não foi possível iniciar a sincronização."
       )
     }
 
-    return NextResponse.json(dados)
+    return NextResponse.json(retorno, {
+      status: resposta.status
+    })
   } catch (erro) {
-    console.error("Erro durante a sincronização:", erro)
+    console.error("Erro ao iniciar sincronização:", erro)
 
     return NextResponse.json(
       {
-        mensagem: "Não foi possível acessar o backend durante a sincronização."
+        mensagem: "Não foi possível acessar o backend para iniciar a sincronização."
       },
       {
         status: 503

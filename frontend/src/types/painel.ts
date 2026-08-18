@@ -79,30 +79,6 @@ export type FiltroModalidade = "todas" | "remota" | "nao-remota"
 
 export type OrdenacaoVagas = "compatibilidade" | "recentes"
 
-export type StatusSincronizacao = {
-  data: string
-
-  limiteDiario: number
-
-  chamadasHoje: number
-
-  chamadasRestantes: number
-
-  limiteMensal: number
-
-  chamadasMes: number
-
-  chamadasRestantesMes: number
-
-  consultasConfiguradas: number
-
-  consultasEmCache: number
-
-  consultasAtivas: number
-
-  ultimaAtualizacao: string | null
-}
-
 export type ModoSincronizacao = {
   braveAutorizada: boolean
 
@@ -223,4 +199,55 @@ export type ResultadoSincronizacao = {
   web: ResultadoWebSincronizacao
 
   analise: ResultadoAnaliseSincronizacao
+}
+
+export type SituacaoExecucaoSincronizacao =
+  "ociosa" | "executando" | "concluida" | "falhou" | "interrompida"
+
+export type ModoExecucaoSincronizacao = "economico" | "brave"
+
+export type EstadoExecucaoSincronizacao = {
+  id: string | null
+
+  estado: SituacaoExecucaoSincronizacao
+
+  modo: ModoExecucaoSincronizacao | null
+
+  etapa: string | null
+
+  mensagem: string | null
+
+  resultado: ResultadoSincronizacao | null
+
+  iniciadoEm: string | null
+
+  heartbeatEm: string | null
+
+  concluidoEm: string | null
+}
+
+export type StatusSincronizacao = {
+  data: string
+
+  limiteDiario: number
+
+  chamadasHoje: number
+
+  chamadasRestantes: number
+
+  limiteMensal: number
+
+  chamadasMes: number
+
+  chamadasRestantesMes: number
+
+  consultasConfiguradas: number
+
+  consultasEmCache: number
+
+  consultasAtivas: number
+
+  ultimaAtualizacao: string | null
+
+  execucao: EstadoExecucaoSincronizacao
 }
