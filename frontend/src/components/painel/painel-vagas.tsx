@@ -63,6 +63,20 @@ function vagaEhDeHoje(vaga: VagaPainel) {
 }
 
 /**
+ * Em aberto significa que a oportunidade ainda exige alguma decisão.
+ *
+ * Uma vaga nova ou já visualizada continua nesta fila.
+ * Aplicadas e ignoradas são consideradas concluídas e ficam no histórico.
+ */
+function statusPertenceAoFiltro(status: StatusVaga, filtro: FiltroStatus) {
+  if (filtro === "abertas") {
+    return status === "relevant" || status === "viewed"
+  }
+
+  return status === filtro
+}
+
+/**
  * Eu recalculo os indicadores quando existe uma alteração local de
  * status que ainda não foi incorporada aos dados recebidos do servidor.
  */
@@ -146,20 +160,29 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   /**
    * Eu armazeno somente mudanças feitas localmente.
    *
-   * Os dados oficiais continuam vindo de dadosIniciais. Isso elimina a
-   * necessidade de copiar props para state usando useEffect.
+   * Os dados oficiais continuam vindo de dadosIniciais.
    */
   const [statusLocais, setStatusLocais] = useState<Record<number, StatusVaga>>({})
 
+  /**
+   * O painel começa selecionando a primeira oportunidade ainda em aberto.
+   *
+   * Dessa forma uma vaga aplicada ou ignorada anteriormente nunca aparece
+   * selecionada por padrão na tela inicial.
+   */
   const [vagaSelecionadaId, setVagaSelecionadaId] = useState<number | null>(
-    dadosIniciais.vagas[0]?.id ?? null
+    dadosIniciais.vagas.find(vaga => vaga.status === "relevant" || vaga.status === "viewed")?.id ??
+      null
   )
 
   const [busca, setBusca] = useState("")
 
   const buscaAdiada = useDeferredValue(busca)
 
-  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos")
+  /**
+   * A visualização padrão agora é a caixa de oportunidades em aberto.
+   */
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("abertas")
 
   const [filtroModalidade, setFiltroModalidade] = useState<FiltroModalidade>("todas")
 
@@ -178,9 +201,6 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   /**
    * Eu combino os dados recebidos do servidor com alterações locais
    * de status que ainda não apareceram na próxima resposta do backend.
-   *
-   * Primeiro monto a lista atualizada e depois recalculo o resumo de
-   * forma imutável. Não altero variáveis durante a renderização.
    */
   const dados = useMemo(() => {
     const vagas = dadosIniciais.vagas.map(vaga => {
@@ -223,9 +243,6 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
 
   /**
    * A mensagem desaparece alguns segundos depois.
-   *
-   * A alteração de estado acontece no callback do temporizador, e não
-   * diretamente durante a execução do efeito.
    */
   useEffect(() => {
     if (!mensagem) {
@@ -255,7 +272,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
         return false
       }
 
-      if (filtroStatus !== "todos" && vaga.status !== filtroStatus) {
+      if (!statusPertenceAoFiltro(vaga.status, filtroStatus)) {
         return false
       }
 
@@ -321,6 +338,8 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     [dados.vagas, vagaSelecionadaId]
   )
 
+  const quantidadeAbertas = dados.resumo.novas + dados.resumo.vistas
+
   function alterarBusca(valor: string) {
     setBusca(valor)
 
@@ -331,6 +350,16 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     setFiltroStatus(valor)
 
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
+
+    /**
+     * Ao trocar de área eu já seleciono uma oportunidade compatível com
+     * o novo status.
+     */
+    const primeira = dados.vagas.find(
+      vaga => vaga.local_score >= pontuacaoMinima && statusPertenceAoFiltro(vaga.status, valor)
+    )
+
+    setVagaSelecionadaId(primeira?.id ?? null)
   }
 
   function alterarFiltroFonte(valor: string) {
@@ -355,6 +384,30 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     setOrdenacao(valor)
 
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
+  }
+
+  /**
+   * Quando uma vaga deixa a área atualmente exibida eu seleciono a
+   * próxima oportunidade da lista.
+   *
+   * Isso é especialmente importante ao marcar como Aplicada ou Ignorada,
+   * pois quero continuar trabalhando na fila sem precisar clicar
+   * manualmente em outra vaga.
+   */
+  function selecionarProximaVaga(vagaAtual: VagaPainel) {
+    const indiceAtual = vagasFiltradas.findIndex(vaga => vaga.id === vagaAtual.id)
+
+    if (indiceAtual === -1) {
+      setVagaSelecionadaId(null)
+
+      return
+    }
+
+    const proxima = vagasFiltradas[indiceAtual + 1]
+
+    const anterior = vagasFiltradas[indiceAtual - 1]
+
+    setVagaSelecionadaId(proxima?.id ?? anterior?.id ?? null)
   }
 
   async function alterarStatus(vaga: VagaPainel, novoStatus: StatusVaga) {
@@ -383,6 +436,16 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
         throw new Error(retorno.mensagem ?? "Não foi possível atualizar a vaga.")
       }
 
+      /**
+       * Antes de atualizar o estado eu verifico se o novo status continua
+       * pertencendo à área que está sendo exibida.
+       */
+      const continuaVisivel = statusPertenceAoFiltro(novoStatus, filtroStatus)
+
+      if (!continuaVisivel) {
+        selecionarProximaVaga(vaga)
+      }
+
       setStatusLocais(atuais => ({
         ...atuais,
 
@@ -390,11 +453,11 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
       }))
 
       if (novoStatus === "applied") {
-        setMensagem("Candidatura registrada.")
+        setMensagem("Candidatura registrada. A oportunidade foi movida para Aplicadas.")
       } else if (novoStatus === "ignored") {
-        setMensagem("Oportunidade ignorada.")
+        setMensagem("Oportunidade movida para Ignoradas.")
       } else if (novoStatus === "relevant") {
-        setMensagem("Oportunidade reaberta.")
+        setMensagem("Oportunidade reaberta e devolvida para Em aberto.")
       }
 
       iniciarAtualizacao(() => {
@@ -434,7 +497,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   function limparFiltros() {
     setBusca("")
 
-    setFiltroStatus("todos")
+    setFiltroStatus("abertas")
 
     setFiltroModalidade("todas")
 
@@ -445,6 +508,12 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     setOrdenacao("recentes")
 
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
+
+    const primeiraAberta = dados.vagas.find(
+      vaga => vaga.local_score >= 60 && statusPertenceAoFiltro(vaga.status, "abertas")
+    )
+
+    setVagaSelecionadaId(primeiraAberta?.id ?? null)
   }
 
   function mostrarMaisVagas() {
@@ -453,20 +522,20 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
 
   const possuiFiltroAtivo =
     busca.length > 0 ||
-    filtroStatus !== "todos" ||
+    filtroStatus !== "abertas" ||
     filtroModalidade !== "todas" ||
     filtroFonte !== "todas" ||
     pontuacaoMinima !== 60
 
-  const itensMenu = [
+  const itensOportunidades = [
     {
-      rotulo: "Visão geral",
+      rotulo: "Em aberto",
 
       icone: LayoutDashboard,
 
-      status: "todos" as const,
+      status: "abertas" as const,
 
-      quantidade: dados.resumo.total
+      quantidade: quantidadeAbertas
     },
     {
       rotulo: "Novas",
@@ -485,7 +554,10 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
       status: "viewed" as const,
 
       quantidade: dados.resumo.vistas
-    },
+    }
+  ]
+
+  const itensHistorico = [
     {
       rotulo: "Aplicadas",
 
@@ -505,6 +577,34 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
       quantidade: dados.resumo.ignoradas
     }
   ]
+
+  function renderizarItemMenu(
+    item: (typeof itensOportunidades)[number] | (typeof itensHistorico)[number]
+  ) {
+    const Icone = item.icone
+
+    const ativo = filtroStatus === item.status
+
+    return (
+      <button
+        key={item.rotulo}
+        type="button"
+        onClick={() => alterarFiltroStatus(item.status)}
+        className={[
+          "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+          ativo
+            ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
+            : "text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
+        ].join(" ")}
+      >
+        <Icone size={18} />
+
+        <span className="flex-1 text-left">{item.rotulo}</span>
+
+        <span className="text-xs tabular-nums opacity-70">{item.quantidade}</span>
+      </button>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
@@ -528,34 +628,20 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
             </div>
           </div>
 
-          <nav className="mt-9 space-y-1">
-            {itensMenu.map(item => {
-              const Icone = item.icone
+          <nav className="mt-9">
+            <div className="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+              Oportunidades
+            </div>
 
-              const ativo = filtroStatus === item.status
+            <div className="space-y-1">{itensOportunidades.map(renderizarItemMenu)}</div>
 
-              return (
-                <button
-                  key={item.rotulo}
-                  type="button"
-                  onClick={() => alterarFiltroStatus(item.status)}
-                  className={[
-                    "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                    ativo
-                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
-                  ].join(" ")}
-                >
-                  <Icone size={18} />
+            <div className="mt-6 px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+              Histórico
+            </div>
 
-                  <span className="flex-1 text-left">{item.rotulo}</span>
+            <div className="space-y-1">{itensHistorico.map(renderizarItemMenu)}</div>
 
-                  <span className="text-xs tabular-nums opacity-70">{item.quantidade}</span>
-                </button>
-              )
-            })}
-
-            <div className="my-3 border-t border-slate-200 dark:border-slate-800" />
+            <div className="my-4 border-t border-slate-200 dark:border-slate-800" />
 
             <Link
               href="/perfil"
@@ -600,7 +686,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                 <p className="mt-1 text-sm text-slate-500">
                   {dados.resumo.novas_hoje > 0
                     ? `${dados.resumo.novas_hoje} novas oportunidades encontradas hoje.`
-                    : "Acompanhe as vagas mais compatíveis com seu perfil."}
+                    : `${quantidadeAbertas} oportunidades aguardando sua análise.`}
                 </p>
               </div>
 
@@ -724,7 +810,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                     onChange={evento => alterarFiltroStatus(evento.target.value as FiltroStatus)}
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
                   >
-                    <option value="todos">Todos os status</option>
+                    <option value="abertas">Em aberto</option>
 
                     <option value="relevant">Novas</option>
 
@@ -853,7 +939,9 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                     <h3 className="mt-4 font-semibold">Nenhuma oportunidade encontrada</h3>
 
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                      Tente reduzir o score mínimo ou remover algum dos filtros aplicados.
+                      {filtroStatus === "abertas"
+                        ? "Não há oportunidades em aberto com os filtros atuais."
+                        : "Tente reduzir o score mínimo ou remover algum dos filtros aplicados."}
                     </p>
 
                     <button
@@ -861,7 +949,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                       onClick={limparFiltros}
                       className="mt-5 cursor-pointer rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
                     >
-                      Limpar filtros
+                      Voltar para Em aberto
                     </button>
                   </div>
                 )}

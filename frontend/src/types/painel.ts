@@ -68,7 +68,12 @@ export type DadosPainel = {
   vagas: VagaPainel[]
 }
 
-export type FiltroStatus = "todos" | StatusVaga
+/**
+ * O painel inicial mostra somente oportunidades que ainda exigem ação.
+ *
+ * Aplicadas e ignoradas continuam disponíveis separadamente no histórico.
+ */
+export type FiltroStatus = "abertas" | StatusVaga
 
 export type FiltroModalidade = "todas" | "remota" | "nao-remota"
 
