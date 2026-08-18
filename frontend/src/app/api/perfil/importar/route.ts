@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { obterUrlBackend } from "@/lib/api-servidor"
+import { requisitarBackend } from "@/lib/api-servidor"
 
 export const runtime = "nodejs"
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
     dadosBackend.append("arquivo", arquivo, arquivo.name)
 
-    const resposta = await fetch(`${obterUrlBackend()}/perfil/importar`, {
+    const resposta = await requisitarBackend("/perfil/importar", {
       method: "POST",
 
       body: dadosBackend,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { obterUrlBackend } from "@/lib/api-servidor"
+import { requisitarBackend } from "@/lib/api-servidor"
 
 import type { StatusVaga } from "@/types/painel"
 
@@ -18,7 +18,7 @@ const statusPermitidos = new Set<StatusVaga>(["relevant", "viewed", "applied", "
  * Eu mantenho esta alteração passando pelo próprio Next.
  *
  * Assim o navegador conversa somente com o frontend e o Next fica
- * responsável por encaminhar a ação para a API Express.
+ * responsável por encaminhar a ação autenticada para a API Express.
  */
 export async function PATCH(requisicao: NextRequest, contexto: ContextoRota) {
   const { id } = await contexto.params
@@ -65,7 +65,7 @@ export async function PATCH(requisicao: NextRequest, contexto: ContextoRota) {
   }
 
   try {
-    const resposta = await fetch(`${obterUrlBackend()}/jobs/${idVaga}/status`, {
+    const resposta = await requisitarBackend(`/jobs/${idVaga}/status`, {
       method: "PATCH",
 
       headers: {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { obterUrlBackend } from "@/lib/api-servidor"
+import { requisitarBackend } from "@/lib/api-servidor"
 
 export const runtime = "nodejs"
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic"
  */
 export async function GET() {
   try {
-    const resposta = await fetch(`${obterUrlBackend()}/perfil`, {
+    const resposta = await requisitarBackend("/perfil", {
       cache: "no-store"
     })
 
@@ -48,14 +48,14 @@ export async function GET() {
 /**
  * Eu encaminho o perfil completo ao backend.
  *
- * A validação definitiva continua sendo responsabilidade da API
- * Express antes da gravação no PostgreSQL.
+ * A validação definitiva continua sendo responsabilidade da API Express
+ * antes da gravação no PostgreSQL.
  */
 export async function PUT(request: NextRequest) {
   try {
     const corpo = await request.json()
 
-    const resposta = await fetch(`${obterUrlBackend()}/perfil`, {
+    const resposta = await requisitarBackend("/perfil", {
       method: "PUT",
 
       headers: {

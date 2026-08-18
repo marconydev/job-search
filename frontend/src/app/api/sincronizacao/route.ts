@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { obterUrlBackend } from "@/lib/api-servidor"
+import { requisitarBackend } from "@/lib/api-servidor"
 
 export const runtime = "nodejs"
 
@@ -31,15 +31,6 @@ function normalizarLimiteBrave(valor: unknown) {
  *
  * Uma busca real só é autorizada quando o cliente envia explicitamente
  * usarBrave=true.
- *
- * Não aplico aqui um segundo limite fixo porque o backend já protege:
- *
- * - limite diário;
- * - limite mensal;
- * - quantidade solicitada para a execução.
- *
- * Dessa forma evito que esta camada silenciosamente reduza uma busca
- * autorizada, como acontecia anteriormente com o antigo limite de 6.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -61,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const limiteChamadasBrave = usarBrave ? normalizarLimiteBrave(corpo.limiteChamadasBrave) : 0
 
-    const resposta = await fetch(`${obterUrlBackend()}/jobs/sync`, {
+    const resposta = await requisitarBackend("/jobs/sync", {
       method: "POST",
 
       headers: {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { obterUrlBackend } from "@/lib/api-servidor"
+import { requisitarBackend } from "@/lib/api-servidor"
 
 export const runtime = "nodejs"
 
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic"
  */
 export async function GET() {
   try {
-    const resposta = await fetch(`${obterUrlBackend()}/jobs/sync/status`, {
+    const resposta = await requisitarBackend("/jobs/sync/status", {
       cache: "no-store"
     })
 
