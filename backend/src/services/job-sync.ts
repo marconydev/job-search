@@ -49,8 +49,12 @@ async function atualizarEtapa(opcoes: OpcoesSincronizacao, etapa: EtapaSincroniz
 }
 
 /**
- * Eu consulto as APIs globais e filtro as oportunidades antes de
- * permitir qualquer INSERT no PostgreSQL.
+ * Primeiro consulto as fontes que podem ser acessadas diretamente,
+ * sem gastar chamadas da Brave.
+ *
+ * Alguns coletores globais ignoram o perfil.
+ * Portais agregadores nativos, como Gupy, usam o perfil para fazer
+ * pesquisas pelos cargos individualmente.
  */
 async function coletarFontesDiretas(
   perfil: PerfilProfissional,
@@ -60,7 +64,7 @@ async function coletarFontesDiretas(
 
   for (const coletor of collectors) {
     try {
-      const coleta = await coletor.collect(limite)
+      const coleta = await coletor.collect(limite, perfil)
 
       const vagasAderentes = filtrarVagasAderentes(coleta.jobs, perfil)
 
@@ -141,7 +145,9 @@ export async function syncJobs(
   )
 
   /**
-   * Primeiro consulto as APIs globais sem custo Brave.
+   * Primeiro consulto as fontes nativas sem custo Brave.
+   *
+   * A Gupy passa a entrar nesta etapa.
    */
   await atualizarEtapa(opcoes, "fontes_diretas")
 
@@ -154,6 +160,9 @@ export async function syncJobs(
 
   /**
    * Depois processo o cache web ou executo Brave quando autorizada.
+   *
+   * A Brave continua ativa como camada complementar, mas não é mais
+   * responsável pela cobertura principal da Gupy.
    */
   await atualizarEtapa(opcoes, "web")
 

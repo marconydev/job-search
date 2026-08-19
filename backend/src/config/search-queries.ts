@@ -13,15 +13,18 @@ export type ConsultaBuscaVaga = {
 
   /**
    * Número máximo de páginas Brave que esta estratégia merece.
-   *
-   * A maioria das pesquisas usa somente uma página.
-   * Portais agregadores prioritários podem avançar até a segunda.
    */
   paginasMaximas: number
 }
 
 type NomeFamilia =
-  "suporte" | "sistemas" | "infraestrutura" | "implantacao" | "processos" | "dados" | "geral"
+  | "suporte"
+  | "sistemas"
+  | "infraestrutura"
+  | "implantacao"
+  | "processos"
+  | "dados"
+  | "geral"
 
 type PortalAgregador = {
   id: string
@@ -70,13 +73,11 @@ const ORDEM_FAMILIAS: NomeFamilia[] = [
 ]
 
 /**
- * Gupy e Sólides são portais brasileiros e respondem melhor aos títulos
- * usados no mercado nacional.
+ * Títulos utilizados tanto pela busca web complementar quanto
+ * pela coleta nativa da Gupy.
  *
- * Cada família possui uma busca diária curta, com um único título principal.
- * Os sinônimos em português entram primeiro na rotação. Os aliases em inglês
- * que vierem do perfil continuam existindo, mas deixam de consumir a maior
- * parte do orçamento diário da Brave.
+ * A ordem importa:
+ * primeiro coloco os nomes mais usados no mercado brasileiro.
  */
 const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal> = {
   suporte: {
@@ -172,25 +173,14 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
 }
 
 /**
- * Gupy e Sólides deixam de ser simples entradas na matriz genérica.
+ * A Gupy NÃO aparece mais aqui.
  *
- * Esses portais concentram vagas de milhares de empresas e, por isso,
- * merecem pesquisas menores por família profissional e maior profundidade
- * de resultados.
+ * Ela passa a ser consultada diretamente pelo coletor gupy.ts.
  *
- * Eu não exijo "Brasil" dentro da consulta destes portais. A localização
- * continua sendo validada rigorosamente depois que a oportunidade é
- * encontrada.
+ * A Sólides permanece temporariamente usando Brave neste Commit 1.
+ * No Commit 2 ela também sairá daqui e ganhará coleta nativa.
  */
 const PORTAIS_AGREGADORES_PRIORITARIOS: PortalAgregador[] = [
-  {
-    id: "gupy",
-
-    escopo: "site:gupy.io",
-
-    paginasMaximas: 2
-  },
-
   {
     id: "solides",
 
@@ -201,10 +191,14 @@ const PORTAIS_AGREGADORES_PRIORITARIOS: PortalAgregador[] = [
 ]
 
 /**
- * Fontes complementares continuam usando a descoberta web.
+ * Fontes complementares continuam usando Brave.
  *
- * Agrupo plataformas semelhantes quando isso reduz chamadas redundantes
- * sem remover uma fonte relevante.
+ * Vagas.com.br, InfoJobs e Catho ficam agrupados em uma mesma
+ * estratégia para aproveitar melhor cada chamada.
+ *
+ * Os portais adicionais enviados pelo usuário serão tratados em um
+ * commit separado para que também recebam classificação de provedor,
+ * e não apenas apareçam como resultados genéricos da web.
  */
 const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
   {
@@ -266,10 +260,7 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
 
   {
     /**
-     * O Remote Rocketship é usado somente como fonte de descoberta via Brave.
-     *
-     * A aplicação não acessa nem raspa diretamente o portal. A triagem aceita
-     * apenas URLs de vagas individuais já indexadas pelo buscador.
+     * O Remote Rocketship continua apenas como descoberta Brave.
      */
     id: "remote-rocketship",
 
@@ -425,10 +416,7 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
 const CONTEXTO_LOCALIZACAO = "(Brasil OR Brazil)"
 
 /**
- * As pesquisas regionais agora complementam os portais prioritários.
- *
- * Gupy não precisa aparecer novamente aqui porque já recebe uma busca
- * própria, dividida por família e com paginação.
+ * Gupy não aparece neste escopo porque já será coletada diretamente.
  */
 const ESCOPO_VAGAS_REGIONAIS =
   "(" +
@@ -473,33 +461,15 @@ function deduplicarTermos(termos: string[]) {
 }
 
 function deduplicarCargos(perfil: PerfilProfissional) {
-  const cargos = [...perfil.cargosPrincipais, ...perfil.cargosRelacionados]
-
-  const unicos = new Map<string, string>()
-
-  for (const cargo of cargos) {
-    const limpo = limparTermoBusca(cargo)
-
-    if (!limpo) {
-      continue
-    }
-
-    const chave = normalizarTexto(limpo)
-
-    if (!unicos.has(chave)) {
-      unicos.set(chave, limpo)
-    }
-  }
-
-  return [...unicos.values()]
+  return deduplicarTermos([...perfil.cargosPrincipais, ...perfil.cargosRelacionados])
 }
 
 function identificarFamilia(cargo: string): NomeFamilia {
   const normalizado = normalizarTexto(cargo)
 
   /**
-   * Estes títulos representam sustentação de aplicações, mesmo contendo
-   * a palavra genérica "support".
+   * Estes cargos são de sustentação/aplicações e não devem cair
+   * genericamente em suporte só por conterem a palavra support.
    */
   const termosSistemasEspecificos = [
     "application support",
@@ -549,6 +519,52 @@ function criarFamilias(perfil: PerfilProfissional) {
   return familias
 }
 
+/**
+ * Termos utilizados pelo coletor nativo da Gupy.
+ *
+ * Prioridade:
+ *
+ * 1. título brasileiro principal de cada família presente no perfil;
+ * 2. cargos que realmente existem no perfil salvo;
+ * 3. sinônimos brasileiros e relacionados.
+ *
+ * O limite de 30 evita centenas de requisições redundantes sem
+ * sacrificar a cobertura principal.
+ */
+export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
+  const familias = criarFamilias(perfil)
+
+  const principais: string[] = []
+
+  const relacionados: string[] = []
+
+  for (const familia of ORDEM_FAMILIAS) {
+    const possuiCargoNaFamilia = familias[familia].length > 0
+
+    if (!possuiCargoNaFamilia) {
+      continue
+    }
+
+    const estrategia = ESTRATEGIAS_FAMILIAS_PORTAIS[familia]
+
+    if (estrategia.tituloPrincipal) {
+      principais.push(estrategia.tituloPrincipal)
+    }
+
+    relacionados.push(...estrategia.titulosRelacionados)
+  }
+
+  const termos = deduplicarTermos([
+    ...principais,
+
+    ...deduplicarCargos(perfil),
+
+    ...relacionados
+  ])
+
+  return termos.slice(0, 30)
+}
+
 function criarTermosRotativosFamilia(familia: NomeFamilia, termosPerfil: string[]) {
   const estrategia = ESTRATEGIAS_FAMILIAS_PORTAIS[familia]
 
@@ -565,10 +581,6 @@ function contarPalavras(valor: string) {
   return valor.trim().split(/\s+/).filter(Boolean).length
 }
 
-/**
- * Eu mantenho as consultas pequenas para reduzir competição entre cargos
- * diferentes dentro do ranking do buscador.
- */
 function criarPacotes(
   termos: string[],
   limiteItens = 4,
@@ -607,13 +619,6 @@ function criarPacotes(
   return pacotes
 }
 
-/**
- * As pesquisas complementares recebem um título brasileiro representativo
- * de cada família profissional.
- *
- * Dessa forma a busca diária não depende da ordem em que aliases em inglês
- * foram salvos no perfil. Os demais títulos continuam entrando na rotação.
- */
 function criarNucleoComplementar(familias: Record<NomeFamilia, string[]>) {
   const candidatos = ORDEM_FAMILIAS.map(
     familia => ESTRATEGIAS_FAMILIAS_PORTAIS[familia].tituloPrincipal
@@ -670,7 +675,9 @@ function montarConsultaComplementar(plataforma: PlataformaComplementar, termos: 
 
   const partes = [
     plataforma.escopo,
+
     expressao,
+
     plataforma.restringirAoBrasil ? CONTEXTO_LOCALIZACAO : ""
   ].filter(Boolean)
 
@@ -682,7 +689,7 @@ function montarConsultaEmpresas(empresas: string[], termos: string[]) {
 
   const expressaoCargos = `(${criarExpressaoTermos(termos)})`
 
-  return `${expressaoEmpresas} ` + `${expressaoCargos} ` + "(vagas OR jobs) " + CONTEXTO_LOCALIZACAO
+  return `${expressaoEmpresas} ${expressaoCargos} (vagas OR jobs) ${CONTEXTO_LOCALIZACAO}`
 }
 
 function montarConsultaRegional(localizacoes: string[], termos: string[]) {
@@ -690,16 +697,12 @@ function montarConsultaRegional(localizacoes: string[], termos: string[]) {
 
   const expressaoLocalizacoes = `(${criarExpressaoValores(localizacoes)})`
 
-  return `${ESCOPO_VAGAS_REGIONAIS} ` + `${expressaoCargos} ` + expressaoLocalizacoes
+  return `${ESCOPO_VAGAS_REGIONAIS} ${expressaoCargos} ${expressaoLocalizacoes}`
 }
 
 /**
- * Cada família recebe uma busca diária curta e em português nos grandes
- * portais brasileiros.
- *
- * Títulos relacionados e aliases do perfil entram depois, em pacotes de no
- * máximo dois termos e com recorrência rotativa. Isso evita gastar chamadas
- * diárias com quatro expressões em inglês que frequentemente retornam zero.
+ * Neste Commit 1 somente a Sólides continua sendo tratada como
+ * portal prioritário via Brave.
  */
 function criarConsultasPortaisPrioritarios(
   familias: Record<NomeFamilia, string[]>
@@ -775,14 +778,9 @@ function criarConsultasComplementares(
   }))
 }
 
-/**
- * Empresas e regiões continuam importantes, mas agora entram depois das
- * pesquisas estruturadas dos portais.
- *
- * Dessa maneira elas aproveitam o saldo diário da Brave em vez de
- * bloquear a cobertura de Gupy e Sólides.
- */
-function criarConsultasEstrategicas(familias: Record<NomeFamilia, string[]>): ConsultaBuscaVaga[] {
+function criarConsultasEstrategicas(
+  familias: Record<NomeFamilia, string[]>
+): ConsultaBuscaVaga[] {
   const nucleo = criarNucleoComplementar(familias)
 
   if (nucleo.length === 0) {
@@ -851,14 +849,14 @@ function criarConsultasRotativasComplementares(familias: Record<NomeFamilia, str
 }
 
 /**
- * Ordem de prioridade:
+ * Ordem de prioridade da Brave após a Gupy nativa:
  *
- * 1. Gupy e Sólides, separados por família profissional;
+ * 1. Sólides, enquanto ainda não possui coletor nativo;
  * 2. fontes web complementares;
  * 3. empresas e regiões estratégicas;
  * 4. aliases detalhados em rotação.
  *
- * A quantidade de chamadas continua sendo controlada pelo job-discovery.
+ * Gupy não gera mais nenhuma chamada Brave dedicada.
  */
 export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBuscaVaga[] {
   const familias = criarFamilias(perfil)
@@ -890,12 +888,6 @@ export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBu
       continue
     }
 
-    /**
-     * Se a mesma busca surgir como diária e rotativa, preservo a diária.
-     *
-     * Se ambas tiverem a mesma recorrência, preservo a que puder consultar
-     * mais páginas.
-     */
     if (consulta.recorrencia === "diaria" && existente.recorrencia !== "diaria") {
       unicas.set(consulta.texto, consulta)
 
