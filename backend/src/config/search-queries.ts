@@ -153,6 +153,20 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
   },
 
   {
+    /**
+     * O Remote Rocketship é usado somente como fonte de descoberta via Brave.
+     *
+     * A aplicação não acessa nem raspa diretamente o portal. A triagem aceita
+     * apenas URLs de vagas individuais já indexadas pelo buscador.
+     */
+    id: "remote-rocketship",
+
+    escopo: "(site:remoterocketship.com/company OR site:remoterocketship.com/br/empresa)",
+
+    restringirAoBrasil: false
+  },
+
+  {
     id: "web",
 
     escopo: "",

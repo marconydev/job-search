@@ -106,7 +106,27 @@ describe("gerador de consultas de vagas", () => {
 
     assert.ok(plataformas.has("ats"))
 
+    assert.ok(plataformas.has("remote-rocketship"))
+
     assert.ok(plataformas.has("web"))
+  })
+
+  test("inclui Remote Rocketship somente como fonte de descoberta", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const remoteRocketship = consultas.filter(
+      consulta => consulta.plataforma === "remote-rocketship"
+    )
+
+    assert.ok(remoteRocketship.length > 0)
+
+    for (const consulta of remoteRocketship) {
+      assert.ok(consulta.texto.includes("site:remoterocketship.com/company"))
+
+      assert.ok(consulta.texto.includes("site:remoterocketship.com/br/empresa"))
+
+      assert.equal(consulta.paginasMaximas, 1)
+    }
   })
 
   test("restringe fontes globais complementares ao Brasil", () => {
