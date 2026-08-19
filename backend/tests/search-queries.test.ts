@@ -20,7 +20,12 @@ function criarPerfil(): PerfilProfissional {
       "Analista de Implantação"
     ],
 
-    cargosRelacionados: ["Customer Onboarding", "Analista de Dados", "BI Analyst"],
+    cargosRelacionados: [
+      "Customer Onboarding",
+      "Analista de Processos",
+      "Analista de Dados",
+      "BI Analyst"
+    ],
 
     cargosDesvio: ["Software Developer"],
 
@@ -46,9 +51,9 @@ describe("gerador de consultas de vagas", () => {
 
     const solides = consultas.filter(consulta => consulta.plataforma === "solides")
 
-    assert.ok(gupy.length >= 4)
+    assert.ok(gupy.length >= 6)
 
-    assert.ok(solides.length >= 4)
+    assert.ok(solides.length >= 6)
 
     assert.ok(
       gupy.some(
@@ -63,19 +68,101 @@ describe("gerador de consultas de vagas", () => {
           consulta.familia === "portal-suporte" && consulta.texto.includes('"Analista de Suporte"')
       )
     )
+
+    const titulosPrincipais = [
+      "Analista de Suporte",
+      "Analista de Sistemas",
+      "Analista de Infraestrutura",
+      "Analista de Implantação",
+      "Analista de Processos",
+      "Analista de Dados"
+    ]
+
+    for (const titulo of titulosPrincipais) {
+      for (const plataforma of ["gupy", "solides"]) {
+        const consulta = consultas.find(
+          item =>
+            item.plataforma === plataforma &&
+            item.recorrencia === "diaria" &&
+            item.texto.includes(`"${titulo}"`)
+        )
+
+        assert.ok(consulta, `Busca diária ausente: ${plataforma} | ${titulo}`)
+
+        assert.equal(consulta.texto.includes(" OR "), false)
+      }
+    }
   })
 
-  test("permite aprofundar Gupy e Sólides até a segunda página", () => {
+  test("equilibra profundidade e cobertura dentro do limite diário", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
-    const portais = consultas.filter(
-      consulta => consulta.plataforma === "gupy" || consulta.plataforma === "solides"
+    const diarias = consultas.filter(consulta => consulta.recorrencia === "diaria")
+
+    const custoMaximoDiario = diarias.reduce(
+      (total, consulta) => total + consulta.paginasMaximas,
+      0
     )
 
-    assert.ok(portais.length > 0)
+    assert.ok(custoMaximoDiario <= 25)
 
-    for (const consulta of portais) {
-      assert.equal(consulta.paginasMaximas, 2)
+    const principais = consultas.filter(
+      consulta =>
+        (consulta.plataforma === "gupy" || consulta.plataforma === "solides") &&
+        consulta.recorrencia === "diaria"
+    )
+
+    assert.equal(principais.length, 12)
+
+    for (const consulta of principais) {
+      if (
+        ["portal-suporte", "portal-sistemas", "portal-infraestrutura"].includes(consulta.familia)
+      ) {
+        assert.equal(consulta.paginasMaximas, 2)
+      } else {
+        assert.equal(consulta.paginasMaximas, 1)
+      }
+    }
+
+    const rotativas = consultas.filter(
+      consulta =>
+        (consulta.plataforma === "gupy" || consulta.plataforma === "solides") &&
+        consulta.recorrencia === "rotativa"
+    )
+
+    for (const consulta of rotativas) {
+      assert.equal(consulta.paginasMaximas, 1)
+    }
+  })
+
+  test("prioriza sinônimos brasileiros antes dos aliases em inglês", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const suporteGupy = consultas.filter(
+      consulta =>
+        consulta.plataforma === "gupy" &&
+        consulta.familia === "portal-suporte" &&
+        consulta.recorrencia === "rotativa"
+    )
+
+    const indicePortugues = suporteGupy.findIndex(consulta =>
+      consulta.texto.includes('"Analista de Suporte Técnico"')
+    )
+
+    const indiceIngles = suporteGupy.findIndex(consulta =>
+      consulta.texto.includes('"Technical Support"')
+    )
+
+    assert.ok(indicePortugues >= 0)
+
+    assert.ok(indiceIngles >= 0)
+
+    assert.ok(indicePortugues < indiceIngles)
+
+    for (const consulta of suporteGupy) {
+      const quantidadeTermos = (consulta.texto.match(/"/g) ?? []).length / 2
+
+      assert.ok(quantidadeTermos <= 2)
     }
   })
 

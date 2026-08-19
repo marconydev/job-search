@@ -20,7 +20,8 @@ export type ConsultaBuscaVaga = {
   paginasMaximas: number
 }
 
-type NomeFamilia = "suporte" | "sistemas" | "infraestrutura" | "implantacao" | "dados" | "geral"
+type NomeFamilia =
+  "suporte" | "sistemas" | "infraestrutura" | "implantacao" | "processos" | "dados" | "geral"
 
 type PortalAgregador = {
   id: string
@@ -28,6 +29,14 @@ type PortalAgregador = {
   escopo: string
 
   paginasMaximas: number
+}
+
+type EstrategiaFamiliaPortal = {
+  tituloPrincipal: string | null
+
+  titulosRelacionados: string[]
+
+  paginasPrincipais: number
 }
 
 type PlataformaComplementar = {
@@ -55,9 +64,112 @@ const ORDEM_FAMILIAS: NomeFamilia[] = [
   "sistemas",
   "infraestrutura",
   "implantacao",
+  "processos",
   "dados",
   "geral"
 ]
+
+/**
+ * Gupy e Sólides são portais brasileiros e respondem melhor aos títulos
+ * usados no mercado nacional.
+ *
+ * Cada família possui uma busca diária curta, com um único título principal.
+ * Os sinônimos em português entram primeiro na rotação. Os aliases em inglês
+ * que vierem do perfil continuam existindo, mas deixam de consumir a maior
+ * parte do orçamento diário da Brave.
+ */
+const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal> = {
+  suporte: {
+    tituloPrincipal: "Analista de Suporte",
+
+    titulosRelacionados: [
+      "Analista de Suporte Técnico",
+      "Suporte Técnico",
+      "Técnico de Suporte",
+      "Analista de Service Desk",
+      "Analista de Help Desk"
+    ],
+
+    paginasPrincipais: 2
+  },
+
+  sistemas: {
+    tituloPrincipal: "Analista de Sistemas",
+
+    titulosRelacionados: [
+      "Analista de Sustentação",
+      "Analista de Aplicações",
+      "Suporte de Sistemas",
+      "Suporte de Aplicação",
+      "Analista Funcional"
+    ],
+
+    paginasPrincipais: 2
+  },
+
+  infraestrutura: {
+    tituloPrincipal: "Analista de Infraestrutura",
+
+    titulosRelacionados: [
+      "Analista de Redes",
+      "Analista NOC",
+      "Analista de Monitoramento",
+      "Administrador de Sistemas",
+      "Analista de Operações de TI"
+    ],
+
+    paginasPrincipais: 2
+  },
+
+  implantacao: {
+    tituloPrincipal: "Analista de Implantação",
+
+    titulosRelacionados: [
+      "Consultor de Implantação",
+      "Especialista de Implantação",
+      "Analista de Implementação",
+      "Customer Onboarding",
+      "Onboarding Specialist"
+    ],
+
+    paginasPrincipais: 1
+  },
+
+  processos: {
+    tituloPrincipal: "Analista de Processos",
+
+    titulosRelacionados: [
+      "Analista de Negócios",
+      "Analista BPM",
+      "Analista de Processos de Negócio",
+      "Business Process Analyst",
+      "BPM Analyst"
+    ],
+
+    paginasPrincipais: 1
+  },
+
+  dados: {
+    tituloPrincipal: "Analista de Dados",
+
+    titulosRelacionados: [
+      "Analista de BI",
+      "Business Intelligence Analyst",
+      "Data Analyst",
+      "Power BI Analyst"
+    ],
+
+    paginasPrincipais: 1
+  },
+
+  geral: {
+    tituloPrincipal: null,
+
+    titulosRelacionados: [],
+
+    paginasPrincipais: 1
+  }
+}
 
 /**
  * Gupy e Sólides deixam de ser simples entradas na matriz genérica.
@@ -291,6 +403,16 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
 
   implantacao: ["implantacao", "implementation", "onboarding", "customer success"],
 
+  processos: [
+    "analista de processos",
+    "process analyst",
+    "business process",
+    "bpm",
+    "analista de negocios",
+    "business analyst",
+    "melhoria continua"
+  ],
+
   dados: [
     "data analyst",
     "analista de dados",
@@ -330,6 +452,26 @@ function limparTermoBusca(valor: string) {
   return valor.replace(/"/g, "").replace(/\s+/g, " ").trim()
 }
 
+function deduplicarTermos(termos: string[]) {
+  const unicos = new Map<string, string>()
+
+  for (const termo of termos) {
+    const limpo = limparTermoBusca(termo)
+
+    if (!limpo) {
+      continue
+    }
+
+    const chave = normalizarTexto(limpo)
+
+    if (!unicos.has(chave)) {
+      unicos.set(chave, limpo)
+    }
+  }
+
+  return [...unicos.values()]
+}
+
 function deduplicarCargos(perfil: PerfilProfissional) {
   const cargos = [...perfil.cargosPrincipais, ...perfil.cargosRelacionados]
 
@@ -355,6 +497,23 @@ function deduplicarCargos(perfil: PerfilProfissional) {
 function identificarFamilia(cargo: string): NomeFamilia {
   const normalizado = normalizarTexto(cargo)
 
+  /**
+   * Estes títulos representam sustentação de aplicações, mesmo contendo
+   * a palavra genérica "support".
+   */
+  const termosSistemasEspecificos = [
+    "application support",
+    "production support",
+    "ams analyst",
+    "suporte de sistemas",
+    "suporte de aplicacao",
+    "analista de sustentacao"
+  ]
+
+  if (termosSistemasEspecificos.some(termo => normalizado.includes(termo))) {
+    return "sistemas"
+  }
+
   for (const familia of ORDEM_FAMILIAS) {
     if (familia === "geral") {
       continue
@@ -376,6 +535,7 @@ function criarFamilias(perfil: PerfilProfissional) {
     sistemas: [],
     infraestrutura: [],
     implantacao: [],
+    processos: [],
     dados: [],
     geral: []
   }
@@ -387,6 +547,18 @@ function criarFamilias(perfil: PerfilProfissional) {
   }
 
   return familias
+}
+
+function criarTermosRotativosFamilia(familia: NomeFamilia, termosPerfil: string[]) {
+  const estrategia = ESTRATEGIAS_FAMILIAS_PORTAIS[familia]
+
+  const principalNormalizado = estrategia.tituloPrincipal
+    ? normalizarTexto(estrategia.tituloPrincipal)
+    : null
+
+  return deduplicarTermos([...estrategia.titulosRelacionados, ...termosPerfil]).filter(
+    termo => normalizarTexto(termo) !== principalNormalizado
+  )
 }
 
 function contarPalavras(valor: string) {
@@ -435,38 +607,17 @@ function criarPacotes(
   return pacotes
 }
 
-function localizarTermoPreferido(termos: string[], preferencias: string[]) {
-  for (const preferencia of preferencias) {
-    const encontrada = termos.find(termo => normalizarTexto(termo) === normalizarTexto(preferencia))
-
-    if (encontrada) {
-      return encontrada
-    }
-  }
-
-  return termos[0]
-}
-
 /**
- * As pesquisas complementares não precisam carregar dezenas de aliases.
+ * As pesquisas complementares recebem um título brasileiro representativo
+ * de cada família profissional.
  *
- * Seleciono termos representativos e deixo os demais para a rotação.
+ * Dessa forma a busca diária não depende da ordem em que aliases em inglês
+ * foram salvos no perfil. Os demais títulos continuam entrando na rotação.
  */
 function criarNucleoComplementar(familias: Record<NomeFamilia, string[]>) {
-  const candidatos = [
-    localizarTermoPreferido(familias.suporte, ["analista de suporte", "technical support"]),
-
-    localizarTermoPreferido(familias.sistemas, ["analista de sistemas", "application support"]),
-
-    localizarTermoPreferido(familias.infraestrutura, ["analista de infraestrutura", "noc analyst"]),
-
-    localizarTermoPreferido(familias.implantacao, [
-      "analista de implantacao",
-      "implementation analyst"
-    ]),
-
-    localizarTermoPreferido(familias.dados, ["analista de dados", "data analyst"])
-  ].filter((termo): termo is string => Boolean(termo))
+  const candidatos = ORDEM_FAMILIAS.map(
+    familia => ESTRATEGIAS_FAMILIAS_PORTAIS[familia].tituloPrincipal
+  ).filter((termo): termo is string => Boolean(termo))
 
   const unicos = new Map<string, string>()
 
@@ -479,6 +630,7 @@ function criarNucleoComplementar(familias: Record<NomeFamilia, string[]>) {
     ...familias.sistemas,
     ...familias.infraestrutura,
     ...familias.implantacao,
+    ...familias.processos,
     ...familias.dados,
     ...familias.geral
   ]
@@ -507,9 +659,10 @@ function criarExpressaoValores(valores: string[]) {
 }
 
 function montarConsultaPortal(portal: PortalAgregador, termos: string[]) {
-  const expressao = `(${criarExpressaoTermos(termos)})`
+  const expressao =
+    termos.length === 1 ? criarExpressaoTermos(termos) : `(${criarExpressaoTermos(termos)})`
 
-  return `${portal.escopo} ` + expressao
+  return `${portal.escopo} ${expressao}`
 }
 
 function montarConsultaComplementar(plataforma: PlataformaComplementar, termos: string[]) {
@@ -541,10 +694,12 @@ function montarConsultaRegional(localizacoes: string[], termos: string[]) {
 }
 
 /**
- * Cada família recebe sua própria busca nos grandes portais.
+ * Cada família recebe uma busca diária curta e em português nos grandes
+ * portais brasileiros.
  *
- * Isso é propositalmente diferente da estratégia antiga, em que todos
- * os cargos competiam dentro de uma única pesquisa da Gupy ou Sólides.
+ * Títulos relacionados e aliases do perfil entram depois, em pacotes de no
+ * máximo dois termos e com recorrência rotativa. Isso evita gastar chamadas
+ * diárias com quatro expressões em inglês que frequentemente retornam zero.
  */
 function criarConsultasPortaisPrioritarios(
   familias: Record<NomeFamilia, string[]>
@@ -552,16 +707,34 @@ function criarConsultasPortaisPrioritarios(
   const consultas: ConsultaBuscaVaga[] = []
 
   for (const familia of ORDEM_FAMILIAS) {
-    const pacotes = criarPacotes(familias[familia])
+    const estrategia = ESTRATEGIAS_FAMILIAS_PORTAIS[familia]
+
+    if (!estrategia.tituloPrincipal) {
+      continue
+    }
 
     for (const portal of PORTAIS_AGREGADORES_PRIORITARIOS) {
-      for (let indice = 0; indice < pacotes.length; indice++) {
-        const pacote = pacotes[indice]
+      consultas.push({
+        texto: montarConsultaPortal(portal, [estrategia.tituloPrincipal]),
 
-        if (!pacote || pacote.length === 0) {
-          continue
-        }
+        plataforma: portal.id,
 
+        familia: `portal-${familia}`,
+
+        recorrencia: "diaria",
+
+        paginasMaximas: Math.min(portal.paginasMaximas, estrategia.paginasPrincipais)
+      })
+    }
+  }
+
+  for (const familia of ORDEM_FAMILIAS) {
+    const termosRotativos = criarTermosRotativosFamilia(familia, familias[familia])
+
+    const pacotes = criarPacotes(termosRotativos, 2, 180, 20)
+
+    for (const portal of PORTAIS_AGREGADORES_PRIORITARIOS) {
+      for (const pacote of pacotes) {
         consultas.push({
           texto: montarConsultaPortal(portal, pacote),
 
@@ -569,9 +742,9 @@ function criarConsultasPortaisPrioritarios(
 
           familia: `portal-${familia}`,
 
-          recorrencia: indice === 0 ? "diaria" : "rotativa",
+          recorrencia: "rotativa",
 
-          paginasMaximas: portal.paginasMaximas
+          paginasMaximas: 1
         })
       }
     }
@@ -653,7 +826,9 @@ function criarConsultasRotativasComplementares(familias: Record<NomeFamilia, str
   const consultas: ConsultaBuscaVaga[] = []
 
   for (const familia of ORDEM_FAMILIAS) {
-    const pacotes = criarPacotes(familias[familia])
+    const termosRotativos = criarTermosRotativosFamilia(familia, familias[familia])
+
+    const pacotes = criarPacotes(termosRotativos, 2, 180, 20)
 
     for (const pacote of pacotes) {
       for (const plataforma of PLATAFORMAS_COMPLEMENTARES) {
