@@ -4,7 +4,8 @@ import { describe, test } from "node:test"
 
 import {
   gerarConsultasBuscaVagas,
-  gerarTermosBuscaNativaGupy
+  gerarTermosBuscaNativaGupy,
+  gerarTermosBuscaNativaSolides
 } from "../src/config/search-queries.js"
 
 import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
@@ -92,106 +93,135 @@ describe("gerador de consultas de vagas", () => {
     }
   })
 
-  test("mantém Sólides como portal prioritário até o Commit 2", () => {
-    const consultas = gerarConsultasBuscaVagas(criarPerfil())
-
-    const solides = consultas.filter(consulta => consulta.plataforma === "solides")
-
-    assert.ok(solides.length >= 6)
-
-    const titulosPrincipais = [
-      "Analista de Suporte",
-      "Analista de Sistemas",
-      "Analista de Infraestrutura",
-      "Analista de Implantação",
-      "Analista de Processos",
-      "Analista de Dados"
-    ]
-
-    for (const titulo of titulosPrincipais) {
-      const consulta = consultas.find(
-        item =>
-          item.plataforma === "solides" &&
-          item.recorrencia === "diaria" &&
-          item.texto.includes(`"${titulo}"`)
+  test("não usa mais Brave para pesquisas dedicadas à Sólides", () => {
+    const consultas =
+      gerarConsultasBuscaVagas(
+        criarPerfil()
       )
 
-      assert.ok(consulta, `Busca diária Sólides ausente: ${titulo}`)
+    const solides = consultas.filter(
+      consulta =>
+        consulta.plataforma === "solides"
+    )
 
-      assert.equal(consulta.texto.includes(" OR "), false)
-    }
-  })
-
-  test("reduz o consumo diário da Brave após retirar Gupy", () => {
-    const consultas = gerarConsultasBuscaVagas(criarPerfil())
-
-    const diarias = consultas.filter(consulta => consulta.recorrencia === "diaria")
-
-    const custoMaximoDiario = diarias.reduce(
-      (total, consulta) => total + consulta.paginasMaximas,
+    assert.equal(
+      solides.length,
       0
     )
 
-    assert.ok(custoMaximoDiario <= 25)
-
-    const principaisSolides = consultas.filter(
-      consulta => consulta.plataforma === "solides" && consulta.recorrencia === "diaria"
-    )
-
-    assert.equal(principaisSolides.length, 6)
-
-    for (const consulta of principaisSolides) {
-      if (
-        ["portal-suporte", "portal-sistemas", "portal-infraestrutura"].includes(
-          consulta.familia
-        )
-      ) {
-        assert.equal(consulta.paginasMaximas, 2)
-      } else {
-        assert.equal(consulta.paginasMaximas, 1)
-      }
+    for (const consulta of consultas) {
+      assert.equal(
+        consulta.texto.includes(
+          "site:vagas.solides.com.br"
+        ),
+        false
+      )
     }
   })
 
-  test("prioriza sinônimos brasileiros na Sólides", () => {
-    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+  test("reduz ainda mais o consumo diário após Gupy e Sólides nativas", () => {
+    const consultas =
+      gerarConsultasBuscaVagas(
+        criarPerfil()
+      )
 
-    const suporteSolides = consultas.filter(
+    const diarias = consultas.filter(
       consulta =>
-        consulta.plataforma === "solides" &&
-        consulta.familia === "portal-suporte" &&
-        consulta.recorrencia === "rotativa"
+        consulta.recorrencia === "diaria"
     )
 
-    const indicePortugues = suporteSolides.findIndex(consulta =>
-      consulta.texto.includes('"Analista de Suporte Técnico"')
+    const custoMaximoDiario =
+      diarias.reduce(
+        (total, consulta) =>
+          total +
+          consulta.paginasMaximas,
+        0
+      )
+
+    assert.ok(
+      custoMaximoDiario <= 10
     )
 
-    const indiceIngles = suporteSolides.findIndex(consulta =>
-      consulta.texto.includes('"Technical Support"')
+    assert.equal(
+      consultas.some(
+        consulta =>
+          consulta.plataforma ===
+          "gupy" ||
+          consulta.plataforma ===
+          "solides"
+      ),
+      false
     )
-
-    assert.ok(indicePortugues >= 0)
-
-    assert.ok(indiceIngles >= 0)
-
-    assert.ok(indicePortugues < indiceIngles)
-
-    for (const consulta of suporteSolides) {
-      const quantidadeTermos = (consulta.texto.match(/"/g) ?? []).length / 2
-
-      assert.ok(quantidadeTermos <= 2)
-    }
   })
 
-  test("não exige Brasil dentro da consulta da Sólides antes da análise", () => {
-    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+  test("gera termos brasileiros para a coleta nativa da Sólides", () => {
+    const termos =
+      gerarTermosBuscaNativaSolides(
+        criarPerfil()
+      )
 
-    const solides = consultas.filter(consulta => consulta.plataforma === "solides")
+    assert.ok(
+      termos.includes(
+        "Analista de Suporte"
+      )
+    )
 
-    for (const consulta of solides) {
-      assert.equal(consulta.texto.includes("(Brasil OR Brazil)"), false)
-    }
+    assert.ok(
+      termos.includes(
+        "Analista de Sistemas"
+      )
+    )
+
+    assert.ok(
+      termos.includes(
+        "Analista de Infraestrutura"
+      )
+    )
+
+    assert.ok(
+      termos.includes(
+        "Analista de Implantação"
+      )
+    )
+
+    assert.ok(
+      termos.includes(
+        "Analista de Processos"
+      )
+    )
+
+    assert.ok(
+      termos.includes(
+        "Analista de Dados"
+      )
+    )
+
+    assert.ok(
+      termos.length <= 20
+    )
+
+    const indicePortugues =
+      termos.indexOf(
+        "Analista de Suporte"
+      )
+
+    const indiceIngles =
+      termos.indexOf(
+        "Technical Support"
+      )
+
+    assert.ok(
+      indicePortugues >= 0
+    )
+
+    assert.ok(
+      indiceIngles >= 0
+    )
+
+    assert.ok(
+      indicePortugues <
+      indiceIngles
+    )
   })
 
   test("mantém fontes complementares relevantes", () => {

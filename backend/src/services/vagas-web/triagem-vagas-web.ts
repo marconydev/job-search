@@ -6,6 +6,7 @@ import type { PaginaSomenteDescoberta } from "../../types/processamento-web.js"
 
 const provedoresProcessaveis = new Set<ProvedorPagina>([
   "gupy",
+  "solides",
   "lever",
   "greenhouse",
   "workable",

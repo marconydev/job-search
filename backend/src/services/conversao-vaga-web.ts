@@ -69,6 +69,18 @@ function gerarIdentificadorExterno(provedor: ProvedorPagina, url: string) {
       return partes[indiceVaga + 1] ?? normalizarUrlIdentificacao(url)
     }
 
+    if (provedor === "solides") {
+      const indiceVaga = partes.findIndex(
+        parte =>
+          parte.toLowerCase() === "vaga"
+      )
+
+      return (
+        partes[indiceVaga + 1] ??
+        normalizarUrlIdentificacao(url)
+      )
+    }
+
     return normalizarUrlIdentificacao(url)
   } catch {
     return normalizarUrlIdentificacao(url)

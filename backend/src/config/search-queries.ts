@@ -173,22 +173,14 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
 }
 
 /**
- * A Gupy NÃO aparece mais aqui.
+ * Gupy e Sólides agora possuem coleta nativa.
  *
- * Ela passa a ser consultada diretamente pelo coletor gupy.ts.
+ * Portanto nenhuma delas precisa consumir chamadas Brave dedicadas.
  *
- * A Sólides permanece temporariamente usando Brave neste Commit 1.
- * No Commit 2 ela também sairá daqui e ganhará coleta nativa.
+ * A estrutura permanece preparada para outro portal prioritário futuro
+ * que não possua integração direta.
  */
-const PORTAIS_AGREGADORES_PRIORITARIOS: PortalAgregador[] = [
-  {
-    id: "solides",
-
-    escopo: "site:vagas.solides.com.br",
-
-    paginasMaximas: 2
-  }
-]
+const PORTAIS_AGREGADORES_PRIORITARIOS: PortalAgregador[] = []
 
 /**
  * Fontes complementares continuam usando Brave.
@@ -563,6 +555,21 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
   ])
 
   return termos.slice(0, 30)
+}
+
+/**
+ * A Sólides utiliza a mesma família de cargos brasileiros da Gupy.
+ *
+ * Como a coleta da Sólides exige abertura das páginas HTML das vagas,
+ * mantenho um conjunto um pouco menor do que na Gupy, cuja API pública
+ * devolve os dados diretamente em JSON.
+ */
+export function gerarTermosBuscaNativaSolides(
+  perfil: PerfilProfissional
+) {
+  return gerarTermosBuscaNativaGupy(
+    perfil
+  ).slice(0, 20)
 }
 
 function criarTermosRotativosFamilia(familia: NomeFamilia, termosPerfil: string[]) {

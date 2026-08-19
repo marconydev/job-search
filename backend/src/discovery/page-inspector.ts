@@ -2,6 +2,8 @@ import { identificarProvedorPagina } from "./page-classifier.js"
 
 import { extrairVagaGupy } from "../extractors/gupy.js"
 
+import { extrairVagaSolides } from "../extractors/solides.js"
+
 import { extrairVagaLever } from "../extractors/lever.js"
 
 import { extrairVagaGreenhouse } from "../extractors/greenhouse.js"
@@ -353,6 +355,13 @@ async function extrairVaga(
 
   if (provedor === "gupy") {
     return extrairVagaGupy(html, urlFinal)
+  }
+
+  if (provedor === "solides") {
+    return extrairVagaSolides(
+      html,
+      urlFinal
+    )
   }
 
   return null
