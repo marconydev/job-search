@@ -125,6 +125,33 @@ export function identificarProvedorPagina(url: string): ProvedorPagina {
       return "indeed"
     }
 
+    /**
+     * Portais complementares brasileiros.
+     *
+     * Eles são descobertos principalmente pela Brave, mas recebem
+     * provedores próprios para permitir métricas, deduplicação e
+     * diagnóstico separados.
+     */
+
+    if (ehDominio(hostname, "99jobs.com")) {
+      return "99jobs"
+    }
+
+    if (ehDominio(hostname, "empregare.com")) {
+      return "empregare"
+    }
+
+    if (ehDominio(hostname, "br.jooble.org")) {
+      return "jooble"
+    }
+
+    if (ehDominio(hostname, "jobatus.com.br")) {
+      return "jobatus"
+    }
+
+    if (ehDominio(hostname, "glassdoor.com.br")) {
+      return "glassdoor"
+    }
     if (hostname === "remoteok.com") {
       return "remote-ok"
     }

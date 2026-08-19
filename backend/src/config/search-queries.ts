@@ -18,13 +18,7 @@ export type ConsultaBuscaVaga = {
 }
 
 type NomeFamilia =
-  | "suporte"
-  | "sistemas"
-  | "infraestrutura"
-  | "implantacao"
-  | "processos"
-  | "dados"
-  | "geral"
+  "suporte" | "sistemas" | "infraestrutura" | "implantacao" | "processos" | "dados" | "geral"
 
 type PortalAgregador = {
   id: string
@@ -205,6 +199,30 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
     id: "indeed",
 
     escopo: "site:br.indeed.com/viewjob",
+
+    restringirAoBrasil: false
+  },
+
+  {
+    /**
+     * Segundo grupo de portais brasileiros.
+     *
+     * Mantenho separado de Vagas.com/InfoJobs/Catho para evitar que
+     * cinco domínios adicionais disputem as mesmas vinte posições
+     * retornadas pela Brave.
+     *
+     * Continua sendo apenas uma chamada por estratégia.
+     */
+    id: "agregadores-br",
+
+    escopo:
+      "(" +
+      "site:99jobs.com OR " +
+      "site:empregare.com/pt-br/vaga- OR " +
+      "site:br.jooble.org/jdp OR " +
+      "site:jobatus.com.br OR " +
+      "site:glassdoor.com.br/job-listing" +
+      ")",
 
     restringirAoBrasil: false
   },
@@ -546,13 +564,7 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
     relacionados.push(...estrategia.titulosRelacionados)
   }
 
-  const termos = deduplicarTermos([
-    ...principais,
-
-    ...deduplicarCargos(perfil),
-
-    ...relacionados
-  ])
+  const termos = deduplicarTermos([...principais, ...deduplicarCargos(perfil), ...relacionados])
 
   return termos.slice(0, 30)
 }
@@ -564,12 +576,8 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
  * mantenho um conjunto um pouco menor do que na Gupy, cuja API pública
  * devolve os dados diretamente em JSON.
  */
-export function gerarTermosBuscaNativaSolides(
-  perfil: PerfilProfissional
-) {
-  return gerarTermosBuscaNativaGupy(
-    perfil
-  ).slice(0, 20)
+export function gerarTermosBuscaNativaSolides(perfil: PerfilProfissional) {
+  return gerarTermosBuscaNativaGupy(perfil).slice(0, 20)
 }
 
 function criarTermosRotativosFamilia(familia: NomeFamilia, termosPerfil: string[]) {
@@ -785,9 +793,7 @@ function criarConsultasComplementares(
   }))
 }
 
-function criarConsultasEstrategicas(
-  familias: Record<NomeFamilia, string[]>
-): ConsultaBuscaVaga[] {
+function criarConsultasEstrategicas(familias: Record<NomeFamilia, string[]>): ConsultaBuscaVaga[] {
   const nucleo = criarNucleoComplementar(familias)
 
   if (nucleo.length === 0) {

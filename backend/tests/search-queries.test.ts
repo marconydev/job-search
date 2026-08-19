@@ -94,134 +94,63 @@ describe("gerador de consultas de vagas", () => {
   })
 
   test("não usa mais Brave para pesquisas dedicadas à Sólides", () => {
-    const consultas =
-      gerarConsultasBuscaVagas(
-        criarPerfil()
-      )
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
-    const solides = consultas.filter(
-      consulta =>
-        consulta.plataforma === "solides"
-    )
+    const solides = consultas.filter(consulta => consulta.plataforma === "solides")
 
-    assert.equal(
-      solides.length,
-      0
-    )
+    assert.equal(solides.length, 0)
 
     for (const consulta of consultas) {
-      assert.equal(
-        consulta.texto.includes(
-          "site:vagas.solides.com.br"
-        ),
-        false
-      )
+      assert.equal(consulta.texto.includes("site:vagas.solides.com.br"), false)
     }
   })
 
   test("reduz ainda mais o consumo diário após Gupy e Sólides nativas", () => {
-    const consultas =
-      gerarConsultasBuscaVagas(
-        criarPerfil()
-      )
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
-    const diarias = consultas.filter(
-      consulta =>
-        consulta.recorrencia === "diaria"
+    const diarias = consultas.filter(consulta => consulta.recorrencia === "diaria")
+
+    const custoMaximoDiario = diarias.reduce(
+      (total, consulta) => total + consulta.paginasMaximas,
+      0
     )
 
-    const custoMaximoDiario =
-      diarias.reduce(
-        (total, consulta) =>
-          total +
-          consulta.paginasMaximas,
-        0
-      )
-
-    assert.ok(
-      custoMaximoDiario <= 10
-    )
+    assert.ok(custoMaximoDiario <= 10)
 
     assert.equal(
       consultas.some(
-        consulta =>
-          consulta.plataforma ===
-          "gupy" ||
-          consulta.plataforma ===
-          "solides"
+        consulta => consulta.plataforma === "gupy" || consulta.plataforma === "solides"
       ),
       false
     )
   })
 
   test("gera termos brasileiros para a coleta nativa da Sólides", () => {
-    const termos =
-      gerarTermosBuscaNativaSolides(
-        criarPerfil()
-      )
+    const termos = gerarTermosBuscaNativaSolides(criarPerfil())
 
-    assert.ok(
-      termos.includes(
-        "Analista de Suporte"
-      )
-    )
+    assert.ok(termos.includes("Analista de Suporte"))
 
-    assert.ok(
-      termos.includes(
-        "Analista de Sistemas"
-      )
-    )
+    assert.ok(termos.includes("Analista de Sistemas"))
 
-    assert.ok(
-      termos.includes(
-        "Analista de Infraestrutura"
-      )
-    )
+    assert.ok(termos.includes("Analista de Infraestrutura"))
 
-    assert.ok(
-      termos.includes(
-        "Analista de Implantação"
-      )
-    )
+    assert.ok(termos.includes("Analista de Implantação"))
 
-    assert.ok(
-      termos.includes(
-        "Analista de Processos"
-      )
-    )
+    assert.ok(termos.includes("Analista de Processos"))
 
-    assert.ok(
-      termos.includes(
-        "Analista de Dados"
-      )
-    )
+    assert.ok(termos.includes("Analista de Dados"))
 
-    assert.ok(
-      termos.length <= 20
-    )
+    assert.ok(termos.length <= 20)
 
-    const indicePortugues =
-      termos.indexOf(
-        "Analista de Suporte"
-      )
+    const indicePortugues = termos.indexOf("Analista de Suporte")
 
-    const indiceIngles =
-      termos.indexOf(
-        "Technical Support"
-      )
+    const indiceIngles = termos.indexOf("Technical Support")
 
-    assert.ok(
-      indicePortugues >= 0
-    )
+    assert.ok(indicePortugues >= 0)
 
-    assert.ok(
-      indiceIngles >= 0
-    )
+    assert.ok(indiceIngles >= 0)
 
-    assert.ok(
-      indicePortugues <
-      indiceIngles
-    )
+    assert.ok(indicePortugues < indiceIngles)
   })
 
   test("mantém fontes complementares relevantes", () => {
@@ -236,6 +165,8 @@ describe("gerador de consultas de vagas", () => {
     assert.ok(plataformas.has("workday"))
 
     assert.ok(plataformas.has("portais-br"))
+
+    assert.ok(plataformas.has("agregadores-br"))
 
     assert.ok(plataformas.has("ats"))
 
@@ -258,6 +189,38 @@ describe("gerador de consultas de vagas", () => {
     assert.ok(texto.includes("site:infojobs.com.br"))
 
     assert.ok(texto.includes("site:catho.com.br"))
+  })
+
+  test("inclui os novos portais brasileiros em grupo complementar próprio", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const agregadores = consultas.filter(consulta => consulta.plataforma === "agregadores-br")
+
+    assert.ok(agregadores.length > 0)
+
+    const texto = agregadores.map(consulta => consulta.texto).join("\n")
+
+    assert.ok(texto.includes("site:99jobs.com"))
+
+    assert.ok(texto.includes("site:empregare.com/pt-br/vaga-"))
+
+    assert.ok(texto.includes("site:br.jooble.org/jdp"))
+
+    assert.ok(texto.includes("site:jobatus.com.br"))
+
+    assert.ok(texto.includes("site:glassdoor.com.br/job-listing"))
+
+    /**
+     * Gupy e Sólides não podem voltar para a descoberta dedicada
+     * depois de ganharem seus coletores nativos.
+     */
+    assert.equal(texto.includes("gupy.io"), false)
+
+    assert.equal(texto.includes("solides.com.br"), false)
+
+    for (const consulta of agregadores) {
+      assert.equal(consulta.paginasMaximas, 1)
+    }
   })
 
   test("inclui Remote Rocketship somente como fonte de descoberta", () => {
@@ -378,10 +341,7 @@ describe("gerador de consultas de vagas", () => {
 
     const termosGupy = gerarTermosBuscaNativaGupy(perfil)
 
-    const texto = [
-      ...consultas.map(consulta => consulta.texto),
-      ...termosGupy
-    ]
+    const texto = [...consultas.map(consulta => consulta.texto), ...termosGupy]
       .join("\n")
       .toLowerCase()
 

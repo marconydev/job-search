@@ -128,6 +128,47 @@ export function paginaEhListagem(pagina: PaginaClassificada) {
       return !caminho.includes("/jobs/view/")
     }
 
+    if (pagina.provedor === "99jobs") {
+      /**
+       * Exemplos individuais:
+       *
+       * /empresa/jobs/504812-nome-da-vaga
+       * /vagas/488601-nome-da-vaga
+       */
+      const ehIndividual =
+        /\/jobs\/\d+(?:[-/]|$)/i.test(caminho) || /\/vagas\/\d+(?:[-/]|$)/i.test(caminho)
+
+      return !ehIndividual
+    }
+
+    if (pagina.provedor === "empregare") {
+      /**
+       * Formato público atual:
+       *
+       * /pt-br/vaga-analista-de-suporte_158125
+       */
+      return !/\/(?:pt-br\/)?vaga-[^/]+_\d+\/?$/i.test(caminho)
+    }
+
+    if (pagina.provedor === "jooble") {
+      /**
+       * As vagas individuais do Jooble Brasil utilizam:
+       *
+       * /jdp/6950630080950196802
+       * /jdp/-1445966202607795601
+       */
+      return !/^\/jdp\/-?\d+\/?$/i.test(caminho)
+    }
+
+    if (pagina.provedor === "glassdoor") {
+      /**
+       * Evito páginas de pesquisa, salários e empresas.
+       *
+       * A descoberta é direcionada para páginas job-listing.
+       */
+      return !caminho.includes("/job-listing/")
+    }
+
     if (pagina.provedor === "greenhouse") {
       return !/\/jobs\/\d+/i.test(caminho)
     }
