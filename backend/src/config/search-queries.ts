@@ -10,14 +10,32 @@ export type ConsultaBuscaVaga = {
   familia: string
 
   recorrencia: RecorrenciaConsultaBusca
+
+  /**
+   * Número máximo de páginas Brave que esta estratégia merece.
+   *
+   * A maioria das pesquisas usa somente uma página.
+   * Portais agregadores prioritários podem avançar até a segunda.
+   */
+  paginasMaximas: number
 }
 
 type NomeFamilia = "suporte" | "sistemas" | "infraestrutura" | "implantacao" | "dados" | "geral"
 
-type PlataformaBusca = {
+type PortalAgregador = {
   id: string
 
   escopo: string
+
+  paginasMaximas: number
+}
+
+type PlataformaComplementar = {
+  id: string
+
+  escopo: string
+
+  restringirAoBrasil: boolean
 }
 
 type GrupoEmpresas = {
@@ -42,108 +60,114 @@ const ORDEM_FAMILIAS: NomeFamilia[] = [
 ]
 
 /**
- * Eu mantenho aqui os portais gerais nos quais quero procurar vagas.
+ * Gupy e Sólides deixam de ser simples entradas na matriz genérica.
  *
- * Os cargos continuam vindo do perfil profissional. Assim não duplico
- * nomenclaturas entre o perfil e a estratégia de descoberta.
+ * Esses portais concentram vagas de milhares de empresas e, por isso,
+ * merecem pesquisas menores por família profissional e maior profundidade
+ * de resultados.
+ *
+ * Eu não exijo "Brasil" dentro da consulta destes portais. A localização
+ * continua sendo validada rigorosamente depois que a oportunidade é
+ * encontrada.
  */
-const PLATAFORMAS_BUSCA: PlataformaBusca[] = [
+const PORTAIS_AGREGADORES_PRIORITARIOS: PortalAgregador[] = [
   {
     id: "gupy",
 
-    escopo: "site:gupy.io"
-  },
-  {
-    id: "linkedin",
+    escopo: "site:gupy.io",
 
-    escopo: "site:linkedin.com/jobs/view"
+    paginasMaximas: 2
   },
-  {
-    id: "indeed",
 
-    escopo: "site:br.indeed.com/viewjob"
-  },
-  {
-    id: "workday",
-
-    escopo: "(site:myworkdayjobs.com OR site:myworkdaysite.com)"
-  },
   {
     id: "solides",
 
-    escopo: "site:vagas.solides.com.br"
-  },
-  {
-    id: "pandape",
+    escopo: "site:vagas.solides.com.br",
 
-    escopo: "(site:pandape.infojobs.com.br OR site:pandape.catho.com.br)"
-  },
-  {
-    id: "vagas",
-
-    escopo: "site:vagas.com.br"
-  },
-  {
-    id: "infojobs",
-
-    escopo: "site:infojobs.com.br"
-  },
-  {
-    id: "catho",
-
-    escopo: "site:catho.com.br"
-  },
-  {
-    id: "lever",
-
-    escopo: "site:jobs.lever.co"
-  },
-  {
-    id: "greenhouse",
-
-    escopo: "(site:job-boards.greenhouse.io OR site:boards.greenhouse.io)"
-  },
-  {
-    id: "workable",
-
-    escopo: "site:apply.workable.com"
-  },
-  {
-    id: "smartrecruiters",
-
-    escopo: "site:jobs.smartrecruiters.com"
-  },
-  {
-    id: "ashby",
-
-    escopo: "site:jobs.ashbyhq.com"
-  },
-  {
-    id: "recruitee",
-
-    escopo: "site:recruitee.com"
-  },
-  {
-    id: "web",
-
-    escopo: ""
+    paginasMaximas: 2
   }
 ]
 
 /**
- * Além das buscas gerais, eu priorizo empresas que possuem volume
- * relevante de oportunidades em tecnologia, operações, suporte,
- * implantação, sistemas, infraestrutura e dados.
+ * Fontes complementares continuam usando a descoberta web.
  *
- * Não crio uma chamada por empresa. Agrupo organizações relacionadas
- * para preservar o orçamento diário da Brave.
+ * Agrupo plataformas semelhantes quando isso reduz chamadas redundantes
+ * sem remover uma fonte relevante.
  */
+const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
+  {
+    id: "linkedin",
+
+    escopo: "site:linkedin.com/jobs/view",
+
+    restringirAoBrasil: true
+  },
+
+  {
+    id: "indeed",
+
+    escopo: "site:br.indeed.com/viewjob",
+
+    restringirAoBrasil: false
+  },
+
+  {
+    id: "workday",
+
+    escopo: "(site:myworkdayjobs.com OR site:myworkdaysite.com)",
+
+    restringirAoBrasil: true
+  },
+
+  {
+    id: "portais-br",
+
+    escopo:
+      "(" +
+      "site:vagas.com.br OR " +
+      "site:infojobs.com.br OR " +
+      "site:catho.com.br OR " +
+      "site:pandape.infojobs.com.br OR " +
+      "site:pandape.catho.com.br" +
+      ")",
+
+    restringirAoBrasil: false
+  },
+
+  {
+    id: "ats",
+
+    escopo:
+      "(" +
+      "site:jobs.lever.co OR " +
+      "site:jobs.eu.lever.co OR " +
+      "site:job-boards.greenhouse.io OR " +
+      "site:boards.greenhouse.io OR " +
+      "site:apply.workable.com OR " +
+      "site:jobs.smartrecruiters.com OR " +
+      "site:jobs.ashbyhq.com OR " +
+      "site:recruitee.com" +
+      ")",
+
+    restringirAoBrasil: true
+  },
+
+  {
+    id: "web",
+
+    escopo: "",
+
+    restringirAoBrasil: true
+  }
+]
+
 const GRUPOS_EMPRESAS_PRIORITARIAS: GrupoEmpresas[] = [
   {
     id: "financeiro",
 
     empresas: ["Itaú", "Bradesco", "Safra", "Sicredi", "Sicoob", "BTG Pactual", "XP"]
   },
+
   {
     id: "fintech",
 
@@ -160,6 +184,7 @@ const GRUPOS_EMPRESAS_PRIORITARIAS: GrupoEmpresas[] = [
       "Cielo"
     ]
   },
+
   {
     id: "tecnologia",
 
@@ -176,13 +201,6 @@ const GRUPOS_EMPRESAS_PRIORITARIAS: GrupoEmpresas[] = [
   }
 ]
 
-/**
- * As buscas gerais continuam nacionais.
- *
- * Estas regiões recebem apenas uma prioridade adicional porque concentram
- * muitos empregadores de tecnologia e podem ficar escondidas em uma
- * pesquisa nacional muito ampla.
- */
 const REGIOES_PRIORITARIAS: RegiaoPrioritaria[] = [
   {
     id: "sudeste",
@@ -197,6 +215,7 @@ const REGIOES_PRIORITARIAS: RegiaoPrioritaria[] = [
       "Vitória"
     ]
   },
+
   {
     id: "sul",
 
@@ -210,6 +229,7 @@ const REGIOES_PRIORITARIAS: RegiaoPrioritaria[] = [
       "Maringá"
     ]
   },
+
   {
     id: "centro-oeste",
 
@@ -266,23 +286,21 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
   ]
 }
 
-/**
- * Toda descoberta deve permanecer restrita ao território brasileiro.
- *
- * "Remote", "LATAM", "Worldwide" e termos semelhantes não comprovam que
- * a oportunidade pertence ao Brasil, portanto não entram na consulta.
- */
 const CONTEXTO_LOCALIZACAO = "(Brasil OR Brazil)"
 
 /**
- * Nas buscas regionais eu concentro os principais portais que costumam
- * devolver páginas individuais de vagas.
+ * As pesquisas regionais agora complementam os portais prioritários.
  *
- * Isso reduz a chance de consumir uma chamada estratégica com páginas
- * institucionais ou artigos.
+ * Gupy não precisa aparecer novamente aqui porque já recebe uma busca
+ * própria, dividida por família e com paginação.
  */
 const ESCOPO_VAGAS_REGIONAIS =
-  "(site:gupy.io OR site:linkedin.com/jobs/view OR site:br.indeed.com/viewjob OR site:myworkdayjobs.com)"
+  "(" +
+  "site:linkedin.com/jobs/view OR " +
+  "site:br.indeed.com/viewjob OR " +
+  "site:myworkdayjobs.com OR " +
+  "site:vagas.com.br" +
+  ")"
 
 function normalizarTexto(valor: string) {
   return valor
@@ -362,12 +380,15 @@ function contarPalavras(valor: string) {
 }
 
 /**
- * Eu agrupo cargos equivalentes em uma mesma chamada Brave.
- *
- * Além do limite de seis termos, controlo tamanho e quantidade de
- * palavras para manter espaço para site:, operadores e localização.
+ * Eu mantenho as consultas pequenas para reduzir competição entre cargos
+ * diferentes dentro do ranking do buscador.
  */
-function criarPacotes(termos: string[]) {
+function criarPacotes(
+  termos: string[],
+  limiteItens = 4,
+  limiteCaracteres = 220,
+  limitePalavras = 28
+) {
   const pacotes: string[][] = []
 
   let atual: string[] = []
@@ -377,7 +398,10 @@ function criarPacotes(termos: string[]) {
 
     const expressao = candidato.map(item => `"${item}"`).join(" OR ")
 
-    const excedeu = candidato.length > 6 || expressao.length > 280 || contarPalavras(expressao) > 34
+    const excedeu =
+      candidato.length > limiteItens ||
+      expressao.length > limiteCaracteres ||
+      contarPalavras(expressao) > limitePalavras
 
     if (excedeu && atual.length > 0) {
       pacotes.push(atual)
@@ -410,75 +434,11 @@ function localizarTermoPreferido(termos: string[], preferencias: string[]) {
 }
 
 /**
- * Esta expressão é pesquisada diariamente em todas as plataformas gerais.
+ * As pesquisas complementares não precisam carregar dezenas de aliases.
  *
- * O restante das nomenclaturas entra nas consultas rotativas.
+ * Seleciono termos representativos e deixo os demais para a rotação.
  */
-function criarNucleoDiario(familias: Record<NomeFamilia, string[]>) {
-  const candidatos = [
-    localizarTermoPreferido(familias.suporte, ["analista de suporte", "technical support"]),
-
-    localizarTermoPreferido(
-      familias.suporte.filter(
-        termo => normalizarTexto(termo) !== normalizarTexto("analista de suporte")
-      ),
-      ["technical support", "support analyst"]
-    ),
-
-    localizarTermoPreferido(familias.sistemas, ["analista de sistemas", "application support"]),
-
-    localizarTermoPreferido(familias.infraestrutura, ["analista de infraestrutura", "noc analyst"]),
-
-    localizarTermoPreferido(familias.implantacao, [
-      "analista de implantacao",
-      "implementation analyst"
-    ]),
-
-    localizarTermoPreferido(familias.dados, ["analista de dados", "data analyst"])
-  ].filter((termo): termo is string => Boolean(termo))
-
-  const unicos = new Map<string, string>()
-
-  for (const termo of candidatos) {
-    unicos.set(normalizarTexto(termo), termo)
-  }
-
-  /**
-   * Se alguma família estiver vazia, completo o núcleo com outros
-   * cargos efetivamente configurados no perfil.
-   */
-  const todos = [
-    ...familias.suporte,
-    ...familias.sistemas,
-    ...familias.infraestrutura,
-    ...familias.implantacao,
-    ...familias.dados,
-    ...familias.geral
-  ]
-
-  for (const termo of todos) {
-    if (unicos.size >= 8) {
-      break
-    }
-
-    const chave = normalizarTexto(termo)
-
-    if (!unicos.has(chave)) {
-      unicos.set(chave, termo)
-    }
-  }
-
-  return [...unicos.values()].slice(0, 8)
-}
-
-/**
- * As consultas estratégicas precisam ser menores que o núcleo geral.
- *
- * Seleciono até um cargo representativo por família. Dessa maneira uma
- * única pesquisa consegue procurar suporte, sistemas, infraestrutura,
- * implantação e dados sem ficar longa demais.
- */
-function criarNucleoEstrategico(familias: Record<NomeFamilia, string[]>) {
+function criarNucleoComplementar(familias: Record<NomeFamilia, string[]>) {
   const candidatos = [
     localizarTermoPreferido(familias.suporte, ["analista de suporte", "technical support"]),
 
@@ -532,53 +492,32 @@ function criarExpressaoValores(valores: string[]) {
   return valores.map(valor => `"${valor}"`).join(" OR ")
 }
 
-function montarConsulta(plataforma: PlataformaBusca, termos: string[]) {
+function montarConsultaPortal(portal: PortalAgregador, termos: string[]) {
   const expressao = `(${criarExpressaoTermos(termos)})`
 
-  /**
-   * Mesmo em portais globais eu exijo Brasil/Brazil na descoberta.
-   *
-   * O filtro geográfico posterior continua sendo a autoridade final,
-   * mas esta restrição evita desperdiçar chamadas Brave com resultados
-   * claramente internacionais.
-   */
-  if (plataforma.id === "web") {
-    return `${expressao} ${CONTEXTO_LOCALIZACAO}`
-  }
-
-  return `${plataforma.escopo} ` + `${expressao} ` + CONTEXTO_LOCALIZACAO
+  return `${portal.escopo} ` + expressao
 }
 
-/**
- * Nas empresas prioritárias eu ainda exijo algum sinal de página de vaga.
- *
- * A decisão final continua sendo feita pela triagem e pelo matcher. A
- * presença da empresa apenas aumenta a chance de a Brave descobrir a
- * oportunidade; ela nunca aumenta o score da vaga.
- */
+function montarConsultaComplementar(plataforma: PlataformaComplementar, termos: string[]) {
+  const expressao = `(${criarExpressaoTermos(termos)})`
+
+  const partes = [
+    plataforma.escopo,
+    expressao,
+    plataforma.restringirAoBrasil ? CONTEXTO_LOCALIZACAO : ""
+  ].filter(Boolean)
+
+  return partes.join(" ")
+}
+
 function montarConsultaEmpresas(empresas: string[], termos: string[]) {
   const expressaoEmpresas = `(${criarExpressaoValores(empresas)})`
 
   const expressaoCargos = `(${criarExpressaoTermos(termos)})`
 
-  /**
-   * Os cargos já dão um sinal forte de oportunidade profissional.
-   *
-   * Mantenho apenas "vagas" e "jobs" como reforço de intenção para não
-   * alongar excessivamente as consultas estratégicas.
-   *
-   * A localização continua obrigatoriamente restrita ao Brasil.
-   */
   return `${expressaoEmpresas} ` + `${expressaoCargos} ` + "(vagas OR jobs) " + CONTEXTO_LOCALIZACAO
 }
 
-/**
- * Para regiões prioritárias eu uso somente portais que costumam devolver
- * páginas individuais.
- *
- * A localização é usada apenas na descoberta. Ela não substitui a
- * validação de localização feita posteriormente.
- */
 function montarConsultaRegional(localizacoes: string[], termos: string[]) {
   const expressaoCargos = `(${criarExpressaoTermos(termos)})`
 
@@ -587,8 +526,77 @@ function montarConsultaRegional(localizacoes: string[], termos: string[]) {
   return `${ESCOPO_VAGAS_REGIONAIS} ` + `${expressaoCargos} ` + expressaoLocalizacoes
 }
 
+/**
+ * Cada família recebe sua própria busca nos grandes portais.
+ *
+ * Isso é propositalmente diferente da estratégia antiga, em que todos
+ * os cargos competiam dentro de uma única pesquisa da Gupy ou Sólides.
+ */
+function criarConsultasPortaisPrioritarios(
+  familias: Record<NomeFamilia, string[]>
+): ConsultaBuscaVaga[] {
+  const consultas: ConsultaBuscaVaga[] = []
+
+  for (const familia of ORDEM_FAMILIAS) {
+    const pacotes = criarPacotes(familias[familia])
+
+    for (const portal of PORTAIS_AGREGADORES_PRIORITARIOS) {
+      for (let indice = 0; indice < pacotes.length; indice++) {
+        const pacote = pacotes[indice]
+
+        if (!pacote || pacote.length === 0) {
+          continue
+        }
+
+        consultas.push({
+          texto: montarConsultaPortal(portal, pacote),
+
+          plataforma: portal.id,
+
+          familia: `portal-${familia}`,
+
+          recorrencia: indice === 0 ? "diaria" : "rotativa",
+
+          paginasMaximas: portal.paginasMaximas
+        })
+      }
+    }
+  }
+
+  return consultas
+}
+
+function criarConsultasComplementares(
+  familias: Record<NomeFamilia, string[]>
+): ConsultaBuscaVaga[] {
+  const nucleo = criarNucleoComplementar(familias)
+
+  if (nucleo.length === 0) {
+    return []
+  }
+
+  return PLATAFORMAS_COMPLEMENTARES.map(plataforma => ({
+    texto: montarConsultaComplementar(plataforma, nucleo),
+
+    plataforma: plataforma.id,
+
+    familia: "nucleo",
+
+    recorrencia: "diaria",
+
+    paginasMaximas: 1
+  }))
+}
+
+/**
+ * Empresas e regiões continuam importantes, mas agora entram depois das
+ * pesquisas estruturadas dos portais.
+ *
+ * Dessa maneira elas aproveitam o saldo diário da Brave em vez de
+ * bloquear a cobertura de Gupy e Sólides.
+ */
 function criarConsultasEstrategicas(familias: Record<NomeFamilia, string[]>): ConsultaBuscaVaga[] {
-  const nucleo = criarNucleoEstrategico(familias)
+  const nucleo = criarNucleoComplementar(familias)
 
   if (nucleo.length === 0) {
     return []
@@ -604,7 +612,9 @@ function criarConsultasEstrategicas(familias: Record<NomeFamilia, string[]>): Co
 
       familia: "empresas",
 
-      recorrencia: "diaria"
+      recorrencia: "rotativa",
+
+      paginasMaximas: 1
     })
   }
 
@@ -616,97 +626,97 @@ function criarConsultasEstrategicas(familias: Record<NomeFamilia, string[]>): Co
 
       familia: "regional",
 
-      recorrencia: "diaria"
+      recorrencia: "rotativa",
+
+      paginasMaximas: 1
     })
   }
 
   return consultas
 }
 
-/**
- * Eu gero três camadas:
- *
- * 1. uma pesquisa diária ampla em cada plataforma;
- * 2. seis pesquisas estratégicas por empresas e regiões;
- * 3. uma matriz rotativa com todas as nomenclaturas do perfil.
- *
- * O job-discovery continua responsável por respeitar o limite de 30
- * chamadas e por rotacionar o que não couber na execução atual.
- */
-export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBuscaVaga[] {
-  const familias = criarFamilias(perfil)
-
-  const nucleo = criarNucleoDiario(familias)
-
-  if (nucleo.length === 0) {
-    return []
-  }
-
+function criarConsultasRotativasComplementares(familias: Record<NomeFamilia, string[]>) {
   const consultas: ConsultaBuscaVaga[] = []
-
-  for (const plataforma of PLATAFORMAS_BUSCA) {
-    consultas.push({
-      texto: montarConsulta(plataforma, nucleo),
-
-      plataforma: plataforma.id,
-
-      familia: "nucleo",
-
-      recorrencia: "diaria"
-    })
-  }
-
-  consultas.push(...criarConsultasEstrategicas(familias))
-
-  const pacotesPorFamilia = new Map<NomeFamilia, string[][]>()
-
-  let maiorQuantidadePacotes = 0
 
   for (const familia of ORDEM_FAMILIAS) {
     const pacotes = criarPacotes(familias[familia])
 
-    pacotesPorFamilia.set(familia, pacotes)
-
-    maiorQuantidadePacotes = Math.max(maiorQuantidadePacotes, pacotes.length)
-  }
-
-  /**
-   * Intercalo família e plataforma para evitar que uma execução parcial
-   * pesquise apenas um único portal ou somente uma única área.
-   */
-  for (let indicePacote = 0; indicePacote < maiorQuantidadePacotes; indicePacote++) {
-    for (const familia of ORDEM_FAMILIAS) {
-      const pacote = pacotesPorFamilia.get(familia)?.[indicePacote]
-
-      if (!pacote || pacote.length === 0) {
-        continue
-      }
-
-      for (const plataforma of PLATAFORMAS_BUSCA) {
+    for (const pacote of pacotes) {
+      for (const plataforma of PLATAFORMAS_COMPLEMENTARES) {
         consultas.push({
-          texto: montarConsulta(plataforma, pacote),
+          texto: montarConsultaComplementar(plataforma, pacote),
 
           plataforma: plataforma.id,
 
           familia,
 
-          recorrencia: "rotativa"
+          recorrencia: "rotativa",
+
+          paginasMaximas: 1
         })
       }
     }
   }
 
-  /**
-   * Algumas consultas podem coincidir exatamente.
-   *
-   * Eu removo a duplicidade sem perder a prioridade das consultas diárias.
-   */
+  return consultas
+}
+
+/**
+ * Ordem de prioridade:
+ *
+ * 1. Gupy e Sólides, separados por família profissional;
+ * 2. fontes web complementares;
+ * 3. empresas e regiões estratégicas;
+ * 4. aliases detalhados em rotação.
+ *
+ * A quantidade de chamadas continua sendo controlada pelo job-discovery.
+ */
+export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBuscaVaga[] {
+  const familias = criarFamilias(perfil)
+
+  const possuiCargo = ORDEM_FAMILIAS.some(familia => familias[familia].length > 0)
+
+  if (!possuiCargo) {
+    return []
+  }
+
+  const consultas: ConsultaBuscaVaga[] = [
+    ...criarConsultasPortaisPrioritarios(familias),
+
+    ...criarConsultasComplementares(familias),
+
+    ...criarConsultasEstrategicas(familias),
+
+    ...criarConsultasRotativasComplementares(familias)
+  ]
+
   const unicas = new Map<string, ConsultaBuscaVaga>()
 
   for (const consulta of consultas) {
     const existente = unicas.get(consulta.texto)
 
-    if (!existente || consulta.recorrencia === "diaria") {
+    if (!existente) {
+      unicas.set(consulta.texto, consulta)
+
+      continue
+    }
+
+    /**
+     * Se a mesma busca surgir como diária e rotativa, preservo a diária.
+     *
+     * Se ambas tiverem a mesma recorrência, preservo a que puder consultar
+     * mais páginas.
+     */
+    if (consulta.recorrencia === "diaria" && existente.recorrencia !== "diaria") {
+      unicas.set(consulta.texto, consulta)
+
+      continue
+    }
+
+    if (
+      consulta.recorrencia === existente.recorrencia &&
+      consulta.paginasMaximas > existente.paginasMaximas
+    ) {
       unicas.set(consulta.texto, consulta)
     }
   }

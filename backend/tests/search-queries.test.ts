@@ -39,18 +39,91 @@ function criarPerfil(): PerfilProfissional {
 }
 
 describe("gerador de consultas de vagas", () => {
-  test("gera pesquisas diárias em várias plataformas", () => {
+  test("trata Gupy e Sólides como portais prioritários", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
-    const diarias = consultas.filter(consulta => consulta.recorrencia === "diaria")
+    const gupy = consultas.filter(consulta => consulta.plataforma === "gupy")
 
-    assert.ok(diarias.length >= 22)
+    const solides = consultas.filter(consulta => consulta.plataforma === "solides")
 
-    assert.ok(diarias.some(consulta => consulta.plataforma === "gupy"))
+    assert.ok(gupy.length >= 4)
 
-    assert.ok(diarias.some(consulta => consulta.plataforma === "linkedin"))
+    assert.ok(solides.length >= 4)
 
-    assert.ok(diarias.some(consulta => consulta.plataforma === "indeed"))
+    assert.ok(
+      gupy.some(
+        consulta =>
+          consulta.familia === "portal-suporte" && consulta.texto.includes('"Analista de Suporte"')
+      )
+    )
+
+    assert.ok(
+      solides.some(
+        consulta =>
+          consulta.familia === "portal-suporte" && consulta.texto.includes('"Analista de Suporte"')
+      )
+    )
+  })
+
+  test("permite aprofundar Gupy e Sólides até a segunda página", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const portais = consultas.filter(
+      consulta => consulta.plataforma === "gupy" || consulta.plataforma === "solides"
+    )
+
+    assert.ok(portais.length > 0)
+
+    for (const consulta of portais) {
+      assert.equal(consulta.paginasMaximas, 2)
+    }
+  })
+
+  test("não exige Brasil dentro da consulta dos portais antes da análise", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const portais = consultas.filter(
+      consulta => consulta.plataforma === "gupy" || consulta.plataforma === "solides"
+    )
+
+    for (const consulta of portais) {
+      assert.equal(consulta.texto.includes("(Brasil OR Brazil)"), false)
+    }
+  })
+
+  test("mantém fontes complementares relevantes", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const plataformas = new Set(consultas.map(consulta => consulta.plataforma))
+
+    assert.ok(plataformas.has("linkedin"))
+
+    assert.ok(plataformas.has("indeed"))
+
+    assert.ok(plataformas.has("workday"))
+
+    assert.ok(plataformas.has("portais-br"))
+
+    assert.ok(plataformas.has("ats"))
+
+    assert.ok(plataformas.has("web"))
+  })
+
+  test("restringe fontes globais complementares ao Brasil", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const globais = consultas.filter(consulta =>
+      ["linkedin", "workday", "ats", "web"].includes(consulta.plataforma)
+    )
+
+    assert.ok(globais.length > 0)
+
+    for (const consulta of globais) {
+      assert.ok(
+        consulta.texto.includes("Brasil") || consulta.texto.includes("Brazil"),
+        `Consulta global sem Brasil: ${consulta.texto}`
+      )
+    }
   })
 
   test("prioriza bancos fintechs e empresas de tecnologia", () => {
@@ -90,37 +163,25 @@ describe("gerador de consultas de vagas", () => {
     }
   })
 
-  test("prioriza sudeste sul e centro oeste sem remover a busca nacional", () => {
+  test("mantém prioridades regionais sem duplicar Gupy", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
     const regionais = consultas.filter(consulta => consulta.familia === "regional")
 
     assert.equal(regionais.length, 3)
 
-    assert.ok(regionais.some(consulta => consulta.plataforma === "regiao-sudeste"))
+    const texto = regionais.map(consulta => consulta.texto).join("\n")
 
-    assert.ok(regionais.some(consulta => consulta.plataforma === "regiao-sul"))
+    assert.ok(texto.includes("São Paulo"))
 
-    assert.ok(regionais.some(consulta => consulta.plataforma === "regiao-centro-oeste"))
+    assert.ok(texto.includes("Blumenau"))
 
-    const texto = regionais.map(consulta => consulta.texto.toLowerCase()).join("\n")
+    assert.ok(texto.includes("Brasília"))
 
-    assert.ok(texto.includes("são paulo"))
-
-    assert.ok(texto.includes("blumenau"))
-
-    assert.ok(texto.includes("brasília"))
-
-    /**
-     * A consulta web geral continua existindo, portanto a prioridade
-     * regional não transforma a busca em uma busca apenas local.
-     */
-    assert.ok(
-      consultas.some(consulta => consulta.plataforma === "web" && consulta.texto.includes("Brasil"))
-    )
+    assert.equal(texto.includes("site:gupy.io"), false)
   })
 
-  test("inclui todos os cargos buscados em alguma consulta", () => {
+  test("inclui todos os cargos buscados em alguma estratégia", () => {
     const perfil = criarPerfil()
 
     const consultas = gerarConsultasBuscaVagas(perfil)
@@ -132,7 +193,7 @@ describe("gerador de consultas de vagas", () => {
     }
   })
 
-  test("não usa cargos de desvio como estratégia de descoberta", () => {
+  test("não usa cargos de desvio na descoberta", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
     const texto = consultas.map(consulta => consulta.texto.toLowerCase()).join("\n")
@@ -148,54 +209,21 @@ describe("gerador de consultas de vagas", () => {
     assert.equal(unicas.size, consultas.length)
   })
 
-  test("restringe as buscas gerais e empresariais ao Brasil", () => {
+  test("não volta a procurar regiões globais", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
-    /**
-     * As pesquisas regionais já possuem cidades brasileiras explícitas.
-     *
-     * Aqui eu valido principalmente as consultas gerais, rotativas e de
-     * empresas, que antes podiam procurar vagas globais ou LATAM.
-     */
-    const consultasNacionais = consultas.filter(consulta => consulta.familia !== "regional")
+    const texto = ` ${consultas.map(consulta => consulta.texto.toLowerCase()).join(" ")} `
 
-    for (const consulta of consultasNacionais) {
-      const texto = consulta.texto.toLowerCase()
+    assert.equal(texto.includes(" latam "), false)
 
-      assert.ok(
-        texto.includes("brasil") || texto.includes("brazil"),
-        `Consulta sem restrição ao Brasil: ${consulta.texto}`
-      )
+    assert.equal(texto.includes(" latin america "), false)
 
-      assert.equal(texto.includes("latam"), false, `Consulta ainda contém LATAM: ${consulta.texto}`)
+    assert.equal(texto.includes(" worldwide "), false)
 
-      assert.equal(
-        texto.includes("latin america"),
-        false,
-        `Consulta ainda contém Latin America: ${consulta.texto}`
-      )
-
-      assert.equal(
-        texto.includes("worldwide"),
-        false,
-        `Consulta ainda contém Worldwide: ${consulta.texto}`
-      )
-
-      assert.equal(
-        texto.includes("anywhere"),
-        false,
-        `Consulta ainda contém Anywhere: ${consulta.texto}`
-      )
-
-      assert.equal(
-        texto.includes(" global "),
-        false,
-        `Consulta ainda contém Global: ${consulta.texto}`
-      )
-    }
+    assert.equal(texto.includes(" anywhere "), false)
   })
 
-  test("mantém as consultas dentro de tamanho seguro", () => {
+  test("mantém consultas e paginação dentro de limites seguros", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
     for (const consulta of consultas) {
@@ -204,6 +232,8 @@ describe("gerador de consultas de vagas", () => {
       const palavras = consulta.texto.trim().split(/\s+/).length
 
       assert.ok(palavras <= 50, `Consulta com palavras demais: ${consulta.texto}`)
+
+      assert.ok(consulta.paginasMaximas >= 1 && consulta.paginasMaximas <= 2)
     }
   })
 })

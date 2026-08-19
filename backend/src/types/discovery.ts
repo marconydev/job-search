@@ -40,4 +40,13 @@ export type ResultadoDescobertaWeb = {
   provedor: string
 
   paginas: PaginaDescoberta[]
+
+  /**
+   * A Brave informa quando ainda existem outras páginas para a mesma
+   * consulta.
+   *
+   * Eu uso esse sinal para aprofundar somente as pesquisas que merecem
+   * mais cobertura, sem gastar chamadas desnecessariamente.
+   */
+  maisResultadosDisponiveis: boolean
 }

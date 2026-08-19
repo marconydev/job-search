@@ -2,6 +2,8 @@ import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 import type { JobMatch as CorrespondenciaVaga, StoredJob as VagaArmazenada } from "../types/job.js"
 
+import { avaliarElegibilidadeBrasil } from "./elegibilidade-localizacao.js"
+
 type FamiliaFormacao = {
   nome: string
 
@@ -71,107 +73,6 @@ const FAMILIAS_FORMACAO: FamiliaFormacao[] = [
   }
 ]
 
-/**
- * Estes sinais são utilizados somente quando o perfil aceita vagas
- * localizadas no Brasil.
- *
- * No campo de localização das fontes é comum receber cidade, estado ou
- * apenas a sigla da UF em vez da palavra "Brasil".
- */
-const SINAIS_LOCALIZACAO_BRASIL = [
-  "acre",
-  "ac",
-  "alagoas",
-  "al",
-  "amapa",
-  "ap",
-  "amazonas",
-  "am",
-  "bahia",
-  "ba",
-  "ceara",
-  "ce",
-  "distrito federal",
-  "df",
-  "espirito santo",
-  "es",
-  "goias",
-  "go",
-  "maranhao",
-  "ma",
-  "mato grosso",
-  "mt",
-  "mato grosso do sul",
-  "ms",
-  "minas gerais",
-  "mg",
-  "para",
-  "pa",
-  "paraiba",
-  "pb",
-  "parana",
-  "pr",
-  "pernambuco",
-  "pe",
-  "piaui",
-  "pi",
-  "rio de janeiro",
-  "rj",
-  "rio grande do norte",
-  "rn",
-  "rio grande do sul",
-  "rs",
-  "rondonia",
-  "ro",
-  "roraima",
-  "rr",
-  "santa catarina",
-  "sc",
-  "sao paulo",
-  "sp",
-  "sergipe",
-  "se",
-  "tocantins",
-  "to",
-
-  "joao pessoa",
-  "campina grande",
-  "recife",
-  "fortaleza",
-  "salvador",
-
-  "sao paulo",
-  "campinas",
-  "barueri",
-  "osasco",
-  "sao carlos",
-  "ribeirao preto",
-  "sorocaba",
-
-  "belo horizonte",
-  "uberlandia",
-
-  "rio de janeiro",
-  "vitoria",
-
-  "curitiba",
-  "londrina",
-  "maringa",
-
-  "florianopolis",
-  "blumenau",
-  "joinville",
-
-  "porto alegre",
-  "caxias do sul",
-
-  "brasilia",
-  "goiania",
-  "anapolis",
-  "campo grande",
-  "cuiaba"
-]
-
 function normalizarTexto(valor: string) {
   return valor
     .normalize("NFD")
@@ -217,45 +118,6 @@ function encontrarCompetencias(texto: string, perfil: PerfilProfissional) {
   return perfil.competencias
     .filter(competencia => competencia.termos.some(termo => contemExpressao(texto, termo)))
     .map(competencia => competencia.nome)
-}
-
-function perfilAceitaBrasil(perfil: PerfilProfissional) {
-  return perfil.localizacoesAceitas.some(localizacao => {
-    const normalizada = normalizarTexto(localizacao)
-
-    return normalizada === "brasil" || normalizada === "brazil"
-  })
-}
-
-function localizacaoPareceBrasileira(localizacao: string) {
-  return contemAlgum(localizacao, SINAIS_LOCALIZACAO_BRASIL)
-}
-
-function localizacaoEhCompativel(localizacao: string, perfil: PerfilProfissional) {
-  if (!localizacao) {
-    return true
-  }
-
-  if (contemAlgum(localizacao, perfil.localizacoesAceitas)) {
-    return true
-  }
-
-  if (localizacao === "remote" || localizacao === "remoto" || localizacao === "remota") {
-    return true
-  }
-
-  /**
-   * Se o perfil aceita o Brasil como um todo, também aceito cidades e
-   * estados brasileiros reconhecidos.
-   *
-   * Isso evita rejeitar "São Paulo, SP" apenas porque a fonte não
-   * escreveu explicitamente a palavra "Brasil".
-   */
-  if (perfilAceitaBrasil(perfil) && localizacaoPareceBrasileira(localizacao)) {
-    return true
-  }
-
-  return false
 }
 
 /**
@@ -450,8 +312,6 @@ function avaliarCursos(
 export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): CorrespondenciaVaga {
   const titulo = normalizarTexto(vaga.title)
 
-  const localizacao = normalizarTexto(vaga.location ?? "")
-
   const descricao = normalizarTexto(removerHtml(vaga.description))
 
   const motivos: string[] = []
@@ -465,18 +325,41 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
     }
   }
 
-  if (!localizacaoEhCompativel(localizacao, perfil)) {
+  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
+
+  if (elegibilidade.situacao !== "compativel") {
     return {
       job: vaga,
       score: 0,
       matchedSkills: [],
-      reasons: ["Localização não compatível com a busca"]
+      reasons: [elegibilidade.motivo]
     }
   }
 
   let pontuacao = 0
 
   const resultadoCargo = pontuarCargo(titulo, motivos, perfil)
+
+  /**
+   * Formação, cursos e tecnologias só refinam o score de uma vaga cujo
+   * título pertence a uma família profissional configurada no perfil.
+   * Eles não podem transformar SEO, marketing, tradução ou outro cargo
+   * incompatível em oportunidade aderente.
+   */
+  if (!resultadoCargo.aderente) {
+    const resultadoDesvio = calcularDesvioProfissional(titulo, false, motivos, perfil)
+
+    if (!resultadoDesvio.identificado) {
+      motivos.push("Cargo não corresponde às famílias profissionais configuradas no perfil")
+    }
+
+    return {
+      job: vaga,
+      score: 0,
+      matchedSkills: [],
+      reasons: motivos
+    }
+  }
 
   pontuacao += resultadoCargo.pontos
 
@@ -507,25 +390,6 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
   pontuacao += avaliarExperiencia(titulo, competenciasEncontradas, motivos, perfil)
 
   pontuacao += avaliarCursos(textoPesquisavel, competenciasEncontradas, motivos, perfil)
-
-  const resultadoDesvio = calcularDesvioProfissional(
-    titulo,
-    resultadoCargo.aderente,
-    motivos,
-    perfil
-  )
-
-  pontuacao -= resultadoDesvio.pontos
-
-  if (!resultadoCargo.aderente) {
-    if (resultadoDesvio.identificado) {
-      pontuacao = Math.min(pontuacao, 55)
-    } else if (resultadoFormacao.compativel) {
-      pontuacao = Math.max(pontuacao, 60)
-    } else {
-      pontuacao = Math.min(pontuacao, 55)
-    }
-  }
 
   return {
     job: vaga,

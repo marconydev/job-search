@@ -87,12 +87,6 @@ function criarCacheVazio(): CacheBuscas {
   }
 }
 
-/**
- * Eu leio o arquivo antigo somente para fazer a migração inicial.
- *
- * Depois que o estado existir no PostgreSQL este arquivo deixa de ser
- * utilizado pela aplicação.
- */
 async function carregarCacheLegado(): Promise<CacheBuscas | null> {
   try {
     const conteudo = await readFile(caminhoCacheLegado(), "utf8")
@@ -109,13 +103,6 @@ async function carregarCacheLegado(): Promise<CacheBuscas | null> {
   }
 }
 
-/**
- * O PostgreSQL agora é a fonte oficial do cache e do consumo Brave.
- *
- * Se ainda não houver estado no banco, tento importar automaticamente
- * o antigo brave-buscas.json. Isso preserva o histórico de consumo já
- * registrado antes desta mudança.
- */
 async function carregarCache() {
   const armazenado = await buscarControleBuscaWeb()
 
@@ -203,12 +190,13 @@ function timestampConsulta(cache: CacheBuscas, consulta: string) {
 }
 
 /**
- * Eu priorizo as estratégias diárias e depois uso o saldo disponível
- * para rotacionar as pesquisas detalhadas.
+ * Eu devolvo as estratégias em ordem de prioridade.
  *
- * Uma consulta já executada hoje não precisa ser repetida.
+ * Não corto pela quantidade de consultas aqui porque uma estratégia pode
+ * consumir uma ou duas chamadas Brave. O orçamento real é controlado no
+ * momento de cada requisição.
  */
-function selecionarConsultas(cache: CacheBuscas, perfil: PerfilProfissional, limite: number) {
+function selecionarConsultas(cache: CacheBuscas, perfil: PerfilProfissional) {
   const configuradas = gerarConsultasBuscaVagas(perfil)
 
   const pendentesHoje = configuradas.filter(consulta => {
@@ -231,17 +219,9 @@ function selecionarConsultas(cache: CacheBuscas, perfil: PerfilProfissional, lim
         timestampConsulta(cache, primeira.texto) - timestampConsulta(cache, segunda.texto)
     )
 
-  return [...diarias, ...rotativas].slice(0, limite)
+  return [...diarias, ...rotativas]
 }
 
-/**
- * Eu considero qualquer resultado ainda válido no cache para descobrir
- * quando ocorreu a última busca.
- *
- * Não amarro mais esse cálculo somente às estratégias atualmente
- * configuradas porque uma mudança no perfil não invalida imediatamente
- * as páginas que já encontrei.
- */
 function obterUltimaAtualizacao(cache: CacheBuscas) {
   let ultima: number | null = null
 
@@ -260,11 +240,6 @@ function obterUltimaAtualizacao(cache: CacheBuscas) {
   return ultima === null ? null : new Date(ultima).toISOString()
 }
 
-/**
- * Eu apenas leio o consumo e a situação atual do cache.
- *
- * Nenhuma chamada Brave é executada nesta função.
- */
 export async function obterStatusDescobertaWeb(
   perfil: PerfilProfissional
 ): Promise<StatusDescobertaWeb> {
@@ -284,13 +259,6 @@ export async function obterStatusDescobertaWeb(
 
   const chamadasRestantes = Math.min(restanteDiario, restanteMensal)
 
-  /**
-   * Eu mantenho no cache resultados de estratégias antigas enquanto
-   * ainda estiverem dentro do TTL.
-   *
-   * Alterar o perfil ou a forma de gerar consultas não deve apagar uma
-   * vaga que eu encontrei ontem.
-   */
   const registrosCache = Object.values(cache.consultas)
 
   const consultasAtivas = registrosCache.filter(registroAindaEhUtil).length
@@ -344,12 +312,32 @@ function normalizarUrlParaComparacao(url: string) {
   }
 }
 
+function adicionarPaginasSemDuplicar(
+  destino: Map<string, PaginaDescoberta>,
+  paginas: PaginaDescoberta[]
+) {
+  for (const pagina of paginas) {
+    const chave = normalizarUrlParaComparacao(pagina.url)
+
+    if (!destino.has(chave)) {
+      destino.set(chave, pagina)
+    }
+  }
+}
+
 /**
- * Eu executo novas pesquisas somente quando a chamada foi explicitamente
- * autorizada.
+ * Registro cada chamada antes da requisição.
  *
- * O controle financeiro final continua nesta camada.
+ * Assim uma queda do processo nunca permite ultrapassar o orçamento.
  */
+async function registrarTentativaBrave(cache: CacheBuscas, hoje: string) {
+  cache.chamadasPorDia[hoje] = (cache.chamadasPorDia[hoje] ?? 0) + 1
+
+  await salvarCache(cache)
+
+  return cache.chamadasPorDia[hoje]
+}
+
 async function atualizarBuscasLive(
   cache: CacheBuscas,
   perfil: PerfilProfissional,
@@ -383,7 +371,7 @@ async function atualizarBuscasLive(
     return
   }
 
-  const consultas = selecionarConsultas(cache, perfil, limiteExecucao)
+  const consultas = selecionarConsultas(cache, perfil)
 
   if (consultas.length === 0) {
     console.log("")
@@ -393,7 +381,15 @@ async function atualizarBuscasLive(
     return
   }
 
+  let chamadasExecutadas = 0
+
+  let chamadasComSucesso = 0
+
+  let chamadasComFalha = 0
+
   let consultasComSucesso = 0
+
+  let consultasParciais = 0
 
   let consultasComFalha = 0
 
@@ -402,62 +398,108 @@ async function atualizarBuscasLive(
   console.log("")
 
   console.log(
-    `Brave: iniciando ${consultas.length} consulta(s). ` +
+    `Brave: ${consultas.length} estratégia(s) pendente(s). ` +
+      `Até ${limiteExecucao} chamada(s) poderão ser executadas. ` +
       `Consumo atual: ${consumidoHoje}/${LIMITE_DIARIO_BRAVE} hoje e ` +
       `${consumidoMes}/${LIMITE_MENSAL_BRAVE} no mês.`
   )
 
   for (const consulta of consultas) {
+    if (chamadasExecutadas >= limiteExecucao) {
+      break
+    }
+
+    const paginasConsulta = new Map<string, PaginaDescoberta>()
+
+    const paginasMaximas = Math.min(Math.max(consulta.paginasMaximas, 1), 10)
+
+    let consultaTeveSucesso = false
+
+    let consultaTeveFalha = false
+
+    let maisResultados = true
+
+    for (
+      let pagina = 0;
+      pagina < paginasMaximas && maisResultados && chamadasExecutadas < limiteExecucao;
+      pagina++
+    ) {
+      const numeroChamada = await registrarTentativaBrave(cache, hoje)
+
+      chamadasExecutadas++
+
+      console.log("")
+
+      console.log(`Brave: pesquisando ${numeroChamada}/${LIMITE_DIARIO_BRAVE}`)
+
+      console.log(
+        `Plataforma: ${consulta.plataforma} | ` +
+          `Família: ${consulta.familia} | ` +
+          `Página: ${pagina + 1}/${paginasMaximas}`
+      )
+
+      console.log(`Consulta: ${consulta.texto}`)
+
+      try {
+        const resultado = await buscarNaWeb(consulta.texto, 20, pagina)
+
+        chamadasComSucesso++
+
+        consultaTeveSucesso = true
+
+        resultadosRecebidos += resultado.paginas.length
+
+        adicionarPaginasSemDuplicar(paginasConsulta, resultado.paginas)
+
+        maisResultados = resultado.maisResultadosDisponiveis
+
+        console.log(`Brave: ${resultado.paginas.length} resultado(s) recebido(s) nesta página.`)
+
+        if (!maisResultados) {
+          console.log("Brave: não há outra página disponível para esta estratégia.")
+        }
+      } catch (erro) {
+        chamadasComFalha++
+
+        consultaTeveFalha = true
+
+        console.error(`Falha na consulta Brave: ${consulta.texto} | página ${pagina + 1}`)
+
+        if (erro instanceof Error) {
+          console.error(erro.message)
+        } else {
+          console.error(erro)
+        }
+
+        break
+      }
+    }
+
     /**
-     * Eu registro a tentativa antes da requisição para que uma eventual
-     * interrupção do processo não permita ultrapassar o orçamento.
+     * Se pelo menos uma página funcionou, preservo os resultados obtidos.
+     *
+     * Uma falha na segunda página não deve jogar fora a primeira.
      */
-    cache.chamadasPorDia[hoje] = (cache.chamadasPorDia[hoje] ?? 0) + 1
-
-    await salvarCache(cache)
-
-    const numeroChamada = cache.chamadasPorDia[hoje]
-
-    console.log("")
-
-    console.log(`Brave: pesquisando ${numeroChamada}/${LIMITE_DIARIO_BRAVE}`)
-
-    console.log(`Plataforma: ${consulta.plataforma} | Família: ${consulta.familia}`)
-
-    console.log(`Consulta: ${consulta.texto}`)
-
-    try {
-      const resultado = await buscarNaWeb(consulta.texto)
-
-      consultasComSucesso++
-
-      resultadosRecebidos += resultado.paginas.length
-
-      console.log(`Brave: ${resultado.paginas.length} resultado(s) recebido(s).`)
-
-      /**
-       * Somente uma chamada concluída substitui o resultado daquela
-       * consulta.
-       *
-       * Se a chamada falhar, mantenho o cache anterior.
-       */
+    if (consultaTeveSucesso) {
       cache.consultas[consulta.texto] = {
         consultadoEm: new Date().toISOString(),
 
-        paginas: resultado.paginas
+        paginas: [...paginasConsulta.values()]
       }
 
       await salvarCache(cache)
-    } catch (erro) {
-      consultasComFalha++
 
-      console.error(`Falha na consulta Brave: ${consulta.texto}`)
-
-      if (erro instanceof Error) {
-        console.error(erro.message)
+      if (consultaTeveFalha) {
+        consultasParciais++
       } else {
-        console.error(erro)
+        consultasComSucesso++
       }
+
+      continue
+    }
+
+    if (consultaTeveFalha) {
+      consultasComFalha++
     }
   }
 
@@ -470,9 +512,19 @@ async function atualizarBuscasLive(
   console.log(
     [
       "Brave: execução concluída.",
-      `${consultasComSucesso} consulta(s) com sucesso,`,
-      `${consultasComFalha} com falha,`,
+      `${chamadasExecutadas} chamada(s) executada(s),`,
+      `${chamadasComSucesso} com sucesso,`,
+      `${chamadasComFalha} com falha,`,
       `${resultadosRecebidos} resultado(s) recebidos.`
+    ].join(" ")
+  )
+
+  console.log(
+    [
+      "Brave: estratégias:",
+      `${consultasComSucesso} concluída(s),`,
+      `${consultasParciais} parcial(is),`,
+      `${consultasComFalha} com falha total.`
     ].join(" ")
   )
 
@@ -482,10 +534,6 @@ async function atualizarBuscasLive(
   )
 }
 
-/**
- * Eu reutilizo todas as páginas ainda dentro do período válido,
- * independentemente de a consulta que as encontrou continuar ativa.
- */
 function carregarPaginasCache(cache: CacheBuscas) {
   const paginas: PaginaDescoberta[] = []
 
@@ -500,12 +548,6 @@ function carregarPaginasCache(cache: CacheBuscas) {
   return paginas
 }
 
-/**
- * A descoberta funciona em modo cache-first.
- *
- * O perfil define quais novas consultas podem ser executadas, mas não
- * elimina resultados anteriores ainda válidos.
- */
 export async function descobrirPaginasVagas(
   perfil: PerfilProfissional,
   opcoes: OpcoesDescoberta = {}

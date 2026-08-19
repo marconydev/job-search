@@ -94,7 +94,14 @@ export function identificarProvedorPagina(url: string): ProvedorPagina {
       return "workday"
     }
 
-    if (hostname === "vagas.solides.com.br") {
+    /**
+     * A Sólides pode publicar tanto no portal central quanto em portais
+     * próprios das empresas:
+     *
+     * vagas.solides.com.br
+     * empresa.vagas.solides.com.br
+     */
+    if (ehDominio(hostname, "vagas.solides.com.br")) {
       return "solides"
     }
 

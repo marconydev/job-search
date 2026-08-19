@@ -20,9 +20,23 @@ type RespostaBraveSearch = {
   }
 }
 
+/**
+ * Cada offset representa uma página da Brave.
+ *
+ * A API aceita até 20 resultados por página e offsets entre 0 e 9.
+ */
+function normalizarPagina(pagina: number) {
+  if (!Number.isFinite(pagina)) {
+    return 0
+  }
+
+  return Math.min(Math.max(Math.floor(pagina), 0), 9)
+}
+
 export async function buscarNaWeb(
   consulta: string,
-  quantidade = 20
+  quantidade = 20,
+  pagina = 0
 ): Promise<ResultadoDescobertaWeb> {
   const chaveApi = process.env.BRAVE_SEARCH_API_KEY
 
@@ -36,14 +50,15 @@ export async function buscarNaWeb(
 
   url.searchParams.set("count", String(Math.min(Math.max(quantidade, 1), 20)))
 
+  url.searchParams.set("offset", String(normalizarPagina(pagina)))
+
   url.searchParams.set("country", "BR")
 
   /**
-   * Uso o último mês para aumentar a cobertura.
+   * Continuo utilizando o último mês como preferência de atualidade.
    *
-   * A aplicação já possui deduplicação própria, então prefiro recuperar
-   * novamente uma vaga existente a deixar uma oportunidade válida de
-   * fora porque o mecanismo de busca atribuiu uma data antiga à página.
+   * A aplicação possui deduplicação e validação próprias, portanto não
+   * dependo apenas da data para decidir se uma oportunidade é válida.
    */
   url.searchParams.set("freshness", "pm")
 
@@ -91,6 +106,8 @@ export async function buscarNaWeb(
   return {
     provedor: "brave-search",
 
-    paginas
+    paginas,
+
+    maisResultadosDisponiveis: dados.query?.more_results_available === true
   }
 }

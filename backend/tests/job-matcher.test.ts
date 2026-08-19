@@ -194,7 +194,7 @@ describe("job matcher", () => {
 
     assert.equal(resultado.score, 0)
 
-    assert.deepEqual(resultado.reasons, ["Localização não compatível com a busca"])
+    assert.ok(resultado.reasons[0]?.includes("fora do Brasil"))
   })
 
   test("limita vaga de outra trilha profissional abaixo do corte de relevância", () => {
@@ -235,7 +235,7 @@ describe("job matcher", () => {
     )
   })
 
-  test("considera formação compatível para cargo ainda desconhecido", () => {
+  test("não aceita cargo desconhecido apenas por formação compatível", () => {
     const perfil = criarPerfil()
 
     const resultado = matchJob(
@@ -250,9 +250,35 @@ describe("job matcher", () => {
       perfil
     )
 
-    assert.ok(resultado.score >= 60)
+    assert.equal(resultado.score, 0)
 
-    assert.ok(resultado.reasons.some(motivo => motivo.includes("Formação acadêmica compatível")))
+    assert.deepEqual(resultado.matchedSkills, [])
+
+    assert.ok(resultado.reasons.some(motivo => motivo.includes("Cargo não corresponde")))
+  })
+
+  test("rejeita SEO mesmo quando a descrição cita formação e tecnologias compatíveis", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Serbian SEO Specialist",
+
+        description:
+          "Bachelor degree in Computer Science. Work with SQL, PostgreSQL, Zabbix and Grafana.",
+
+        location: "Brazil - Remote",
+
+        remote: true
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+
+    assert.deepEqual(resultado.matchedSkills, [])
+
+    assert.ok(resultado.reasons.some(motivo => motivo.includes("Cargo não corresponde")))
   })
 
   test("rejeita título explicitamente excluído", () => {

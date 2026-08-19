@@ -2,7 +2,7 @@ import { collectors } from "../collectors/index.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
-import { analyzePendingJobs } from "./job-analysis.js"
+import { reanalisarTodasAsVagas } from "./job-analysis.js"
 
 import { coletarFontesAtsAprendidas, registrarFontesAtsDosJobsExistentes } from "./fontes-ats.js"
 
@@ -182,11 +182,15 @@ export async function syncJobs(
   const fontes: ResultadoFonte[] = [...fontesDiretas, ...fontesAts]
 
   /**
-   * Por último analiso somente registros que ainda não possuem match.
+   * Por último reanaliso também os registros antigos.
+   *
+   * As regras de localização e de cargo podem evoluir. Se eu analisasse
+   * somente vagas pendentes, oportunidades estrangeiras ou falsos
+   * positivos já classificados continuariam aparecendo no dashboard.
    */
   await atualizarEtapa(opcoes, "analise")
 
-  const analise = await analyzePendingJobs(perfil)
+  const analise = await reanalisarTodasAsVagas(perfil)
 
   return {
     modo: {
