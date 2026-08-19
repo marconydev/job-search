@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
+import { identificarProvedorPagina } from "../src/discovery/page-classifier.js"
+
 import {
   detectarTrabalhoRemoto,
   ehProvedorProcessavel,
@@ -13,9 +15,7 @@ import {
 } from "../src/services/vagas-web/triagem-vagas-web.js"
 
 import type { PaginaClassificada } from "../src/types/discovery.js"
-
 import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
-
 import type { PaginaSomenteDescoberta } from "../src/types/processamento-web.js"
 
 function criarPerfil(): PerfilProfissional {
@@ -81,6 +81,15 @@ function criarPaginaDescoberta(
 }
 
 describe("triagem de vagas web", () => {
+  test("mantém o Remote Rocketship como agregador de descoberta", () => {
+    assert.equal(
+      identificarProvedorPagina(
+        "https://www.remoterocketship.com/company/softexpert/jobs/analista-de-suporte-junior-brazil-remote/"
+      ),
+      "agregador"
+    )
+  })
+
   test("considera relacionada uma página com cargo diretamente compatível", () => {
     const pagina = criarPaginaClassificada({
       titulo: "Analista de Suporte N2"
@@ -136,6 +145,48 @@ describe("triagem de vagas web", () => {
         })
       ),
       false
+    )
+  })
+
+  test("aceita apenas publicações individuais do Remote Rocketship", () => {
+    assert.equal(
+      paginaEhListagem(
+        criarPaginaClassificada({
+          provedor: "agregador",
+          url: "https://www.remoterocketship.com/company/softexpert/jobs/analista-de-suporte-junior-brazil-remote/"
+        })
+      ),
+      false
+    )
+
+    assert.equal(
+      paginaEhListagem(
+        criarPaginaClassificada({
+          provedor: "agregador",
+          url: "https://www.remoterocketship.com/br/empresa/lina-br/vagas/analista-de-suporte-tecnico-junior-brasil-remoto/"
+        })
+      ),
+      false
+    )
+
+    assert.equal(
+      paginaEhListagem(
+        criarPaginaClassificada({
+          provedor: "agregador",
+          url: "https://www.remoterocketship.com/br/vagas/suporte-de-ti/"
+        })
+      ),
+      true
+    )
+
+    assert.equal(
+      paginaEhListagem(
+        criarPaginaClassificada({
+          provedor: "agregador",
+          url: "https://www.remoterocketship.com/company/softexpert/"
+        })
+      ),
+      true
     )
   })
 

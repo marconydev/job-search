@@ -58,10 +58,6 @@ function contemExpressao(texto: string, termo: string) {
   return textoNormalizado.includes(` ${termoNormalizado} `)
 }
 
-/**
- * Faço aqui apenas uma triagem inicial para evitar processar páginas
- * claramente fora do perfil. A decisão final continua sendo do matcher.
- */
 export function paginaPareceRelacionada(pagina: PaginaClassificada, perfil: PerfilProfissional) {
   const contexto = [pagina.titulo, pagina.descricao]
     .filter((valor): valor is string => Boolean(valor))
@@ -108,7 +104,20 @@ export function paginaPareceRelacionada(pagina: PaginaClassificada, perfil: Perf
 export function paginaEhListagem(pagina: PaginaClassificada) {
   try {
     const url = new URL(pagina.url)
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "")
     const caminho = url.pathname.toLowerCase()
+
+    if (hostname === "remoterocketship.com") {
+      const caminhoNormalizado = caminho.replace(/\/+$/, "")
+
+      const ehVagaIndividualEmIngles = /^\/company\/[^/]+\/jobs\/[^/]+$/.test(caminhoNormalizado)
+
+      const ehVagaIndividualEmPortugues = /^\/br\/empresa\/[^/]+\/vagas\/[^/]+$/.test(
+        caminhoNormalizado
+      )
+
+      return !(ehVagaIndividualEmIngles || ehVagaIndividualEmPortugues)
+    }
 
     if (pagina.provedor === "indeed") {
       return !caminho.includes("/viewjob") || !url.searchParams.has("jk")
@@ -198,10 +207,6 @@ export function paginaEstaIndisponivel(url: string, codigoStatus: number) {
   }
 }
 
-/**
- * Descarto conteúdos informativos que podem conter as mesmas palavras
- * técnicas de uma vaga, mas não representam uma oportunidade real.
- */
 export function paginaPareceConteudoInformativo(titulo: string, url: string) {
   const texto = normalizarTexto(titulo)
 
@@ -260,10 +265,6 @@ export function paginaPareceConteudoInformativo(titulo: string, url: string) {
   return false
 }
 
-/**
- * Para LinkedIn considero apenas sinais presentes na própria página.
- * A consulta usada na busca não serve como evidência geográfica.
- */
 function linkedinTemSinalBrasil(pagina: PaginaSomenteDescoberta) {
   try {
     const url = new URL(pagina.url)
@@ -273,7 +274,7 @@ function linkedinTemSinalBrasil(pagina: PaginaSomenteDescoberta) {
       return true
     }
   } catch {
-    // Se a URL não puder ser interpretada, continuo pela análise do texto.
+    // Continuo pela análise do texto.
   }
 
   const contexto = normalizarTexto(
@@ -377,10 +378,6 @@ export function paginaTemSinalBrasil(pagina: PaginaSomenteDescoberta) {
   return sinais.some(sinal => contexto.includes(sinal))
 }
 
-/**
- * Não considero a palavra "remoto" isolada em qualquer contexto.
- * Ela pode estar descrevendo apenas a forma de prestar suporte.
- */
 export function detectarTrabalhoRemoto(pagina: PaginaSomenteDescoberta) {
   const titulo = pagina.titulo
   const descricao = pagina.descricao ?? ""
