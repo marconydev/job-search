@@ -41,6 +41,16 @@ describe("elegibilidade de localização no Brasil", () => {
     assert.equal(resultado.situacao, "incompativel")
   })
 
+  test("não interpreta a preposição am de Frankfurt am Main como Amazonas", () => {
+    const resultado = avaliarElegibilidadeBrasil(
+      "Frankfurt am Main",
+      null,
+      "IT-Support Mitarbeiter (m/w/d) auf Minijob-Basis"
+    )
+
+    assert.notEqual(resultado.situacao, "compativel")
+  })
+
   test("rejeita vaga global", () => {
     const resultado = avaliarElegibilidadeBrasil("Worldwide")
 

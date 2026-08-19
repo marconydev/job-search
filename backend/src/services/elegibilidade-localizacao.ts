@@ -257,7 +257,13 @@ function localizacaoTemUfBrasileira(localizacao: string) {
   }
 
   return ufsBrasil.some(uf => {
-    const padrao = new RegExp(`(^|[\\s,;/|()\\-–—])${uf}($|[\\s,;/|()\\-–—])`, "i")
+    /**
+     * A sigla precisa estar em maiúsculas no valor original.
+     *
+     * Sem essa exigência, a preposição alemã "am" em
+     * "Frankfurt am Main" era interpretada como AM (Amazonas).
+     */
+    const padrao = new RegExp(`(^|[\\s,;/|()\\-–—])${uf}($|[\\s,;/|()\\-–—])`)
 
     return padrao.test(texto)
   })
@@ -293,7 +299,7 @@ function tituloTemUfBrasileira(titulo: string) {
      * Analista de Suporte (SP)
      * Analista de Suporte, SP
      */
-    const padrao = new RegExp(`(?:\\/|\\(|-|,\\s*)\\s*${uf}(?:\\)|\\b)`, "i")
+    const padrao = new RegExp(`(?:\\/|\\(|-|,\\s*)\\s*${uf}(?:\\)|\\b)`)
 
     return padrao.test(titulo)
   })
