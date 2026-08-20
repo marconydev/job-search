@@ -42,24 +42,41 @@ function criarVagaTemporaria(vaga: NewJob): StoredJob {
 }
 
 /**
- * Localização é um pré-requisito, não um componente opcional do score.
+ * Somente uma incompatibilidade geográfica comprovada elimina a vaga.
  *
- * Eu só deixo a vaga chegar ao matcher quando consigo confirmar que ela
- * pertence ao Brasil.
+ * Uma localização indefinida não significa que a oportunidade seja
+ * incompatível com o Brasil.
  *
- * "Remote", "Worldwide", "LATAM" ou localização indefinida não passam.
+ * Exemplos que continuam:
+ *
+ * - Remote
+ * - localização ausente
+ * - Worldwide
+ * - LATAM
+ *
+ * Exemplos descartados:
+ *
+ * - Lisboa, Portugal
+ * - Lithuania
+ * - "except Brazil"
+ * - exigência de residência em outro país
  */
-function vagaEhDoBrasil(vaga: NewJob) {
-  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
+function vagaPodeSeguirParaAnalise(vaga: NewJob) {
+  const elegibilidade = avaliarElegibilidadeBrasil(
+    vaga.location,
+    vaga.description,
+    vaga.title
+  )
 
-  return elegibilidade.situacao === "compativel"
+  return elegibilidade.situacao !== "incompativel"
 }
 
 /**
- * Eu filtro antes da persistência.
+ * Faço apenas uma triagem de segurança antes da persistência.
  *
- * Primeiro valido território brasileiro e somente depois calculo a
- * aderência profissional.
+ * Não tento decidir prematuramente que uma vaga é brasileira quando
+ * faltam informações. O matcher fará o ranking e continuará impedindo
+ * que vagas explicitamente estrangeiras sejam consideradas relevantes.
  */
 export function filtrarVagasAderentes(
   vagas: NewJob[],
@@ -67,11 +84,14 @@ export function filtrarVagasAderentes(
   pontuacaoMinima = 60
 ) {
   return vagas.filter(vaga => {
-    if (!vagaEhDoBrasil(vaga)) {
+    if (!vagaPodeSeguirParaAnalise(vaga)) {
       return false
     }
 
-    const resultado = matchJob(criarVagaTemporaria(vaga), perfil)
+    const resultado = matchJob(
+      criarVagaTemporaria(vaga),
+      perfil
+    )
 
     return resultado.score >= pontuacaoMinima
   })

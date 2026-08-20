@@ -51,16 +51,16 @@ describe("elegibilidade de localização no Brasil", () => {
     assert.notEqual(resultado.situacao, "compativel")
   })
 
-  test("rejeita vaga global", () => {
+  test("mantém vaga global como indefinida quando não exclui Brasil", () => {
     const resultado = avaliarElegibilidadeBrasil("Worldwide")
 
-    assert.equal(resultado.situacao, "incompativel")
+    assert.equal(resultado.situacao, "indefinida")
   })
 
-  test("rejeita LATAM sem Brasil explícito", () => {
+  test("mantém LATAM como indefinida quando Brasil não é excluído", () => {
     const resultado = avaliarElegibilidadeBrasil("LATAM - Remote")
 
-    assert.equal(resultado.situacao, "incompativel")
+    assert.equal(resultado.situacao, "indefinida")
   })
 
   test("não aceita apenas Remote", () => {

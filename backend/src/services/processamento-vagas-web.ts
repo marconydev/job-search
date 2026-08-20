@@ -113,7 +113,7 @@ function avaliarPaginaDescoberta(
 
   const elegibilidadeBrasil = avaliarElegibilidadeBrasil(null, pagina.descricao, pagina.titulo)
 
-  if (elegibilidadeBrasil.situacao !== "compativel") {
+  if (elegibilidadeBrasil.situacao === "incompativel") {
     return null
   }
 
@@ -132,7 +132,10 @@ function avaliarPaginaDescoberta(
     company: "",
     title: pagina.titulo,
     description: pagina.descricao ?? "",
-    location: "Brasil",
+    location:
+      elegibilidadeBrasil.situacao === "compativel"
+        ? "Brasil"
+        : null,
     remote: remoto,
     url: pagina.url,
     published_at: null,
@@ -472,21 +475,26 @@ export async function processarVagasWeb(
 
         localizacao: resultado.vaga.localizacao,
 
-        motivo: elegibilidade?.motivo ?? "A elegibilidade para o Brasil não foi avaliada."
+        motivo:
+          elegibilidade?.motivo ??
+          "A elegibilidade para o Brasil não foi avaliada."
       })
 
-      continue
-    }
-
-    if (elegibilidade.situacao === "incompativel") {
+      /**
+       * Não interrompo mais o processamento.
+       *
+       * A ausência de localização conclusiva não é evidência de
+       * incompatibilidade.
+       */
+    } else if (elegibilidade.situacao === "incompativel") {
       resumo.incompativeisBrasil++
       incompativeisBrasil++
 
       continue
+    } else {
+      resumo.compativeisBrasil++
+      compativeisBrasil++
     }
-
-    resumo.compativeisBrasil++
-    compativeisBrasil++
 
     /**
      * No diagnóstico a validação termina aqui, sem alterar jobs ou

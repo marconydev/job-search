@@ -378,9 +378,10 @@ export function avaliarElegibilidadeBrasil(
 
   if (contemAlgumTermo(textoReferencia, regioesGlobais)) {
     return {
-      situacao: "incompativel",
+      situacao: "indefinida",
 
-      motivo: "A vaga é global ou regional e não está localizada especificamente no Brasil."
+      motivo:
+        "A vaga é global ou regional. Não há evidência de exclusão do Brasil, mas a elegibilidade precisa ser confirmada."
     }
   }
 

@@ -131,6 +131,78 @@ describe("job matcher", () => {
       perfil
     )
 
+    test("mantém vaga aderente quando a localização é apenas Remote", () => {
+      const perfil = criarPerfil()
+
+      const resultado = matchJob(
+        criarVaga({
+          title: "Analista de Suporte",
+
+          location: "Remote",
+
+          remote: true,
+
+          description:
+            "Suporte técnico utilizando SQL, PostgreSQL e atendimento a usuários."
+        }),
+        perfil
+      )
+
+      assert.ok(resultado.score >= 60)
+
+      assert.ok(
+        resultado.reasons.includes(
+          "Localização ainda não confirmada; vaga mantida para análise"
+        )
+      )
+    })
+
+    test("mantém vaga aderente sem localização informada", () => {
+      const perfil = criarPerfil()
+
+      const resultado = matchJob(
+        criarVaga({
+          title: "Analista de Suporte",
+
+          location: null,
+
+          remote: false
+        }),
+        perfil
+      )
+
+      assert.ok(resultado.score >= 60)
+
+      assert.ok(
+        resultado.reasons.includes(
+          "Localização ainda não confirmada; vaga mantida para análise"
+        )
+      )
+    })
+
+    test("mantém Worldwide para análise quando não há exclusão do Brasil", () => {
+      const perfil = criarPerfil()
+
+      const resultado = matchJob(
+        criarVaga({
+          title: "Technical Support",
+
+          location: "Worldwide",
+
+          remote: true
+        }),
+        perfil
+      )
+
+      assert.ok(resultado.score >= 60)
+
+      assert.ok(
+        resultado.reasons.includes(
+          "Localização ainda não confirmada; vaga mantida para análise"
+        )
+      )
+    })
+
     const remota = matchJob(
       criarVaga({
         remote: true

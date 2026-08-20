@@ -327,7 +327,7 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
 
   const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
 
-  if (elegibilidade.situacao !== "compativel") {
+  if (elegibilidade.situacao === "incompativel") {
     return {
       job: vaga,
       score: 0,
@@ -369,9 +369,15 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
     motivos.push("Vaga remota")
   }
 
-  pontuacao += 10
+  if (elegibilidade.situacao === "compativel") {
+    pontuacao += 10
 
-  motivos.push("Localização compatível")
+    motivos.push("Localização compatível")
+  } else {
+    motivos.push(
+      "Localização ainda não confirmada; vaga mantida para análise"
+    )
+  }
 
   const textoPesquisavel = `${titulo} ${descricao}`
 
