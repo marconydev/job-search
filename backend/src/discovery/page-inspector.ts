@@ -358,10 +358,7 @@ async function extrairVaga(
   }
 
   if (provedor === "solides") {
-    return extrairVagaSolides(
-      html,
-      urlFinal
-    )
+    return extrairVagaSolides(html, urlFinal)
   }
 
   return null

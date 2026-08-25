@@ -115,17 +115,11 @@ function extrairTitulo($: RaizCheerio) {
 function extrairEmpresa(linhas: string[], titulo: string) {
   const tituloNormalizado = normalizarTexto(titulo)
 
-  const indiceTitulo = linhas.findIndex(
-    linha => normalizarTexto(linha) === tituloNormalizado
-  )
+  const indiceTitulo = linhas.findIndex(linha => normalizarTexto(linha) === tituloNormalizado)
 
   const inicio = indiceTitulo >= 0 ? indiceTitulo + 1 : 0
 
-  for (
-    let indice = inicio;
-    indice < Math.min(linhas.length, inicio + 12);
-    indice++
-  ) {
+  for (let indice = inicio; indice < Math.min(linhas.length, inicio + 12); indice++) {
     const linha = linhas[indice]
 
     if (!linha) {
@@ -157,17 +151,11 @@ function extrairEmpresa(linhas: string[], titulo: string) {
 function extrairLocalizacao(linhas: string[], titulo: string) {
   const tituloNormalizado = normalizarTexto(titulo)
 
-  const indiceTitulo = linhas.findIndex(
-    linha => normalizarTexto(linha) === tituloNormalizado
-  )
+  const indiceTitulo = linhas.findIndex(linha => normalizarTexto(linha) === tituloNormalizado)
 
   const inicio = indiceTitulo >= 0 ? indiceTitulo + 1 : 0
 
-  for (
-    let indice = inicio;
-    indice < Math.min(linhas.length, inicio + 40);
-    indice++
-  ) {
+  for (let indice = inicio; indice < Math.min(linhas.length, inicio + 40); indice++) {
     const linha = linhas[indice]
 
     if (ehLocalizacao(linha)) {
@@ -178,11 +166,7 @@ function extrairLocalizacao(linhas: string[], titulo: string) {
   return null
 }
 
-function linhaDeveSerIgnoradaNaDescricao(
-  linha: string,
-  titulo: string,
-  empresa: string | null
-) {
+function linhaDeveSerIgnoradaNaDescricao(linha: string, titulo: string, empresa: string | null) {
   const normalizada = normalizarTexto(linha)
 
   if (!normalizada) {
@@ -266,11 +250,7 @@ function extrairDescricao(
   return descricao || null
 }
 
-function detectarRemoto(
-  linhas: string[],
-  titulo: string,
-  descricao: string | null
-) {
+function detectarRemoto(linhas: string[], titulo: string, descricao: string | null) {
   if (
     linhas.some(linha => {
       const normalizada = normalizarTexto(linha)
@@ -281,9 +261,7 @@ function detectarRemoto(
     return true
   }
 
-  const contexto = [titulo, descricao]
-    .filter((valor): valor is string => Boolean(valor))
-    .join(" ")
+  const contexto = [titulo, descricao].filter((valor): valor is string => Boolean(valor)).join(" ")
 
   return /\b(100%\s*remot[oa]|trabalho\s+remot[oa]|modelo\s+remot[oa]|home\s*office|fully\s+remote)\b/i.test(
     contexto
@@ -297,10 +275,7 @@ function detectarRemoto(
  * geradas pelo frontend e trabalho principalmente com a semântica do
  * conteúdo público apresentado ao candidato.
  */
-export function extrairVagaSolides(
-  html: string,
-  urlFinal: string
-): VagaExtraida | null {
+export function extrairVagaSolides(html: string, urlFinal: string): VagaExtraida | null {
   const $ = cheerio.load(html)
 
   const titulo = extrairTitulo($)
@@ -315,12 +290,7 @@ export function extrairVagaSolides(
 
   const localizacao = extrairLocalizacao(linhas, titulo)
 
-  const descricao = extrairDescricao(
-    linhas,
-    titulo,
-    empresa,
-    localizacao
-  )
+  const descricao = extrairDescricao(linhas, titulo, empresa, localizacao)
 
   if (!descricao) {
     return null

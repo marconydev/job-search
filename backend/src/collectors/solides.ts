@@ -33,32 +33,22 @@ function normalizarLimite(valor: number | undefined) {
     return 100
   }
 
-  return Math.min(
-    Math.max(Math.floor(valor), 1),
-    LIMITE_MAXIMO_POR_TERMO
-  )
+  return Math.min(Math.max(Math.floor(valor), 1), LIMITE_MAXIMO_POR_TERMO)
 }
 
 function ehDominioSolides(hostname: string) {
   const normalizado = hostname.toLowerCase()
 
-  return (
-    normalizado === "vagas.solides.com.br" ||
-    normalizado.endsWith(".vagas.solides.com.br")
-  )
+  return normalizado === "vagas.solides.com.br" || normalizado.endsWith(".vagas.solides.com.br")
 }
 
 function extrairIdVaga(url: string) {
   try {
     const analisada = new URL(url)
 
-    const partes = analisada.pathname
-      .split("/")
-      .filter(Boolean)
+    const partes = analisada.pathname.split("/").filter(Boolean)
 
-    const indiceVaga = partes.findIndex(
-      parte => parte.toLowerCase() === "vaga"
-    )
+    const indiceVaga = partes.findIndex(parte => parte.toLowerCase() === "vaga")
 
     return partes[indiceVaga + 1] ?? null
   } catch {
@@ -69,10 +59,7 @@ function extrairIdVaga(url: string) {
 async function buscarHtml(url: URL | string) {
   const controlador = new AbortController()
 
-  const temporizador = setTimeout(
-    () => controlador.abort(),
-    TEMPO_LIMITE_REQUISICAO_MS
-  )
+  const temporizador = setTimeout(() => controlador.abort(), TEMPO_LIMITE_REQUISICAO_MS)
 
   try {
     const resposta = await fetch(url, {
@@ -90,27 +77,20 @@ async function buscarHtml(url: URL | string) {
     })
 
     if (!resposta.ok) {
-      throw new Error(
-        `Sólides respondeu com status ${resposta.status}`
-      )
+      throw new Error(`Sólides respondeu com status ${resposta.status}`)
     }
 
     return {
       html: await resposta.text(),
 
-      urlFinal:
-        resposta.url ||
-        (typeof url === "string" ? url : url.toString())
+      urlFinal: resposta.url || (typeof url === "string" ? url : url.toString())
     }
   } finally {
     clearTimeout(temporizador)
   }
 }
 
-function extrairLinksVagas(
-  html: string,
-  urlBase: string
-): LinkVagaSolides[] {
+function extrairLinksVagas(html: string, urlBase: string): LinkVagaSolides[] {
   const $ = cheerio.load(html)
 
   const links = new Map<string, LinkVagaSolides>()
@@ -150,10 +130,7 @@ function extrairLinksVagas(
   return [...links.values()]
 }
 
-function criarUrlBusca(
-  termo: string,
-  pagina: number
-) {
+function criarUrlBusca(termo: string, pagina: number) {
   const url = new URL(URL_BUSCA_SOLIDES)
 
   url.searchParams.set("title", termo)
@@ -170,27 +147,16 @@ function normalizarData(valor: string | null) {
 
   const data = new Date(valor)
 
-  return Number.isNaN(data.getTime())
-    ? null
-    : data.toISOString()
+  return Number.isNaN(data.getTime()) ? null : data.toISOString()
 }
 
-async function extrairDetalhe(
-  link: LinkVagaSolides
-): Promise<NewJob | null> {
+async function extrairDetalhe(link: LinkVagaSolides): Promise<NewJob | null> {
   try {
     const pagina = await buscarHtml(link.url)
 
-    const vaga = extrairVagaSolides(
-      pagina.html,
-      pagina.urlFinal
-    )
+    const vaga = extrairVagaSolides(pagina.html, pagina.urlFinal)
 
-    if (
-      !vaga ||
-      !vaga.titulo ||
-      !vaga.descricao
-    ) {
+    if (!vaga || !vaga.titulo || !vaga.descricao) {
       return null
     }
 
@@ -199,9 +165,7 @@ async function extrairDetalhe(
 
       externalId: link.id,
 
-      company:
-        vaga.empresa?.trim() ||
-        "Empresa não identificada",
+      company: vaga.empresa?.trim() || "Empresa não identificada",
 
       title: vaga.titulo.trim(),
 
@@ -211,25 +175,16 @@ async function extrairDetalhe(
 
       remote: vaga.remoto,
 
-      url:
-        vaga.urlCandidatura?.trim() ||
-        pagina.urlFinal,
+      url: vaga.urlCandidatura?.trim() || pagina.urlFinal,
 
-      publishedAt: normalizarData(
-        vaga.dataPublicacao
-      ),
+      publishedAt: normalizarData(vaga.dataPublicacao),
 
       partial: false
     }
   } catch (erro) {
-    const mensagem =
-      erro instanceof Error
-        ? erro.message
-        : "erro desconhecido"
+    const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
 
-    console.warn(
-      `Sólides: falha ao abrir ${link.url}: ${mensagem}`
-    )
+    console.warn(`Sólides: falha ao abrir ${link.url}: ${mensagem}`)
 
     return null
   }
@@ -254,23 +209,13 @@ async function mapearComConcorrencia<T, R>(
         return
       }
 
-      resultados[indice] = await executar(
-        itens[indice]
-      )
+      resultados[indice] = await executar(itens[indice])
     }
   }
 
-  const quantidadeTrabalhadores = Math.min(
-    Math.max(concorrencia, 1),
-    Math.max(itens.length, 1)
-  )
+  const quantidadeTrabalhadores = Math.min(Math.max(concorrencia, 1), Math.max(itens.length, 1))
 
-  await Promise.all(
-    Array.from(
-      { length: quantidadeTrabalhadores },
-      () => trabalhador()
-    )
-  )
+  await Promise.all(Array.from({ length: quantidadeTrabalhadores }, () => trabalhador()))
 
   return resultados
 }
@@ -297,8 +242,7 @@ export async function collectSolidesJobs(
     }
   }
 
-  const termos =
-    gerarTermosBuscaNativaSolides(perfil)
+  const termos = gerarTermosBuscaNativaSolides(perfil)
 
   if (termos.length === 0) {
     return {
@@ -308,8 +252,7 @@ export async function collectSolidesJobs(
     }
   }
 
-  const limitePorTermo =
-    normalizarLimite(limit)
+  const limitePorTermo = normalizarLimite(limit)
 
   /**
    * O coletor pode encontrar vagas repetidas em vários termos.
@@ -318,13 +261,9 @@ export async function collectSolidesJobs(
    * etapa de detalhes. Isso mantém cobertura alta sem deixar uma
    * sincronização crescer indefinidamente.
    */
-  const limiteGlobal = Math.min(
-    Math.max(limitePorTermo * 5, 200),
-    LIMITE_MAXIMO_GLOBAL
-  )
+  const limiteGlobal = Math.min(Math.max(limitePorTermo * 5, 200), LIMITE_MAXIMO_GLOBAL)
 
-  const linksGlobais =
-    new Map<string, LinkVagaSolides>()
+  const linksGlobais = new Map<string, LinkVagaSolides>()
 
   for (const termo of termos) {
     if (linksGlobais.size >= limiteGlobal) {
@@ -333,48 +272,25 @@ export async function collectSolidesJobs(
 
     const idsTermo = new Set<string>()
 
-    const paginasMaximas = Math.min(
-      Math.ceil(
-        limitePorTermo /
-          VAGAS_ESTIMADAS_POR_PAGINA
-      ),
-      10
-    )
+    const paginasMaximas = Math.min(Math.ceil(limitePorTermo / VAGAS_ESTIMADAS_POR_PAGINA), 10)
 
-    for (
-      let pagina = 1;
-      pagina <= paginasMaximas;
-      pagina++
-    ) {
-      if (
-        idsTermo.size >= limitePorTermo ||
-        linksGlobais.size >= limiteGlobal
-      ) {
+    for (let pagina = 1; pagina <= paginasMaximas; pagina++) {
+      if (idsTermo.size >= limitePorTermo || linksGlobais.size >= limiteGlobal) {
         break
       }
 
       let linksPagina: LinkVagaSolides[]
 
       try {
-        const url =
-          criarUrlBusca(termo, pagina)
+        const url = criarUrlBusca(termo, pagina)
 
-        const resultado =
-          await buscarHtml(url)
+        const resultado = await buscarHtml(url)
 
-        linksPagina = extrairLinksVagas(
-          resultado.html,
-          resultado.urlFinal
-        )
+        linksPagina = extrairLinksVagas(resultado.html, resultado.urlFinal)
       } catch (erro) {
-        const mensagem =
-          erro instanceof Error
-            ? erro.message
-            : "erro desconhecido"
+        const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
 
-        console.warn(
-          `Sólides: falha ao pesquisar "${termo}" na página ${pagina}: ${mensagem}`
-        )
+        console.warn(`Sólides: falha ao pesquisar "${termo}" na página ${pagina}: ${mensagem}`)
 
         break
       }
@@ -403,10 +319,7 @@ export async function collectSolidesJobs(
         novosNestaPagina++
 
         if (!linksGlobais.has(link.id)) {
-          linksGlobais.set(
-            link.id,
-            link
-          )
+          linksGlobais.set(link.id, link)
         }
       }
 
@@ -414,10 +327,7 @@ export async function collectSolidesJobs(
         break
       }
 
-      if (
-        linksPagina.length <
-        VAGAS_ESTIMADAS_POR_PAGINA
-      ) {
+      if (linksPagina.length < VAGAS_ESTIMADAS_POR_PAGINA) {
         break
       }
     }
@@ -428,9 +338,7 @@ export async function collectSolidesJobs(
     )
   }
 
-  const links = [
-    ...linksGlobais.values()
-  ]
+  const links = [...linksGlobais.values()]
 
   console.log(
     `Sólides: ${termos.length} termo(s) disponível(is), ` +
@@ -438,21 +346,11 @@ export async function collectSolidesJobs(
       "Iniciando leitura dos detalhes."
   )
 
-  const detalhes =
-    await mapearComConcorrencia(
-      links,
-      CONCORRENCIA_DETALHES,
-      extrairDetalhe
-    )
+  const detalhes = await mapearComConcorrencia(links, CONCORRENCIA_DETALHES, extrairDetalhe)
 
-  const jobs = detalhes.filter(
-    (vaga): vaga is NewJob =>
-      vaga !== null
-  )
+  const jobs = detalhes.filter((vaga): vaga is NewJob => vaga !== null)
 
-  console.log(
-    `Sólides: ${jobs.length} vaga(s) válida(s) coletada(s).`
-  )
+  console.log(`Sólides: ${jobs.length} vaga(s) válida(s) coletada(s).`)
 
   return {
     source: "solides",

@@ -154,7 +154,8 @@ function normalizarVaga(vaga: GupyJob): NewJob | null {
 
   const descricao = descricaoCompleta || titulo
 
-  const empresa = texto(vaga.careerPageName) || texto(vaga.companyName) || "Empresa não identificada"
+  const empresa =
+    texto(vaga.careerPageName) || texto(vaga.companyName) || "Empresa não identificada"
 
   return {
     source: "gupy",

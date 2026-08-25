@@ -62,11 +62,7 @@ function criarVagaTemporaria(vaga: NewJob): StoredJob {
  * - exigência de residência em outro país
  */
 function vagaPodeSeguirParaAnalise(vaga: NewJob) {
-  const elegibilidade = avaliarElegibilidadeBrasil(
-    vaga.location,
-    vaga.description,
-    vaga.title
-  )
+  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
 
   return elegibilidade.situacao !== "incompativel"
 }
@@ -88,10 +84,7 @@ export function filtrarVagasAderentes(
       return false
     }
 
-    const resultado = matchJob(
-      criarVagaTemporaria(vaga),
-      perfil
-    )
+    const resultado = matchJob(criarVagaTemporaria(vaga), perfil)
 
     return resultado.score >= pontuacaoMinima
   })

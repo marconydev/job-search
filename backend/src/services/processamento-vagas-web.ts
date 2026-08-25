@@ -132,10 +132,7 @@ function avaliarPaginaDescoberta(
     company: "",
     title: pagina.titulo,
     description: pagina.descricao ?? "",
-    location:
-      elegibilidadeBrasil.situacao === "compativel"
-        ? "Brasil"
-        : null,
+    location: elegibilidadeBrasil.situacao === "compativel" ? "Brasil" : null,
     remote: remoto,
     url: pagina.url,
     published_at: null,
@@ -475,9 +472,7 @@ export async function processarVagasWeb(
 
         localizacao: resultado.vaga.localizacao,
 
-        motivo:
-          elegibilidade?.motivo ??
-          "A elegibilidade para o Brasil não foi avaliada."
+        motivo: elegibilidade?.motivo ?? "A elegibilidade para o Brasil não foi avaliada."
       })
 
       /**

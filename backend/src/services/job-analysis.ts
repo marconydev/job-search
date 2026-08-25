@@ -32,11 +32,11 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
     const elegibilidade = avaliarElegibilidadeBrasil(job.location, job.description, job.title)
 
     /**
- * Somente incompatibilidades geográficas comprovadas são descartadas
- * antes do matcher.
- *
- * Localização indefinida continua para análise profissional.
- */
+     * Somente incompatibilidades geográficas comprovadas são descartadas
+     * antes do matcher.
+     *
+     * Localização indefinida continua para análise profissional.
+     */
 
     if (elegibilidade.situacao === "incompativel") {
       await saveJobMatch({

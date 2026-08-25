@@ -172,7 +172,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
    */
   const [vagaSelecionadaId, setVagaSelecionadaId] = useState<number | null>(
     dadosIniciais.vagas.find(vaga => vaga.status === "relevant" || vaga.status === "viewed")?.id ??
-    null
+      null
   )
 
   const [busca, setBusca] = useState("")
@@ -264,12 +264,8 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     [dados.vagas]
   )
 
-
   const quantidadeNoStatusSelecionado = useMemo(
-    () =>
-      dados.vagas.filter(vaga =>
-        statusPertenceAoFiltro(vaga.status, filtroStatus)
-      ).length,
+    () => dados.vagas.filter(vaga => statusPertenceAoFiltro(vaga.status, filtroStatus)).length,
     [dados.vagas, filtroStatus]
   )
 
@@ -361,10 +357,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
      *
      * Nas filas que ainda exigem análise, preservo o corte mínimo de 60%.
      */
-    const novoScoreMinimo =
-      valor === "applied" || valor === "ignored"
-        ? 0
-        : 60
+    const novoScoreMinimo = valor === "applied" || valor === "ignored" ? 0 : 60
 
     setFiltroStatus(valor)
 
@@ -377,9 +370,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
      * o novo status.
      */
     const primeira = dados.vagas.find(
-      vaga =>
-        vaga.local_score >= novoScoreMinimo &&
-        statusPertenceAoFiltro(vaga.status, valor)
+      vaga => vaga.local_score >= novoScoreMinimo && statusPertenceAoFiltro(vaga.status, valor)
     )
 
     setVagaSelecionadaId(primeira?.id ?? null)
@@ -877,7 +868,6 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                     onChange={evento => alterarPontuacaoMinima(Number(evento.target.value))}
                     className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium outline-none focus:border-indigo-400 dark:border-slate-800 dark:bg-slate-950"
                   >
-
                     <option value={0}>Todos os scores</option>
 
                     <option value={60}>Score 60%+</option>
@@ -912,22 +902,17 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                   <strong className="font-semibold text-slate-800 dark:text-slate-200">
                     {vagasFiltradas.length}
                   </strong>
-
-                  {vagasFiltradas.length !==
-                    quantidadeNoStatusSelecionado && (
-                      <>
-                        {" "}de{" "}
-
-                        <strong className="font-semibold text-slate-800 dark:text-slate-200">
-                          {quantidadeNoStatusSelecionado}
-                        </strong>
-                      </>
-                    )}{" "}
-
+                  {vagasFiltradas.length !== quantidadeNoStatusSelecionado && (
+                    <>
+                      {" "}
+                      de{" "}
+                      <strong className="font-semibold text-slate-800 dark:text-slate-200">
+                        {quantidadeNoStatusSelecionado}
+                      </strong>
+                    </>
+                  )}{" "}
                   oportunidade
-                  {quantidadeNoStatusSelecionado !== 1
-                    ? "s"
-                    : ""}
+                  {quantidadeNoStatusSelecionado !== 1 ? "s" : ""}
                 </span>
               </div>
 
