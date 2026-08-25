@@ -62,6 +62,8 @@ function vagaEhDeHoje(vaga: VagaPainel) {
   )
 }
 
+export default PainelVagas
+
 /**
  * Em aberto significa que a oportunidade ainda exige alguma decisão.
  *

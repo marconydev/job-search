@@ -1,6 +1,6 @@
 import { BriefcaseBusiness, ServerOff } from "lucide-react"
 
-import { PainelVagas } from "@/components/painel/painel-vagas"
+import PainelVagas from "@/components/painel/painel-vagas"
 
 import { obterDadosPainel } from "@/lib/api-servidor"
 
