@@ -41,7 +41,7 @@ type RespostaInicioSincronizacao = {
   execucao?: EstadoExecucaoSincronizacao
 }
 
-const INTERVALO_POLLING_MS = 3000
+const INTERVALO_POLLING_MS = 10000
 
 function formatarUltimaAtualizacao(valor: string | null) {
   if (!valor) {

@@ -82,12 +82,26 @@ function exigirTokenApi(request: Request, response: Response, next: NextFunction
 }
 
 /**
- * Eu mantenho o health check público porque ele será utilizado pelo
- * provedor para verificar se o serviço está disponível.
+ * Health check utilizado pelo Render.
  *
- * Ele não expõe vagas, perfil ou credenciais.
+ * Esta rota verifica apenas se o processo HTTP está vivo.
+ *
+ * Ela não consulta PostgreSQL porque uma lentidão temporária no banco
+ * não deve fazer o Render considerar toda a aplicação indisponível e
+ * reiniciar o processo durante uma sincronização.
  */
-app.get("/health", async (_request, response) => {
+app.get("/health", (_request, response) => {
+  return response.status(200).json({
+    status: "ok"
+  })
+})
+
+/**
+ * Diagnóstico separado da conexão com o banco.
+ *
+ * Esta rota não deve ser utilizada como health check do Render.
+ */
+app.get("/health/database", async (_request, response) => {
   try {
     await db.query("SELECT 1")
 
@@ -98,7 +112,7 @@ app.get("/health", async (_request, response) => {
   } catch (error) {
     console.error("Erro ao acessar o banco de dados:", error)
 
-    return response.status(500).json({
+    return response.status(503).json({
       status: "error",
       database: "disconnected"
     })
