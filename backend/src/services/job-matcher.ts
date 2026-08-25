@@ -4,6 +4,8 @@ import type { JobMatch as CorrespondenciaVaga, StoredJob as VagaArmazenada } fro
 
 import { avaliarElegibilidadeBrasil } from "./elegibilidade-localizacao.js"
 
+import { avaliarPoliticaVagaBrasil } from "./politica-vagas-brasil.js"
+
 type FamiliaFormacao = {
   nome: string
 
@@ -336,6 +338,20 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
     }
   }
 
+  const politicaBrasil = avaliarPoliticaVagaBrasil(vaga)
+
+  if (!politicaBrasil.permitida) {
+    return {
+      job: vaga,
+
+      score: 0,
+
+      matchedSkills: [],
+
+      reasons: [politicaBrasil.motivo ?? "Vaga fora do foco configurado."]
+    }
+  }
+
   let pontuacao = 0
 
   const resultadoCargo = pontuarCargo(titulo, motivos, perfil)
@@ -374,9 +390,7 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
 
     motivos.push("Localização compatível")
   } else {
-    motivos.push(
-      "Localização ainda não confirmada; vaga mantida para análise"
-    )
+    motivos.push("Localização ainda não confirmada; vaga mantida para análise")
   }
 
   const textoPesquisavel = `${titulo} ${descricao}`

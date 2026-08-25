@@ -10,6 +10,12 @@ function criarPerfil(): PerfilProfissional {
   return {
     resumoProfissional: "",
 
+    /**
+     * Mantenho cargos em inglês no perfil de propósito.
+     *
+     * O teste precisa garantir que eles podem existir no perfil
+     * sem serem enviados para a busca nativa.
+     */
     cargosPrincipais: ["Analista de Suporte", "Technical Support"],
 
     cargosRelacionados: ["Analista de Sistemas", "Application Support"],
@@ -45,7 +51,7 @@ afterEach(() => {
 })
 
 describe("coletor nativo da Gupy", () => {
-  test("pesquisa os cargos individualmente no portal", async () => {
+  test("pesquisa cargos brasileiros individualmente no portal", async () => {
     const termosConsultados: string[] = []
 
     mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
@@ -60,14 +66,23 @@ describe("coletor nativo da Gupy", () => {
           data: [
             {
               id: 1001,
+
               name: "Analista de Suporte Júnior",
+
               careerPageName: "Empresa Teste",
+
               description: "<p>Suporte técnico a usuários e sistemas.</p>",
+
               city: "São Paulo",
+
               state: "São Paulo",
+
               country: "Brasil",
+
               workplaceType: "hybrid",
+
               jobUrl: "https://empresa-teste.gupy.io/jobs/1001",
+
               publishedDate: "2026-08-19T10:00:00.000Z"
             }
           ]
@@ -87,12 +102,19 @@ describe("coletor nativo da Gupy", () => {
 
     assert.ok(termosConsultados.includes("Analista de Suporte"))
 
-    assert.ok(termosConsultados.includes("Technical Support"))
-
     assert.ok(termosConsultados.includes("Analista de Sistemas"))
 
     /**
-     * Cada cargo precisa ir no parâmetro jobName separadamente.
+     * Os cargos ingleses podem existir no perfil,
+     * mas não devem mais virar consultas.
+     */
+    assert.equal(termosConsultados.includes("Technical Support"), false)
+
+    assert.equal(termosConsultados.includes("Application Support"), false)
+
+    /**
+     * Cada cargo precisa ir no parâmetro
+     * jobName separadamente.
      */
     for (const termo of termosConsultados) {
       assert.equal(termo.includes(" OR "), false)
@@ -115,16 +137,26 @@ describe("coletor nativo da Gupy", () => {
         data: [
           {
             id: "abc123",
+
             name: "Analista de Suporte N2",
+
             careerPageName: "Tech Brasil",
+
             description:
               "<p>Atendimento de chamados.</p><p>Windows Server, redes e troubleshooting.</p>",
+
             city: "João Pessoa",
+
             state: "Paraíba",
+
             country: "Brasil",
+
             workplaceType: "remote",
+
             isRemoteWork: true,
+
             jobUrl: "https://techbrasil.gupy.io/jobs/abc123",
+
             publishedDate: "2026-08-18"
           }
         ]
@@ -164,14 +196,23 @@ describe("coletor nativo da Gupy", () => {
         data: [
           {
             id: 777,
+
             name: "Analista de Suporte",
+
             careerPageName: "Empresa Única",
+
             description: "Suporte técnico, redes, Windows e atendimento ao usuário.",
+
             city: "Recife",
+
             state: "Pernambuco",
+
             country: "Brasil",
+
             workplaceType: "on-site",
+
             jobUrl: "https://empresa-unica.gupy.io/jobs/777",
+
             publishedDate: "2026-08-17"
           }
         ]
@@ -186,11 +227,18 @@ describe("coletor nativo da Gupy", () => {
   })
 
   test("falha de um termo não impede a coleta dos demais", async () => {
+    const termosConsultados: string[] = []
+
     mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
 
-      const termo = url.searchParams.get("jobName")
+      const termo = url.searchParams.get("jobName") ?? ""
 
+      termosConsultados.push(termo)
+
+      /**
+       * O primeiro cargo falha.
+       */
       if (termo === "Analista de Suporte") {
         return respostaJson(
           {
@@ -200,19 +248,32 @@ describe("coletor nativo da Gupy", () => {
         )
       }
 
-      if (termo === "Technical Support") {
+      /**
+       * O próximo cargo brasileiro
+       * continua sendo consultado.
+       */
+      if (termo === "Analista de Sistemas") {
         return respostaJson({
           data: [
             {
               id: 9001,
-              name: "Technical Support Analyst",
+
+              name: "Analista de Sistemas",
+
               careerPageName: "Empresa B",
-              description: "Technical support for Brazilian customers.",
-              city: "São Paulo",
-              state: "São Paulo",
+
+              description: "Atuação com suporte de sistemas, SQL e atendimento a usuários.",
+
+              city: "João Pessoa",
+
+              state: "Paraíba",
+
               country: "Brasil",
+
               workplaceType: "remote",
+
               jobUrl: "https://empresa-b.gupy.io/jobs/9001",
+
               publishedDate: "2026-08-19"
             }
           ]
@@ -226,8 +287,16 @@ describe("coletor nativo da Gupy", () => {
 
     const coleta = await collectGupyJobs(100, criarPerfil())
 
+    assert.ok(termosConsultados.includes("Analista de Suporte"))
+
+    assert.ok(termosConsultados.includes("Analista de Sistemas"))
+
+    assert.equal(termosConsultados.includes("Technical Support"), false)
+
     assert.equal(coleta.jobs.length, 1)
 
     assert.equal(coleta.jobs[0]?.externalId, "9001")
+
+    assert.equal(coleta.jobs[0]?.title, "Analista de Sistemas")
   })
 })

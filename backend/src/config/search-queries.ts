@@ -123,8 +123,7 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
       "Consultor de Implantação",
       "Especialista de Implantação",
       "Analista de Implementação",
-      "Customer Onboarding",
-      "Onboarding Specialist"
+      "Analista de Onboarding"
     ],
 
     paginasPrincipais: 1
@@ -137,8 +136,7 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
       "Analista de Negócios",
       "Analista BPM",
       "Analista de Processos de Negócio",
-      "Business Process Analyst",
-      "BPM Analyst"
+      "Analista de Melhoria Contínua"
     ],
 
     paginasPrincipais: 1
@@ -149,9 +147,8 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
 
     titulosRelacionados: [
       "Analista de BI",
-      "Business Intelligence Analyst",
-      "Data Analyst",
-      "Power BI Analyst"
+      "Analista de Inteligência de Negócios",
+      "Analista de Power BI"
     ],
 
     paginasPrincipais: 1
@@ -423,7 +420,7 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
   ]
 }
 
-const CONTEXTO_LOCALIZACAO = "(Brasil OR Brazil)"
+const CONTEXTO_LOCALIZACAO = '"Brasil"'
 
 /**
  * Gupy não aparece neste escopo porque já será coletada diretamente.
@@ -564,7 +561,7 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
     relacionados.push(...estrategia.titulosRelacionados)
   }
 
-  const termos = deduplicarTermos([...principais, ...deduplicarCargos(perfil), ...relacionados])
+  const termos = deduplicarTermos([...principais, ...relacionados])
 
   return termos.slice(0, 30)
 }
@@ -580,14 +577,14 @@ export function gerarTermosBuscaNativaSolides(perfil: PerfilProfissional) {
   return gerarTermosBuscaNativaGupy(perfil).slice(0, 20)
 }
 
-function criarTermosRotativosFamilia(familia: NomeFamilia, termosPerfil: string[]) {
+function criarTermosRotativosFamilia(familia: NomeFamilia) {
   const estrategia = ESTRATEGIAS_FAMILIAS_PORTAIS[familia]
 
   const principalNormalizado = estrategia.tituloPrincipal
     ? normalizarTexto(estrategia.tituloPrincipal)
     : null
 
-  return deduplicarTermos([...estrategia.titulosRelacionados, ...termosPerfil]).filter(
+  return deduplicarTermos(estrategia.titulosRelacionados).filter(
     termo => normalizarTexto(termo) !== principalNormalizado
   )
 }
@@ -635,39 +632,11 @@ function criarPacotes(
 }
 
 function criarNucleoComplementar(familias: Record<NomeFamilia, string[]>) {
-  const candidatos = ORDEM_FAMILIAS.map(
-    familia => ESTRATEGIAS_FAMILIAS_PORTAIS[familia].tituloPrincipal
-  ).filter((termo): termo is string => Boolean(termo))
+  const candidatos = ORDEM_FAMILIAS.filter(familia => familias[familia].length > 0)
+    .map(familia => ESTRATEGIAS_FAMILIAS_PORTAIS[familia].tituloPrincipal)
+    .filter((termo): termo is string => Boolean(termo))
 
-  const unicos = new Map<string, string>()
-
-  for (const termo of candidatos) {
-    unicos.set(normalizarTexto(termo), termo)
-  }
-
-  const todos = [
-    ...familias.suporte,
-    ...familias.sistemas,
-    ...familias.infraestrutura,
-    ...familias.implantacao,
-    ...familias.processos,
-    ...familias.dados,
-    ...familias.geral
-  ]
-
-  for (const termo of todos) {
-    if (unicos.size >= 5) {
-      break
-    }
-
-    const chave = normalizarTexto(termo)
-
-    if (!unicos.has(chave)) {
-      unicos.set(chave, termo)
-    }
-  }
-
-  return [...unicos.values()].slice(0, 5)
+  return deduplicarTermos(candidatos).slice(0, 5)
 }
 
 function criarExpressaoTermos(termos: string[]) {
@@ -704,7 +673,7 @@ function montarConsultaEmpresas(empresas: string[], termos: string[]) {
 
   const expressaoCargos = `(${criarExpressaoTermos(termos)})`
 
-  return `${expressaoEmpresas} ${expressaoCargos} (vagas OR jobs) ${CONTEXTO_LOCALIZACAO}`
+  return `${expressaoEmpresas} ${expressaoCargos} vagas ${CONTEXTO_LOCALIZACAO}`
 }
 
 function montarConsultaRegional(localizacoes: string[], termos: string[]) {
@@ -747,7 +716,7 @@ function criarConsultasPortaisPrioritarios(
   }
 
   for (const familia of ORDEM_FAMILIAS) {
-    const termosRotativos = criarTermosRotativosFamilia(familia, familias[familia])
+    const termosRotativos = criarTermosRotativosFamilia(familia)
 
     const pacotes = criarPacotes(termosRotativos, 2, 180, 20)
 
@@ -837,7 +806,7 @@ function criarConsultasRotativasComplementares(familias: Record<NomeFamilia, str
   const consultas: ConsultaBuscaVaga[] = []
 
   for (const familia of ORDEM_FAMILIAS) {
-    const termosRotativos = criarTermosRotativosFamilia(familia, familias[familia])
+    const termosRotativos = criarTermosRotativosFamilia(familia)
 
     const pacotes = criarPacotes(termosRotativos, 2, 180, 20)
 

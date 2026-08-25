@@ -18,6 +18,8 @@ import {
 
 import type { StatusVaga, VagaPainel } from "@/types/painel"
 
+import { formatarDescricaoVaga } from "@/lib/formatar-descricao-vaga"
+
 type Propriedades = {
   vaga: VagaPainel
 
@@ -171,6 +173,8 @@ export function DetalheVaga({
   const oportunidadeIgnorada = vaga.status === "ignored"
 
   const statusRetorno = vaga.viewed_at ? "viewed" : "relevant"
+
+  const descricaoFormatada = formatarDescricaoVaga(vaga.description)
 
   return (
     <aside
@@ -410,9 +414,9 @@ export function DetalheVaga({
               Sobre a oportunidade
             </h3>
 
-            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-400">
-              {vaga.description}
-            </p>
+            <div className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-600 dark:text-slate-400">
+              {descricaoFormatada}
+            </div>
           </section>
         </div>
 

@@ -4,6 +4,8 @@ import type { PerfilProfissional } from "../../types/perfil-profissional.js"
 
 import type { PaginaSomenteDescoberta } from "../../types/processamento-web.js"
 
+import { tituloEstaNoFocoBrasil } from "../politica-vagas-brasil.js"
+
 const provedoresProcessaveis = new Set<ProvedorPagina>([
   "gupy",
   "solides",
@@ -60,6 +62,10 @@ function contemExpressao(texto: string, termo: string) {
 }
 
 export function paginaPareceRelacionada(pagina: PaginaClassificada, perfil: PerfilProfissional) {
+  if (!tituloEstaNoFocoBrasil(pagina.titulo)) {
+    return false
+  }
+
   const contexto = [pagina.titulo, pagina.descricao]
     .filter((valor): valor is string => Boolean(valor))
     .join(" ")

@@ -357,7 +357,7 @@ export function avaliarElegibilidadeBrasil(
   }
 
   if (
-    contemAlgumTermo(textoReferencia, localizacoesBrasil) ||
+    contemAlgumTermo(textoLocalizacao, localizacoesBrasil) ||
     localizacaoTemUfBrasileira(localizacao ?? "") ||
     tituloTemUfBrasileira(titulo ?? "")
   ) {
@@ -378,10 +378,9 @@ export function avaliarElegibilidadeBrasil(
 
   if (contemAlgumTermo(textoReferencia, regioesGlobais)) {
     return {
-      situacao: "indefinida",
+      situacao: "incompativel",
 
-      motivo:
-        "A vaga é global ou regional. Não há evidência de exclusão do Brasil, mas a elegibilidade precisa ser confirmada."
+      motivo: "A vaga é global ou regional e não está direcionada especificamente ao Brasil."
     }
   }
 
@@ -406,18 +405,23 @@ export function avaliarElegibilidadeBrasil(
   if (
     contemTermo(textoLocalizacao, "remote") ||
     contemTermo(textoLocalizacao, "remoto") ||
-    contemTermo(textoLocalizacao, "remota")
+    contemTermo(textoLocalizacao, "remota") ||
+    contemTermo(textoLocalizacao, "home office") ||
+    contemTermo(textoLocalizacao, "presencial") ||
+    contemTermo(textoLocalizacao, "hibrido") ||
+    contemTermo(textoLocalizacao, "hibrida") ||
+    contemTermo(textoLocalizacao, "hybrid")
   ) {
     return {
       situacao: "indefinida",
 
-      motivo: "A vaga é remota, mas não informa que a oportunidade está localizada no Brasil."
+      motivo: "A modalidade foi informada, mas não existe localização brasileira confirmada."
     }
   }
 
   return {
-    situacao: "indefinida",
+    situacao: "incompativel",
 
-    motivo: `Não consegui confirmar que a localização "${localizacao}" pertence ao Brasil.`
+    motivo: `A localização "${localizacao}" não foi reconhecida como território brasileiro.`
   }
 }

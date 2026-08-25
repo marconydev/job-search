@@ -131,78 +131,6 @@ describe("job matcher", () => {
       perfil
     )
 
-    test("mantém vaga aderente quando a localização é apenas Remote", () => {
-      const perfil = criarPerfil()
-
-      const resultado = matchJob(
-        criarVaga({
-          title: "Analista de Suporte",
-
-          location: "Remote",
-
-          remote: true,
-
-          description:
-            "Suporte técnico utilizando SQL, PostgreSQL e atendimento a usuários."
-        }),
-        perfil
-      )
-
-      assert.ok(resultado.score >= 60)
-
-      assert.ok(
-        resultado.reasons.includes(
-          "Localização ainda não confirmada; vaga mantida para análise"
-        )
-      )
-    })
-
-    test("mantém vaga aderente sem localização informada", () => {
-      const perfil = criarPerfil()
-
-      const resultado = matchJob(
-        criarVaga({
-          title: "Analista de Suporte",
-
-          location: null,
-
-          remote: false
-        }),
-        perfil
-      )
-
-      assert.ok(resultado.score >= 60)
-
-      assert.ok(
-        resultado.reasons.includes(
-          "Localização ainda não confirmada; vaga mantida para análise"
-        )
-      )
-    })
-
-    test("mantém Worldwide para análise quando não há exclusão do Brasil", () => {
-      const perfil = criarPerfil()
-
-      const resultado = matchJob(
-        criarVaga({
-          title: "Technical Support",
-
-          location: "Worldwide",
-
-          remote: true
-        }),
-        perfil
-      )
-
-      assert.ok(resultado.score >= 60)
-
-      assert.ok(
-        resultado.reasons.includes(
-          "Localização ainda não confirmada; vaga mantida para análise"
-        )
-      )
-    })
-
     const remota = matchJob(
       criarVaga({
         remote: true
@@ -215,7 +143,30 @@ describe("job matcher", () => {
     assert.ok(remota.reasons.includes("Vaga remota"))
   })
 
-  test("aceita cidade brasileira quando o perfil aceita Brasil", () => {
+  test("mantém vaga em português quando a localização é apenas Remote", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "Remote",
+
+        remote: true,
+
+        description: "Suporte técnico utilizando SQL, PostgreSQL e atendimento a usuários."
+      }),
+      perfil
+    )
+
+    assert.ok(resultado.score >= 60)
+
+    assert.ok(
+      resultado.reasons.includes("Localização ainda não confirmada; vaga mantida para análise")
+    )
+  })
+
+  test("aceita cidade brasileira", () => {
     const perfil = criarPerfil()
 
     const resultado = matchJob(
@@ -230,7 +181,7 @@ describe("job matcher", () => {
     assert.ok(resultado.reasons.includes("Localização compatível"))
   })
 
-  test("aceita localidades prioritárias do sul e centro oeste", () => {
+  test("aceita localidades brasileiras do sul e centro-oeste", () => {
     const perfil = criarPerfil()
 
     const blumenau = matchJob(
@@ -269,12 +220,198 @@ describe("job matcher", () => {
     assert.ok(resultado.reasons[0]?.includes("fora do Brasil"))
   })
 
+  test("rejeita Hyderabad mesmo quando o cargo seria compatível", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "Hyderabad",
+
+        remote: false
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+  })
+
+  test("rejeita Thessaloniki Greece mesmo que marcada como remota", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "Thessaloniki, Greece",
+
+        remote: true
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+  })
+
+  test("rejeita localização US", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "US",
+
+        remote: true
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+  })
+
+  test("rejeita cargo apresentado somente em inglês", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "IT Support Engineer",
+
+        location: "Brasil",
+
+        remote: true
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+
+    assert.ok(resultado.reasons.some(motivo => motivo.includes("foco brasileiro")))
+  })
+
+  test("rejeita Technical Support Specialist mesmo localizado no Brasil", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Technical Support Specialist",
+
+        location: "Brazil - Remote",
+
+        remote: true,
+
+        description: "Technical support with SQL, PostgreSQL, Active Directory and troubleshooting."
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+  })
+
+  test("rejeita Software Developer com Technical Support no título", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Software Developer I (Technical Support Specialist I)",
+
+        location: "Brasil",
+
+        remote: true,
+
+        description: "Technical support with SQL and troubleshooting."
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+  })
+
+  test("rejeita vaga híbrida fora da Paraíba", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "São Paulo, SP",
+
+        remote: false,
+
+        description: "Modelo híbrido, com três dias presenciais por semana."
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+
+    assert.ok(resultado.reasons.some(motivo => motivo.includes("híbrida fora da Paraíba")))
+  })
+
+  test("rejeita vaga híbrida em Pernambuco", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "Recife, PE",
+
+        remote: false,
+
+        description: "Trabalho híbrido com comparecimento ao escritório duas vezes por semana."
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+  })
+
+  test("aceita vaga híbrida em João Pessoa PB", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "João Pessoa, PB",
+
+        remote: false,
+
+        description: "Modelo híbrido, com atuação em João Pessoa."
+      }),
+      perfil
+    )
+
+    assert.ok(resultado.score >= 60)
+  })
+
+  test("aceita vaga híbrida em Campina Grande PB", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte",
+
+        location: "Campina Grande, PB",
+
+        remote: false,
+
+        description: "Modalidade híbrida para atuação em Campina Grande."
+      }),
+      perfil
+    )
+
+    assert.ok(resultado.score >= 60)
+  })
+
   test("limita vaga de outra trilha profissional abaixo do corte de relevância", () => {
     const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
-        title: "Software Developer",
+        title: "Desenvolvedor de Software",
 
         description: "Desenvolvimento de aplicações utilizando SQL, PostgreSQL, Grafana e Zabbix."
       }),
@@ -282,12 +419,6 @@ describe("job matcher", () => {
     )
 
     assert.ok(resultado.score <= 55)
-
-    assert.ok(
-      resultado.reasons.includes(
-        "Cargo pertence a uma trilha profissional diferente da busca principal"
-      )
-    )
   })
 
   test("reconhece competências sem contar tecnologias irrelevantes", () => {
@@ -349,8 +480,6 @@ describe("job matcher", () => {
     assert.equal(resultado.score, 0)
 
     assert.deepEqual(resultado.matchedSkills, [])
-
-    assert.ok(resultado.reasons.some(motivo => motivo.includes("Cargo não corresponde")))
   })
 
   test("rejeita título explicitamente excluído", () => {
