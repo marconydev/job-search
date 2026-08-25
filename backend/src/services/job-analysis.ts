@@ -1,14 +1,10 @@
+import { MATCHER_VERSION } from "../config/matcher.js"
+
 import { saveJobMatch } from "../repositories/job-match-repository.js"
 
-import {
-  listJobs,
-  listUnmatchedJobs
-} from "../repositories/job-repository.js"
+import { listJobs, listJobsPendingAnalysis } from "../repositories/job-repository.js"
 
-import type {
-  JobMatchStatus,
-  StoredJob
-} from "../types/job.js"
+import type { JobMatchStatus, StoredJob } from "../types/job.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
@@ -20,12 +16,8 @@ const RELEVANT_SCORE = 60
 
 const TAMANHO_LOTE_ANALISE = 25
 
-function getMatchStatus(
-  score: number
-): JobMatchStatus {
-  return score >= RELEVANT_SCORE
-    ? "relevant"
-    : "discarded"
+function getMatchStatus(score: number): JobMatchStatus {
+  return score >= RELEVANT_SCORE ? "relevant" : "discarded"
 }
 
 function cederEventLoop() {
@@ -34,32 +26,17 @@ function cederEventLoop() {
   })
 }
 
-async function analisarVagas(
-  jobs: StoredJob[],
-  perfil: PerfilProfissional
-) {
+async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
   let relevant = 0
 
   let discarded = 0
 
-  for (
-    let indice = 0;
-    indice < jobs.length;
-    indice++
-  ) {
+  for (let indice = 0; indice < jobs.length; indice++) {
     const job = jobs[indice]
 
-    const elegibilidade =
-      avaliarElegibilidadeBrasil(
-        job.location,
-        job.description,
-        job.title
-      )
+    const elegibilidade = avaliarElegibilidadeBrasil(job.location, job.description, job.title)
 
-    if (
-      elegibilidade.situacao ===
-      "incompativel"
-    ) {
+    if (elegibilidade.situacao === "incompativel") {
       await saveJobMatch({
         jobId: job.id,
 
@@ -67,39 +44,30 @@ async function analisarVagas(
 
         matchedSkills: [],
 
-        reasons: [
-          elegibilidade.motivo
-        ],
+        reasons: [elegibilidade.motivo],
 
         status: "discarded"
       })
 
       discarded++
     } else {
-      const match = matchJob(
-        job,
-        perfil
-      )
+      const match = matchJob(job, perfil)
 
-      const status =
-        getMatchStatus(match.score)
+      const status = getMatchStatus(match.score)
 
       await saveJobMatch({
         jobId: job.id,
 
         localScore: match.score,
 
-        matchedSkills:
-          match.matchedSkills,
+        matchedSkills: match.matchedSkills,
 
         reasons: match.reasons,
 
         status
       })
 
-      if (
-        status === "relevant"
-      ) {
+      if (status === "relevant") {
         relevant++
       } else {
         discarded++
@@ -110,11 +78,7 @@ async function analisarVagas(
      * Mesmo com operações PostgreSQL assíncronas,
      * libero explicitamente o event loop em lotes.
      */
-    if (
-      (indice + 1) %
-        TAMANHO_LOTE_ANALISE ===
-      0
-    ) {
+    if ((indice + 1) % TAMANHO_LOTE_ANALISE === 0) {
       await cederEventLoop()
     }
   }
@@ -131,33 +95,27 @@ async function analisarVagas(
 /**
  * Fluxo normal da sincronização.
  *
- * Analisa somente oportunidades que ainda não possuem job_match.
+ * Analisa somente oportunidades que precisam da versão atual:
+ *
+ * - vagas ainda sem resultado;
+ * - vagas classificadas por uma versão anterior;
+ * - vagas existentes cujos dados relevantes foram atualizados.
  */
-export async function analyzePendingJobs(
-  perfil: PerfilProfissional
-) {
-  const jobs =
-    await listUnmatchedJobs()
+export async function analyzePendingJobs(perfil: PerfilProfissional) {
+  const jobs = await listJobsPendingAnalysis(MATCHER_VERSION)
 
-  return analisarVagas(
-    jobs,
-    perfil
-  )
+  return analisarVagas(jobs, perfil)
 }
 
 /**
- * Mantido para manutenção manual quando alterarmos
- * profundamente as regras de matching.
+ * Mantido para manutenção manual excepcional.
  *
- * Não deve mais rodar em toda sincronização.
+ * O fluxo normal não precisa reprocessar todo o banco em toda
+ * sincronização porque o versionamento identifica exatamente
+ * o que está desatualizado.
  */
-export async function reanalisarTodasAsVagas(
-  perfil: PerfilProfissional
-) {
+export async function reanalisarTodasAsVagas(perfil: PerfilProfissional) {
   const jobs = await listJobs()
 
-  return analisarVagas(
-    jobs,
-    perfil
-  )
+  return analisarVagas(jobs, perfil)
 }

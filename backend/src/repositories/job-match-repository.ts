@@ -1,3 +1,5 @@
+import { MATCHER_VERSION } from "../config/matcher.js"
+
 import { db } from "../database/connection.js"
 
 import type { JobMatchStatus, NewJobMatch, UserJobStatus } from "../types/job.js"
@@ -7,9 +9,11 @@ import type { JobMatchStatus, NewJobMatch, UserJobStatus } from "../types/job.js
  *
  * Preservo decisões manuais definitivas como aplicada e ignorada.
  *
- * Uma vaga apenas visualizada continua como "viewed" enquanto permanecer
- * relevante, mas pode ser descartada posteriormente se uma nova análise
- * identificar incompatibilidade.
+ * Uma vaga apenas visualizada continua como "viewed" enquanto
+ * permanecer relevante, mas pode ser descartada posteriormente se
+ * uma nova análise identificar incompatibilidade.
+ *
+ * matcher_version registra qual conjunto de regras produziu a análise.
  */
 export async function saveJobMatch(match: NewJobMatch) {
   const result = await db.query(
@@ -19,17 +23,21 @@ export async function saveJobMatch(match: NewJobMatch) {
           local_score,
           matched_skills,
           reasons,
-          status
+          status,
+          matcher_version
         )
+
         VALUES (
           $1,
           $2,
           $3::jsonb,
           $4::jsonb,
-          $5
+          $5,
+          $6
         )
 
         ON CONFLICT (job_id)
+
         DO UPDATE SET
 
           local_score =
@@ -41,56 +49,76 @@ export async function saveJobMatch(match: NewJobMatch) {
           reasons =
             EXCLUDED.reasons,
 
+          matcher_version =
+            EXCLUDED.matcher_version,
+
           analyzed_at =
             NOW(),
 
           status_updated_at =
             CASE
+
               WHEN job_matches.status IN (
                 'applied',
                 'ignored'
               )
-                THEN job_matches.status_updated_at
+                THEN
+                  job_matches.status_updated_at
 
               WHEN
                 job_matches.status = 'viewed'
                 AND EXCLUDED.status = 'relevant'
-                THEN job_matches.status_updated_at
 
-              WHEN job_matches.status
-                IS DISTINCT FROM
+                THEN
+                  job_matches.status_updated_at
+
+              WHEN
+                job_matches.status
+                  IS DISTINCT FROM
                 EXCLUDED.status
+
                 THEN NOW()
 
               ELSE
                 job_matches.status_updated_at
+
             END,
 
           status =
             CASE
+
               WHEN job_matches.status IN (
                 'applied',
                 'ignored'
               )
-                THEN job_matches.status
+                THEN
+                  job_matches.status
 
               WHEN
                 job_matches.status = 'viewed'
                 AND EXCLUDED.status = 'relevant'
+
                 THEN 'viewed'
 
               ELSE
                 EXCLUDED.status
+
             END
 
         RETURNING *
       `,
     [
       match.jobId,
+
       match.localScore,
+
       JSON.stringify(match.matchedSkills),
+
       JSON.stringify(match.reasons),
-      match.status
+
+      match.status,
+
+      MATCHER_VERSION
     ]
   )
 
@@ -99,12 +127,6 @@ export async function saveJobMatch(match: NewJobMatch) {
 
 /**
  * Continuo considerando uma vaga vista como oportunidade relevante.
- *
- * Isso evita que ela desapareça da lista principal apenas porque eu
- * abri o anúncio uma vez.
- *
- * Se uma reanálise posterior identificar que a vaga deve ser descartada,
- * ela deixa de aparecer normalmente.
  */
 export async function listRelevantJobMatches(minScore: number) {
   const result = await db.query(
@@ -127,6 +149,7 @@ export async function listRelevantJobMatches(minScore: number) {
           jm.matched_skills,
           jm.reasons,
           jm.status,
+          jm.matcher_version,
           jm.analyzed_at,
           jm.status_updated_at,
           jm.viewed_at,
@@ -142,13 +165,17 @@ export async function listRelevantJobMatches(minScore: number) {
             'relevant',
             'viewed'
           )
+
           AND jm.local_score >= $1
 
         ORDER BY
           CASE
+
             WHEN jm.status = 'relevant'
               THEN 0
+
             ELSE 1
+
           END,
 
           jm.local_score DESC,
@@ -166,9 +193,6 @@ export async function listRelevantJobMatches(minScore: number) {
 
 /**
  * Esta é a consulta principal utilizada pelo frontend.
- *
- * Não mostro descartadas automaticamente porque elas não precisam ocupar
- * espaço no dashboard operacional.
  */
 export async function listDashboardJobMatches() {
   const result = await db.query(`
@@ -190,6 +214,7 @@ export async function listDashboardJobMatches() {
         jm.matched_skills,
         jm.reasons,
         jm.status,
+        jm.matcher_version,
         jm.analyzed_at,
         jm.status_updated_at,
         jm.viewed_at,
@@ -205,11 +230,21 @@ export async function listDashboardJobMatches() {
 
       ORDER BY
         CASE jm.status
-          WHEN 'relevant' THEN 0
-          WHEN 'viewed' THEN 1
-          WHEN 'applied' THEN 2
-          WHEN 'ignored' THEN 3
+
+          WHEN 'relevant'
+            THEN 0
+
+          WHEN 'viewed'
+            THEN 1
+
+          WHEN 'applied'
+            THEN 2
+
+          WHEN 'ignored'
+            THEN 3
+
           ELSE 4
+
         END,
 
         jm.local_score DESC,
@@ -226,6 +261,7 @@ export async function listDashboardJobMatches() {
 export async function getJobDashboardSummary() {
   const result = await db.query(`
       SELECT
+
         COUNT(*) FILTER (
           WHERE jm.status = 'relevant'
         )::int AS novas,
@@ -256,7 +292,8 @@ export async function getJobDashboardSummary() {
         )::int AS parciais,
 
         COUNT(*) FILTER (
-          WHERE jm.status <> 'discarded'
+          WHERE
+            jm.status <> 'discarded'
         )::int AS total,
 
         COALESCE(
@@ -281,14 +318,12 @@ export async function getJobDashboardSummary() {
 
 /**
  * Atualizo uma decisão manual do usuário.
- *
- * Quando uma vaga é vista ou aplicada pela primeira vez, preservo a
- * respectiva data mesmo que o status seja alterado novamente depois.
  */
 export async function updateJobMatchStatus(jobId: number, status: UserJobStatus) {
   const result = await db.query(
     `
         UPDATE job_matches
+
         SET
           status =
             $2::varchar,
@@ -298,24 +333,30 @@ export async function updateJobMatchStatus(jobId: number, status: UserJobStatus)
 
           viewed_at =
             CASE
+
               WHEN $2::varchar = 'viewed'
                 THEN COALESCE(
                   viewed_at,
                   NOW()
                 )
 
-              ELSE viewed_at
+              ELSE
+                viewed_at
+
             END,
 
           applied_at =
             CASE
+
               WHEN $2::varchar = 'applied'
                 THEN COALESCE(
                   applied_at,
                   NOW()
                 )
 
-              ELSE applied_at
+              ELSE
+                applied_at
+
             END
 
         WHERE job_id = $1
@@ -327,6 +368,7 @@ export async function updateJobMatchStatus(jobId: number, status: UserJobStatus)
           matched_skills,
           reasons,
           status,
+          matcher_version,
           created_at,
           analyzed_at,
           status_updated_at,

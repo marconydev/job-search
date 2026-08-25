@@ -9,7 +9,7 @@ import {
   registrarSucessoColetaFonteAts
 } from "../repositories/fonte-ats-repository.js"
 
-import { listJobs } from "../repositories/job-repository.js"
+import { listJobs, refreshExistingJobs } from "../repositories/job-repository.js"
 
 import type { PaginaClassificada } from "../types/discovery.js"
 
@@ -22,34 +22,11 @@ import { filtrarVagasAderentes } from "./filtragem-vagas.js"
 import { importJobs, type JobImportResult } from "./job-import.js"
 
 export type ResultadoFonteAts = JobImportResult & {
-  /**
-   * Quantidade de vagas que passou pelo filtro profissional antes da
-   * persistência.
-   */
   matched: number
 
   error?: string
 }
 
-/**
- * Os segmentos de pathname permanecem codificados pela URL.
- *
- * Eu decodifico o identificador antes de persistir a fonte porque os
- * coletores fazem o encode novamente ao montar a chamada da API.
- *
- * Exemplo:
- *
- * PAR%20Technology
- *        ↓
- * PAR Technology
- *        ↓
- * encodeURIComponent no coletor
- *        ↓
- * PAR%20Technology
- *
- * Se a origem possuir uma codificação inválida, mantenho o valor original
- * em vez de impedir o processamento das demais fontes.
- */
 function obterPrimeiroSegmento(url: URL) {
   const segmento = url.pathname.split("/").filter(Boolean)[0]
 
@@ -75,14 +52,6 @@ function identificarFonteWorkable(
 ): NovaFonteAts | null {
   const sufixo = ".workable.com"
 
-  /**
-   * Quando a empresa utiliza um hostname próprio do Workable, consigo
-   * obter o identificador diretamente pelo subdomínio.
-   *
-   * Exemplo:
-   *
-   * empresa.workable.com
-   */
   if (
     hostname.endsWith(sufixo) &&
     !["apply.workable.com", "jobs.workable.com", "api.workable.com", "help.workable.com"].includes(
@@ -104,13 +73,6 @@ function identificarFonteWorkable(
     }
   }
 
-  /**
-   * No formato:
-   *
-   * apply.workable.com/empresa/j/CODIGO
-   *
-   * o primeiro segmento realmente representa a conta da empresa.
-   */
   if (hostname === "apply.workable.com") {
     const segmentos = url.pathname.split("/").filter(Boolean)
 
@@ -120,15 +82,6 @@ function identificarFonteWorkable(
       return null
     }
 
-    /**
-     * O formato:
-     *
-     * apply.workable.com/j/CODIGO
-     *
-     * é um shortlink e não informa a conta da empresa.
-     *
-     * Eu nunca transformo "j" em uma fonte ATS.
-     */
     const reservados = new Set(["j", "job", "jobs", "view", "apply"])
 
     if (reservados.has(candidato.toLowerCase())) {
@@ -146,21 +99,9 @@ function identificarFonteWorkable(
     }
   }
 
-  /**
-   * URLs genéricas de jobs.workable.com não possuem obrigatoriamente a
-   * conta necessária para usar a API pública.
-   *
-   * Prefiro não aprender uma fonte incorreta.
-   */
   return null
 }
 
-/**
- * Eu identifico a conta, organização ou job board que posso consultar
- * diretamente depois.
- *
- * Nenhuma API externa é chamada nesta função.
- */
 export function identificarFonteAtsDaPagina(pagina: PaginaClassificada): NovaFonteAts | null {
   try {
     const url = new URL(pagina.url)
@@ -255,11 +196,6 @@ export function identificarFonteAtsDaPagina(pagina: PaginaClassificada): NovaFon
   }
 }
 
-/**
- * Uma busca pode retornar várias vagas da mesma empresa.
- *
- * Eu deduplico as fontes em memória antes de tocar no PostgreSQL.
- */
 function extrairFontesAts(paginas: PaginaClassificada[]) {
   const fontes = new Map<string, NovaFonteAts>()
 
@@ -288,9 +224,6 @@ async function persistirFontesAts(paginas: PaginaClassificada[]) {
   return fontes.size
 }
 
-/**
- * Eu registro os boards encontrados pela descoberta web ou pelo cache.
- */
 export async function registrarFontesAtsDescobertas(paginas: PaginaClassificada[]) {
   const quantidade = await persistirFontesAts(paginas)
 
@@ -301,10 +234,6 @@ export async function registrarFontesAtsDescobertas(paginas: PaginaClassificada[
   return quantidade
 }
 
-/**
- * Eu reaproveito as vagas que já estão no PostgreSQL para aprender ATS
- * sem consumir uma nova chamada Brave.
- */
 export async function registrarFontesAtsDosJobsExistentes() {
   const vagas = await listJobs()
 
@@ -340,10 +269,10 @@ function obterNomeFonte(provedor: string, identificador: string) {
 }
 
 /**
- * Eu consulto diretamente os boards já aprendidos.
+ * Consulto diretamente os boards já aprendidos.
  *
- * Todas as vagas retornadas passam pelo matcher em memória antes do
- * INSERT.
+ * Antes do filtro, atualizo os registros que já existem para que
+ * alterações de modalidade/localização também sejam refletidas.
  */
 export async function coletarFontesAtsAprendidas(
   perfil: PerfilProfissional,
@@ -375,6 +304,18 @@ export async function coletarFontesAtsAprendidas(
       const coleta = await coletarFonteAts(fonte, limiteVagasPorFonte)
 
       const quantidadeBruta = coleta.jobs.length
+
+      const atualizacao = await refreshExistingJobs(coleta.jobs)
+
+      if (atualizacao.updated > 0 || atualizacao.invalidated > 0) {
+        console.log(
+          [
+            `ATS: ${fonte.provedor}/${fonte.identificador}`,
+            `${atualizacao.updated} vaga(s) existente(s) atualizada(s),`,
+            `${atualizacao.invalidated} marcada(s) para reanálise.`
+          ].join(" ")
+        )
+      }
 
       const vagasAderentes = filtrarVagasAderentes(coleta.jobs, perfil)
 
