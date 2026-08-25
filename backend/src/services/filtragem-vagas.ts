@@ -6,13 +6,6 @@ import { avaliarElegibilidadeBrasil } from "./elegibilidade-localizacao.js"
 
 import { matchJob } from "./job-matcher.js"
 
-/**
- * Eu converto uma vaga ainda não persistida para o formato que o matcher
- * já conhece.
- *
- * O ID é temporário porque neste ponto a oportunidade ainda não existe
- * no PostgreSQL.
- */
 function criarVagaTemporaria(vaga: NewJob): StoredJob {
   return {
     id: 0,
@@ -41,51 +34,105 @@ function criarVagaTemporaria(vaga: NewJob): StoredJob {
   }
 }
 
-/**
- * Somente uma incompatibilidade geográfica comprovada elimina a vaga.
- *
- * Uma localização indefinida não significa que a oportunidade seja
- * incompatível com o Brasil.
- *
- * Exemplos que continuam:
- *
- * - Remote
- * - localização ausente
- * - Worldwide
- * - LATAM
- *
- * Exemplos descartados:
- *
- * - Lisboa, Portugal
- * - Lithuania
- * - "except Brazil"
- * - exigência de residência em outro país
- */
 function vagaPodeSeguirParaAnalise(vaga: NewJob) {
-  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
+  const elegibilidade = avaliarElegibilidadeBrasil(
+    vaga.location,
+    vaga.description,
+    vaga.title
+  )
 
   return elegibilidade.situacao !== "incompativel"
 }
 
+function vagaEhAderente(
+  vaga: NewJob,
+  perfil: PerfilProfissional,
+  pontuacaoMinima: number
+) {
+  if (!vagaPodeSeguirParaAnalise(vaga)) {
+    return false
+  }
+
+  const resultado = matchJob(
+    criarVagaTemporaria(vaga),
+    perfil
+  )
+
+  return resultado.score >= pontuacaoMinima
+}
+
 /**
- * Faço apenas uma triagem de segurança antes da persistência.
- *
- * Não tento decidir prematuramente que uma vaga é brasileira quando
- * faltam informações. O matcher fará o ranking e continuará impedindo
- * que vagas explicitamente estrangeiras sejam consideradas relevantes.
+ * Mantido para usos pequenos e testes.
  */
 export function filtrarVagasAderentes(
   vagas: NewJob[],
   perfil: PerfilProfissional,
   pontuacaoMinima = 60
 ) {
-  return vagas.filter(vaga => {
-    if (!vagaPodeSeguirParaAnalise(vaga)) {
-      return false
+  return vagas.filter(vaga =>
+    vagaEhAderente(
+      vaga,
+      perfil,
+      pontuacaoMinima
+    )
+  )
+}
+
+/**
+ * Libera o event loop para que Express consiga responder:
+ *
+ * - health checks;
+ * - status da sincronização;
+ * - demais requisições.
+ */
+function cederEventLoop() {
+  return new Promise<void>(resolve => {
+    setImmediate(resolve)
+  })
+}
+
+/**
+ * Versão apropriada para coletas grandes.
+ *
+ * Em vez de processar centenas de vagas em um único bloco síncrono,
+ * trabalho em pequenos lotes e devolvo o controle ao Node entre eles.
+ */
+export async function filtrarVagasAderentesComYield(
+  vagas: NewJob[],
+  perfil: PerfilProfissional,
+  pontuacaoMinima = 60,
+  tamanhoLote = 25
+) {
+  const aderentes: NewJob[] = []
+
+  const lote = Math.max(
+    1,
+    Math.floor(tamanhoLote)
+  )
+
+  for (
+    let indice = 0;
+    indice < vagas.length;
+    indice++
+  ) {
+    const vaga = vagas[indice]
+
+    if (
+      vagaEhAderente(
+        vaga,
+        perfil,
+        pontuacaoMinima
+      )
+    ) {
+      aderentes.push(vaga)
     }
 
-    const resultado = matchJob(criarVagaTemporaria(vaga), perfil)
+    if (
+      (indice + 1) % lote === 0
+    ) {
+      await cederEventLoop()
+    }
+  }
 
-    return resultado.score >= pontuacaoMinima
-  })
+  return aderentes
 }

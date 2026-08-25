@@ -2,90 +2,131 @@ import { collectors } from "../collectors/index.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
-import { reanalisarTodasAsVagas } from "./job-analysis.js"
+import { analyzePendingJobs } from "./job-analysis.js"
 
-import { coletarFontesAtsAprendidas, registrarFontesAtsDosJobsExistentes } from "./fontes-ats.js"
+import { coletarFontesAtsAprendidas } from "./fontes-ats.js"
 
-import { filtrarVagasAderentes } from "./filtragem-vagas.js"
+import { filtrarVagasAderentesComYield } from "./filtragem-vagas.js"
 
-import { importJobs, type JobImportResult } from "./job-import.js"
+import {
+  importJobs,
+  type JobImportResult
+} from "./job-import.js"
 
 import { processarVagasWeb } from "./processamento-vagas-web.js"
 
-type ResultadoFonte = JobImportResult & {
-  /**
-   * Quantidade que passou pelo matcher antes da persistência.
-   */
-  matched: number
+type ResultadoFonte =
+  JobImportResult & {
+    matched: number
 
-  error?: string
-}
+    error?: string
+  }
 
-export type EtapaSincronizacao = "fontes_diretas" | "web" | "ats" | "analise"
+export type EtapaSincronizacao =
+  | "fontes_diretas"
+  | "web"
+  | "ats"
+  | "analise"
 
 type OpcoesSincronizacao = {
   usarBrave?: boolean
 
   limiteChamadasBrave?: number
 
-  aoAtualizarEtapa?: (etapa: EtapaSincronizacao) => Promise<void> | void
+  aoAtualizarEtapa?: (
+    etapa: EtapaSincronizacao
+  ) => Promise<void> | void
 }
 
 /**
- * No ambiente gratuito eu prefiro distribuir a coleta ATS entre várias
- * execuções em vez de tentar processar todos os boards de uma vez.
+ * Rotação conservadora para o ambiente gratuito.
  *
- * O repositório já prioriza fontes nunca consultadas e depois as mais
- * antigas, portanto essa redução preserva a rotação.
+ * Não precisamos consultar todos os ATS aprendidos
+ * em uma única execução.
  */
-const LIMITE_FONTES_ATS_POR_EXECUCAO = 12
+const LIMITE_FONTES_ATS_POR_EXECUCAO =
+  8
 
-const LIMITE_VAGAS_POR_FONTE_ATS = 200
+const LIMITE_VAGAS_POR_FONTE_ATS =
+  150
 
-async function atualizarEtapa(opcoes: OpcoesSincronizacao, etapa: EtapaSincronizacao) {
-  if (opcoes.aoAtualizarEtapa) {
-    await opcoes.aoAtualizarEtapa(etapa)
+function agoraMs() {
+  return performance.now()
+}
+
+function formatarDuracao(
+  inicio: number
+) {
+  return (
+    (performance.now() - inicio) /
+    1000
+  ).toFixed(2)
+}
+
+function cederEventLoop() {
+  return new Promise<void>(resolve => {
+    setImmediate(resolve)
+  })
+}
+
+async function atualizarEtapa(
+  opcoes: OpcoesSincronizacao,
+  etapa: EtapaSincronizacao
+) {
+  if (
+    opcoes.aoAtualizarEtapa
+  ) {
+    await opcoes.aoAtualizarEtapa(
+      etapa
+    )
   }
+
+  await cederEventLoop()
 }
 
-/**
- * Primeiro consulto as fontes que podem ser acessadas diretamente,
- * sem gastar chamadas da Brave.
- *
- * Alguns coletores globais ignoram o perfil.
- * Portais agregadores nativos, como Gupy, usam o perfil para fazer
- * pesquisas pelos cargos individualmente.
- */
 async function coletarFontesDiretas(
   perfil: PerfilProfissional,
   limite: number
 ): Promise<ResultadoFonte[]> {
-  const resultados: ResultadoFonte[] = []
+  const resultados: ResultadoFonte[] =
+    []
 
-  for (const coletor of collectors) {
+  for (
+    const coletor of collectors
+  ) {
+    const inicioFonte = agoraMs()
+
     try {
-      const coleta = await coletor.collect(limite, perfil)
+      const coleta =
+        await coletor.collect(
+          limite,
+          perfil
+        )
 
-      const vagasAderentes = filtrarVagasAderentes(coleta.jobs, perfil)
+      /**
+       * O filtro grande não bloqueia mais o servidor.
+       */
+      const vagasAderentes =
+        await filtrarVagasAderentesComYield(
+          coleta.jobs,
+          perfil
+        )
 
-      const importacao = await importJobs({
-        source: coleta.source,
+      const importacao =
+        await importJobs({
+          source: coleta.source,
 
-        jobs: vagasAderentes
-      })
+          jobs: vagasAderentes
+        })
 
       resultados.push({
         ...importacao,
 
-        /**
-         * found representa tudo que a fonte retornou.
-         */
-        found: coleta.jobs.length,
+        found:
+          coleta.jobs.length,
 
-        /**
-         * matched representa somente o que o matcher aceitou.
-         */
-        matched: vagasAderentes.length
+        matched:
+          vagasAderentes.length
       })
 
       console.log(
@@ -94,11 +135,15 @@ async function coletarFontesDiretas(
           `${coleta.jobs.length} encontrada(s),`,
           `${vagasAderentes.length} aderente(s),`,
           `${importacao.inserted} nova(s),`,
-          `${importacao.duplicates} duplicada(s).`
+          `${importacao.duplicates} duplicada(s),`,
+          `tempo: ${formatarDuracao(inicioFonte)}s.`
         ].join(" ")
       )
     } catch (erro) {
-      const mensagem = erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta"
+      const mensagem =
+        erro instanceof Error
+          ? erro.message
+          : "Erro desconhecido durante a coleta"
 
       resultados.push({
         source: coletor.name,
@@ -114,17 +159,31 @@ async function coletarFontesDiretas(
         error: mensagem
       })
     }
+
+    /**
+     * Uma fonte termina antes da próxima começar,
+     * mas entrego explicitamente o controle ao Node.
+     */
+    await cederEventLoop()
   }
 
   return resultados
 }
 
-function normalizarLimiteBrave(valor: number | undefined) {
-  if (typeof valor !== "number" || !Number.isFinite(valor)) {
+function normalizarLimiteBrave(
+  valor: number | undefined
+) {
+  if (
+    typeof valor !== "number" ||
+    !Number.isFinite(valor)
+  ) {
     return 30
   }
 
-  return Math.max(0, Math.floor(valor))
+  return Math.max(
+    0,
+    Math.floor(valor)
+  )
 }
 
 export async function syncJobs(
@@ -132,9 +191,16 @@ export async function syncJobs(
   limite = 100,
   opcoes: OpcoesSincronizacao = {}
 ) {
-  const usarBrave = opcoes.usarBrave === true
+  const inicioTotal = agoraMs()
 
-  const limiteBrave = usarBrave ? normalizarLimiteBrave(opcoes.limiteChamadasBrave) : 0
+  const usarBrave =
+    opcoes.usarBrave === true
+
+  const limiteBrave = usarBrave
+    ? normalizarLimiteBrave(
+        opcoes.limiteChamadasBrave
+      )
+    : 0
 
   console.log("")
 
@@ -145,65 +211,127 @@ export async function syncJobs(
   )
 
   /**
-   * Primeiro consulto as fontes nativas sem custo Brave.
-   *
-   * A Gupy passa a entrar nesta etapa.
+   * ETAPA 1
    */
-  await atualizarEtapa(opcoes, "fontes_diretas")
-
-  const fontesDiretas = await coletarFontesDiretas(perfil, limite)
-
-  /**
-   * Reaproveito vagas existentes para aprender boards sem consumir Brave.
-   */
-  await registrarFontesAtsDosJobsExistentes()
-
-  /**
-   * Depois processo o cache web ou executo Brave quando autorizada.
-   *
-   * A Brave continua ativa como camada complementar, mas não é mais
-   * responsável pela cobertura principal da Gupy.
-   */
-  await atualizarEtapa(opcoes, "web")
-
-  const web = await processarVagasWeb(perfil, {
-    salvarCompativeis: true,
-
-    permitirBuscaLive: usarBrave,
-
-    limiteChamadasBrave: limiteBrave
-  })
-
-  /**
-   * O processamento web pode ter descoberto novas empresas.
-   *
-   * Eu consulto um subconjunto das fontes aprendidas por rodada para
-   * manter o consumo de memória e CPU adequado ao ambiente gratuito.
-   */
-  await atualizarEtapa(opcoes, "ats")
-
-  const fontesAts = await coletarFontesAtsAprendidas(
-    perfil,
-    LIMITE_FONTES_ATS_POR_EXECUCAO,
-    LIMITE_VAGAS_POR_FONTE_ATS
+  await atualizarEtapa(
+    opcoes,
+    "fontes_diretas"
   )
 
-  const fontes: ResultadoFonte[] = [...fontesDiretas, ...fontesAts]
+  const inicioFontes = agoraMs()
+
+  const fontesDiretas =
+    await coletarFontesDiretas(
+      perfil,
+      limite
+    )
+
+  console.log(
+    `Tempo fontes diretas: ${formatarDuracao(inicioFontes)}s`
+  )
 
   /**
-   * Por último reanaliso também os registros antigos.
+   * Removido:
    *
-   * As regras de localização e de cargo podem evoluir. Se eu analisasse
-   * somente vagas pendentes, oportunidades estrangeiras ou falsos
-   * positivos já classificados continuariam aparecendo no dashboard.
+   * registrarFontesAtsDosJobsExistentes()
+   *
+   * As fontes aprendidas já ficam persistidas no PostgreSQL.
+   * Não faz sentido reler todo o histórico a cada sincronização.
    */
-  await atualizarEtapa(opcoes, "analise")
 
-  const analise = await reanalisarTodasAsVagas(perfil)
+  await cederEventLoop()
+
+  /**
+   * ETAPA 2
+   */
+  await atualizarEtapa(
+    opcoes,
+    "web"
+  )
+
+  const inicioWeb = agoraMs()
+
+  const web =
+    await processarVagasWeb(
+      perfil,
+      {
+        salvarCompativeis: true,
+
+        permitirBuscaLive:
+          usarBrave,
+
+        limiteChamadasBrave:
+          limiteBrave
+      }
+    )
+
+  console.log(
+    `Tempo web/cache: ${formatarDuracao(inicioWeb)}s`
+  )
+
+  await cederEventLoop()
+
+  /**
+   * ETAPA 3
+   */
+  await atualizarEtapa(
+    opcoes,
+    "ats"
+  )
+
+  const inicioAts = agoraMs()
+
+  const fontesAts =
+    await coletarFontesAtsAprendidas(
+      perfil,
+      LIMITE_FONTES_ATS_POR_EXECUCAO,
+      LIMITE_VAGAS_POR_FONTE_ATS
+    )
+
+  console.log(
+    `Tempo ATS: ${formatarDuracao(inicioAts)}s`
+  )
+
+  const fontes: ResultadoFonte[] = [
+    ...fontesDiretas,
+    ...fontesAts
+  ]
+
+  await cederEventLoop()
+
+  /**
+   * ETAPA 4
+   *
+   * A mudança mais importante:
+   *
+   * analiso SOMENTE vagas ainda sem resultado.
+   *
+   * Não reanaliso todo o banco em toda sincronização.
+   */
+  await atualizarEtapa(
+    opcoes,
+    "analise"
+  )
+
+  const inicioAnalise = agoraMs()
+
+  const analise =
+    await analyzePendingJobs(
+      perfil
+    )
+
+  console.log(
+    `Tempo análise: ${formatarDuracao(inicioAnalise)}s`
+  )
+
+  console.log(
+    `Tempo total sincronização: ${formatarDuracao(inicioTotal)}s`
+  )
 
   return {
     modo: {
-      braveAutorizada: usarBrave,
+      braveAutorizada:
+        usarBrave,
 
       limiteBrave
     },
@@ -213,11 +341,14 @@ export async function syncJobs(
     web,
 
     analise: {
-      analisadas: analise.analyzed,
+      analisadas:
+        analise.analyzed,
 
-      relevantes: analise.relevant,
+      relevantes:
+        analise.relevant,
 
-      descartadas: analise.discarded
+      descartadas:
+        analise.discarded
     }
   }
 }
