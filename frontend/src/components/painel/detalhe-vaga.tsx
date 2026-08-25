@@ -182,7 +182,7 @@ export function DetalheVaga({
         fixed inset-0 z-50 overflow-y-auto bg-white
         dark:bg-slate-950
         lg:sticky lg:top-6 lg:z-auto lg:h-[calc(100vh-3rem)]
-        lg:rounded-3xl lg:border lg:border-slate-200
+        lg:rounded-2xl lg:border lg:border-slate-200
         lg:shadow-sm dark:lg:border-slate-800
       "
     >
@@ -221,7 +221,7 @@ export function DetalheVaga({
           </div>
         </header>
 
-        <div className="flex-1 p-5 sm:p-7">
+        <div className="flex-1 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-5">
             <div className="min-w-0">
               <h2 className="text-xl font-bold leading-8 tracking-tight text-slate-950 dark:text-white">
@@ -237,7 +237,7 @@ export function DetalheVaga({
 
             <div
               className={[
-                "flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl",
+                "flex size-14 shrink-0 flex-col items-center justify-center rounded-xl",
                 vaga.local_score >= 85
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                   : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"

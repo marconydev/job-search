@@ -132,7 +132,7 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
   return (
     <article
       className={[
-        "group relative overflow-hidden rounded-2xl border transition-all duration-200",
+        "group relative overflow-hidden rounded-xl border transition-all duration-200",
         selecionada
           ? "border-indigo-300 bg-indigo-50/70 shadow-sm dark:border-indigo-800 dark:bg-indigo-950/30"
           : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700"
@@ -144,14 +144,14 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
         type="button"
         onClick={aoSelecionar}
         aria-pressed={selecionada}
-        className="w-full cursor-pointer p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+        className="w-full cursor-pointer p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:p-4"
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3">
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
               <span
                 className={[
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                  "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold",
                   vaga.status === "relevant"
                     ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
                     : vaga.status === "viewed"
@@ -187,7 +187,7 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
               <span className="truncate">{vaga.company}</span>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-500">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500 dark:text-slate-500">
               {vaga.location && (
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin size={13} />
@@ -229,7 +229,7 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
             )}
 
             {vaga.matched_skills.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {vaga.matched_skills.slice(0, 4).map(competencia => (
                   <span
                     key={competencia}
@@ -251,7 +251,7 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
           <div className="flex shrink-0 flex-col items-end gap-4">
             <div
               className={[
-                "flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-bold tabular-nums",
+                "flex size-12 items-center justify-center rounded-xl text-sm font-bold tabular-nums",
                 vaga.local_score >= 85
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                   : vaga.local_score >= 75

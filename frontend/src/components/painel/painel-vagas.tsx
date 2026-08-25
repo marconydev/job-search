@@ -637,7 +637,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
         </div>
       )}
 
-      <div className="mx-auto flex min-h-screen max-w-[1800px]">
+      <div className="mx-auto flex min-h-screen max-w-[1800px] bg-background">
         <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-6 dark:border-slate-900 dark:bg-slate-950 xl:flex xl:flex-col">
           <div className="flex items-center gap-3 px-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
@@ -656,13 +656,13 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
               Oportunidades
             </div>
 
-            <div className="space-y-1">{itensOportunidades.map(renderizarItemMenu)}</div>
+            <div className="flex flex-col gap-1">{itensOportunidades.map(renderizarItemMenu)}</div>
 
             <div className="mt-6 px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
               Histórico
             </div>
 
-            <div className="space-y-1">{itensHistorico.map(renderizarItemMenu)}</div>
+            <div className="flex flex-col gap-1">{itensHistorico.map(renderizarItemMenu)}</div>
 
             <div className="my-4 border-t border-slate-200 dark:border-slate-800" />
 
