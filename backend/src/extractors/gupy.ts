@@ -1,11 +1,14 @@
 import * as cheerio from "cheerio"
 
+import { trabalhoEhRemotoPorFonteEstruturada } from "../services/modalidade-vaga.js"
+
 import type { VagaExtraida } from "../types/page-inspection.js"
 
 type RaizCheerio = ReturnType<typeof cheerio.load>
 
 type ContextoGupy = {
   idVaga: string
+
   urlCarreiras: string
 }
 
@@ -152,8 +155,96 @@ function extrairValorEstruturado($: RaizCheerio, propriedade: string): string | 
   return valorNormalizado || null
 }
 
-function detectarRemoto(texto: string) {
-  return /\b(remote|remoto|remota|100%\s*remot[oa]|home\s*office)\b/i.test(texto)
+/**
+ * Algumas páginas publicam os dados de JobPosting em JSON-LD em vez de
+ * atributos itemprop.
+ *
+ * Leio somente o JSON estruturado da própria página.
+ */
+function procurarPropriedadeJsonLd(valor: unknown, propriedade: string): unknown {
+  if (Array.isArray(valor)) {
+    for (const item of valor) {
+      const encontrado = procurarPropriedadeJsonLd(item, propriedade)
+
+      if (encontrado !== undefined) {
+        return encontrado
+      }
+    }
+
+    return undefined
+  }
+
+  if (typeof valor !== "object" || valor === null) {
+    return undefined
+  }
+
+  const objeto = valor as Record<string, unknown>
+
+  if (propriedade in objeto) {
+    return objeto[propriedade]
+  }
+
+  for (const item of Object.values(objeto)) {
+    const encontrado = procurarPropriedadeJsonLd(item, propriedade)
+
+    if (encontrado !== undefined) {
+      return encontrado
+    }
+  }
+
+  return undefined
+}
+
+function normalizarValorJsonLd(valor: unknown): string | null {
+  if (typeof valor === "string") {
+    const texto = normalizarTextoCurto(valor)
+
+    return texto || null
+  }
+
+  if (Array.isArray(valor)) {
+    for (const item of valor) {
+      const texto = normalizarValorJsonLd(item)
+
+      if (texto) {
+        return texto
+      }
+    }
+  }
+
+  return null
+}
+
+function extrairValorJsonLd($: RaizCheerio, propriedade: string): string | null {
+  const scripts = $('script[type="application/ld+json"]').toArray()
+
+  for (const elemento of scripts) {
+    const conteudo = $(elemento).html() ?? $(elemento).text()
+
+    if (!conteudo) {
+      continue
+    }
+
+    try {
+      const dados = JSON.parse(conteudo) as unknown
+
+      const encontrado = procurarPropriedadeJsonLd(dados, propriedade)
+
+      const normalizado = normalizarValorJsonLd(encontrado)
+
+      if (normalizado) {
+        return normalizado
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return null
+}
+
+function extrairModalidadeEstruturada($: RaizCheerio) {
+  return extrairValorEstruturado($, "jobLocationType") ?? extrairValorJsonLd($, "jobLocationType")
 }
 
 function ehLinkCandidatura(texto: string) {
@@ -240,6 +331,7 @@ function interpretarContextoGupy(urlFinal: string): ContextoGupy | null {
 
     return {
       idVaga,
+
       urlCarreiras: `${url.protocol}//${hostname}/`
     }
   } catch {
@@ -248,10 +340,11 @@ function interpretarContextoGupy(urlFinal: string): ContextoGupy | null {
 }
 
 /**
- * Quando a página individual não informa localização, consulto a
- * página oficial de carreiras da mesma empresa.
+ * Quando a página individual não informa localização, consulto a página
+ * oficial de carreiras da mesma empresa.
  *
- * Só uso informações pertencentes à própria Gupy da empresa.
+ * A página de carreiras pode complementar localização, mas não altera a
+ * modalidade usando palavras soltas do cartão da vaga.
  */
 async function enriquecerPelaPaginaCarreiras(
   vaga: VagaExtraida,
@@ -302,12 +395,7 @@ async function enriquecerPelaPaginaCarreiras(
       return vaga
     }
 
-    const textoCartao = normalizarTextoCurto($(linkVaga).text())
-
     const textoPagina = normalizarTextoCurto($("body").text())
-
-    const remoto =
-      vaga.remoto || /\b(remote work|trabalho remoto|remoto|home office)\b/i.test(textoCartao)
 
     let localizacao = vaga.localizacao
 
@@ -324,8 +412,8 @@ async function enriquecerPelaPaginaCarreiras(
 
     return {
       ...vaga,
-      localizacao,
-      remoto
+
+      localizacao
     }
   } catch {
     return vaga
@@ -335,8 +423,10 @@ async function enriquecerPelaPaginaCarreiras(
 }
 
 /**
- * Extraio os dados públicos da vaga individual e depois tento
- * complementar localização e modalidade pela página oficial da empresa.
+ * Extraio os dados públicos da vaga individual.
+ *
+ * A modalidade é obtida somente de metadados estruturados da própria
+ * publicação. A descrição não transforma uma vaga em remota.
  */
 export async function extrairVagaGupy(
   html: string,
@@ -371,9 +461,7 @@ export async function extrairVagaGupy(
     return null
   }
 
-  const textoParaAnalise = [titulo, descricaoCompleta]
-    .filter((valor): valor is string => Boolean(valor))
-    .join(" ")
+  const modalidadeEstruturada = extrairModalidadeEstruturada($)
 
   const vaga: VagaExtraida = {
     titulo,
@@ -390,7 +478,7 @@ export async function extrairVagaGupy(
 
     validaAte: extrairValorEstruturado($, "validThrough"),
 
-    remoto: detectarRemoto(textoParaAnalise),
+    remoto: trabalhoEhRemotoPorFonteEstruturada(modalidadeEstruturada),
 
     urlCandidatura: extrairUrlCandidatura($, urlFinal)
   }

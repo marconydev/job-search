@@ -21,22 +21,27 @@ function criarPerfil(): PerfilProfissional {
     competencias: [
       {
         nome: "SQL",
+
         termos: ["sql"]
       },
       {
         nome: "PostgreSQL",
+
         termos: ["postgresql", "postgres"]
       },
       {
         nome: "Zabbix",
+
         termos: ["zabbix"]
       },
       {
         nome: "Grafana",
+
         termos: ["grafana"]
       },
       {
         nome: "Active Directory",
+
         termos: ["active directory"]
       }
     ],
@@ -44,8 +49,11 @@ function criarPerfil(): PerfilProfissional {
     experiencias: [
       {
         empresa: "Empresa Exemplo",
+
         cargo: "Analista de Suporte",
+
         periodo: "2023 - 2025",
+
         descricao: "Suporte técnico, SQL, PostgreSQL, Zabbix e análise de incidentes."
       }
     ],
@@ -53,8 +61,11 @@ function criarPerfil(): PerfilProfissional {
     formacoes: [
       {
         instituicao: "Universidade Exemplo",
+
         curso: "Análise e Desenvolvimento de Sistemas",
+
         nivel: "Tecnólogo",
+
         periodo: "2018 - 2020"
       }
     ],
@@ -62,7 +73,9 @@ function criarPerfil(): PerfilProfissional {
     cursos: [
       {
         nome: "Zabbix",
+
         instituicao: "Instituição Exemplo",
+
         ano: "2024"
       }
     ],
@@ -87,7 +100,10 @@ function criarVaga(alteracoes: Partial<StoredJob> = {}): StoredJob {
 
     description: "Suporte técnico utilizando SQL e PostgreSQL.",
 
-    location: "Brasil",
+    /**
+     * O fixture padrão representa uma vaga presencial válida.
+     */
+    location: "João Pessoa, PB",
 
     remote: false,
 
@@ -166,34 +182,59 @@ describe("job matcher", () => {
     )
   })
 
-  test("aceita cidade brasileira", () => {
+  test("rejeita vaga presencial fora de João Pessoa", () => {
     const perfil = criarPerfil()
 
     const resultado = matchJob(
       criarVaga({
-        location: "São Paulo, SP"
+        location: "São Paulo, SP",
+
+        remote: false
       }),
       perfil
     )
 
-    assert.ok(resultado.score >= 60)
+    assert.equal(resultado.score, 0)
 
-    assert.ok(resultado.reasons.includes("Localização compatível"))
+    assert.ok(resultado.reasons.some(motivo => motivo.includes("fora de João Pessoa")))
   })
 
-  test("aceita localidades brasileiras do sul e centro-oeste", () => {
+  test("rejeita presencial em Governador Valadares mesmo com cargo compatível", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte TI Junior",
+
+        location: "Governador Valadares, Minas Gerais, Brasil",
+
+        remote: false,
+
+        description: "Atendimento remoto e presencial, suporte técnico e redes."
+      }),
+      perfil
+    )
+
+    assert.equal(resultado.score, 0)
+  })
+
+  test("aceita vagas remotas em outras localidades brasileiras", () => {
     const perfil = criarPerfil()
 
     const blumenau = matchJob(
       criarVaga({
-        location: "Blumenau, SC"
+        location: "Blumenau, SC",
+
+        remote: true
       }),
       perfil
     )
 
     const brasilia = matchJob(
       criarVaga({
-        location: "Brasília, DF"
+        location: "Brasília, DF",
+
+        remote: true
       }),
       perfil
     )
@@ -328,7 +369,7 @@ describe("job matcher", () => {
     assert.equal(resultado.score, 0)
   })
 
-  test("rejeita vaga híbrida fora da Paraíba", () => {
+  test("rejeita vaga híbrida fora de João Pessoa", () => {
     const perfil = criarPerfil()
 
     const resultado = matchJob(
@@ -346,7 +387,7 @@ describe("job matcher", () => {
 
     assert.equal(resultado.score, 0)
 
-    assert.ok(resultado.reasons.some(motivo => motivo.includes("híbrida fora da Paraíba")))
+    assert.ok(resultado.reasons.some(motivo => motivo.includes("fora de João Pessoa")))
   })
 
   test("rejeita vaga híbrida em Pernambuco", () => {
@@ -387,7 +428,7 @@ describe("job matcher", () => {
     assert.ok(resultado.score >= 60)
   })
 
-  test("aceita vaga híbrida em Campina Grande PB", () => {
+  test("rejeita vaga híbrida em Campina Grande PB", () => {
     const perfil = criarPerfil()
 
     const resultado = matchJob(
@@ -403,7 +444,7 @@ describe("job matcher", () => {
       perfil
     )
 
-    assert.ok(resultado.score >= 60)
+    assert.equal(resultado.score, 0)
   })
 
   test("limita vaga de outra trilha profissional abaixo do corte de relevância", () => {
@@ -448,7 +489,7 @@ describe("job matcher", () => {
         description:
           "Requisito: formação superior em Ciência da Computação, Sistemas de Informação, Análise e Desenvolvimento de Sistemas ou áreas correlatas.",
 
-        location: "Brasil"
+        location: "João Pessoa, PB"
       }),
       perfil
     )

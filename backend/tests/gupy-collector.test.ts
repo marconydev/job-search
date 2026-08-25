@@ -190,9 +190,9 @@ describe("coletor nativo da Gupy", () => {
     assert.ok(vaga.description.includes("Windows Server"))
   })
 
-  test("remove duplicidades encontradas por termos diferentes", async () => {
-    mock.method(globalThis, "fetch", async () => {
-      return respostaJson({
+  test("workplaceType on-site prevalece sobre descrição e campo remoto legado", async () => {
+    mock.method(globalThis, "fetch", async () =>
+      respostaJson({
         data: [
           {
             id: 777,
@@ -201,15 +201,18 @@ describe("coletor nativo da Gupy", () => {
 
             careerPageName: "Empresa Única",
 
-            description: "Suporte técnico, redes, Windows e atendimento ao usuário.",
+            description:
+              "Atendimento remoto e presencial, suporte técnico, acesso remoto, redes e Windows.",
 
-            city: "Recife",
+            city: "Governador Valadares",
 
-            state: "Pernambuco",
+            state: "Minas Gerais",
 
             country: "Brasil",
 
             workplaceType: "on-site",
+
+            isRemoteWork: true,
 
             jobUrl: "https://empresa-unica.gupy.io/jobs/777",
 
@@ -217,13 +220,51 @@ describe("coletor nativo da Gupy", () => {
           }
         ]
       })
-    })
+    )
 
     const coleta = await collectGupyJobs(100, criarPerfil())
 
     assert.equal(coleta.jobs.length, 1)
 
     assert.equal(coleta.jobs[0]?.externalId, "777")
+
+    assert.equal(coleta.jobs[0]?.remote, false)
+  })
+
+  test("remove duplicidades encontradas por termos diferentes", async () => {
+    mock.method(globalThis, "fetch", async () =>
+      respostaJson({
+        data: [
+          {
+            id: 888,
+
+            name: "Analista de Suporte",
+
+            careerPageName: "Empresa Única",
+
+            description: "Suporte técnico, redes, Windows e atendimento ao usuário.",
+
+            city: "João Pessoa",
+
+            state: "Paraíba",
+
+            country: "Brasil",
+
+            workplaceType: "on-site",
+
+            jobUrl: "https://empresa-unica.gupy.io/jobs/888",
+
+            publishedDate: "2026-08-17"
+          }
+        ]
+      })
+    )
+
+    const coleta = await collectGupyJobs(100, criarPerfil())
+
+    assert.equal(coleta.jobs.length, 1)
+
+    assert.equal(coleta.jobs[0]?.externalId, "888")
   })
 
   test("falha de um termo não impede a coleta dos demais", async () => {

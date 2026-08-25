@@ -1,9 +1,9 @@
 type DadosVaga = {
   title: string
 
-  description: string
-
   location: string | null
+
+  remote: boolean
 }
 
 function normalizarTexto(valor: string) {
@@ -25,16 +25,14 @@ function contemExpressao(texto: string, termo: string) {
 }
 
 /**
- * O projeto passa a priorizar títulos apresentados em português.
+ * O projeto prioriza títulos apresentados em português.
  *
- * Siglas e termos técnicos em inglês continuam permitidos quando fazem
- * parte de um título brasileiro, por exemplo:
+ * Termos técnicos em inglês continuam permitidos quando fazem parte
+ * de um título brasileiro, por exemplo:
  *
  * Analista de Service Desk
  * Analista NOC
  * Analista de Power BI
- *
- * Mas títulos totalmente em inglês deixam de ser considerados.
  */
 const MARCADORES_TITULO_BRASIL = [
   "analista",
@@ -67,73 +65,34 @@ export function tituloEstaNoFocoBrasil(titulo: string) {
   return MARCADORES_TITULO_BRASIL.some(marcador => contemExpressao(titulo, marcador))
 }
 
-function vagaEhHibrida(vaga: DadosVaga) {
-  const localizacao = normalizarTexto(vaga.location ?? "")
-
-  if (
-    contemExpressao(localizacao, "hibrido") ||
-    contemExpressao(localizacao, "hibrida") ||
-    contemExpressao(localizacao, "hybrid")
-  ) {
-    return true
-  }
-
-  const contexto = normalizarTexto(`${vaga.title} ${vaga.description}`)
-
-  const padroes = [
-    "modelo hibrido",
-    "modelo hibrida",
-    "modalidade hibrida",
-    "modalidade hibrido",
-    "regime hibrido",
-    "regime hibrida",
-    "trabalho hibrido",
-    "trabalho hibrida",
-    "formato hibrido",
-    "formato hibrida",
-    "atuacao hibrida",
-    "atuacao hibrido",
-    "hybrid model",
-    "hybrid work",
-    "hybrid role",
-    "work arrangement hybrid",
-    "workplace type hybrid"
-  ]
-
-  return padroes.some(padrao => contexto.includes(padrao))
+/**
+ * Para oportunidades que não são remotas, João Pessoa é a única
+ * localização aceita nesta fase do projeto.
+ *
+ * Utilizo somente o campo estruturado de localização da vaga.
+ *
+ * Não procuro "João Pessoa" na descrição porque uma descrição pode
+ * mencionar filiais, clientes, viagens ou outras localidades sem que
+ * aquele seja o local real da vaga.
+ */
+export function vagaEstaEmJoaoPessoa(vaga: Pick<DadosVaga, "location">) {
+  return contemExpressao(vaga.location ?? "", "joao pessoa")
 }
 
-function vagaEstaNaParaiba(vaga: DadosVaga) {
-  const localizacaoOriginal = vaga.location ?? ""
-
-  /**
-   * A sigla PB precisa permanecer maiúscula para não confundir
-   * abreviações encontradas em outros textos.
-   */
-  if (/(^|[\s,;/|()\-–—])PB($|[\s,;/|()\-–—])/u.test(localizacaoOriginal)) {
-    return true
-  }
-
-  const contexto = normalizarTexto(
-    [vaga.location, vaga.title, vaga.description].filter(Boolean).join(" ")
-  )
-
-  const referenciasParaiba = [
-    "paraiba",
-    "joao pessoa",
-    "campina grande",
-    "cabedelo",
-    "bayeux",
-    "santa rita",
-    "patos",
-    "sousa",
-    "cajazeiras",
-    "guarabira"
-  ]
-
-  return referenciasParaiba.some(referencia => contemExpressao(contexto, referencia))
-}
-
+/**
+ * Regra geográfica atual:
+ *
+ * REMOTA:
+ * pode seguir desde que a camada anterior tenha considerado a vaga
+ * compatível ou potencialmente compatível com o Brasil.
+ *
+ * NÃO REMOTA:
+ * presencial, híbrida ou modalidade não confirmada somente pode seguir
+ * quando a localização indicar João Pessoa.
+ *
+ * Brasil x exterior continua sendo validado pela camada específica de
+ * elegibilidade geográfica.
+ */
 export function avaliarPoliticaVagaBrasil(vaga: DadosVaga) {
   if (!tituloEstaNoFocoBrasil(vaga.title)) {
     return {
@@ -143,11 +102,19 @@ export function avaliarPoliticaVagaBrasil(vaga: DadosVaga) {
     }
   }
 
-  if (vagaEhHibrida(vaga) && !vagaEstaNaParaiba(vaga)) {
+  if (vaga.remote) {
+    return {
+      permitida: true,
+
+      motivo: null
+    }
+  }
+
+  if (!vagaEstaEmJoaoPessoa(vaga)) {
     return {
       permitida: false,
 
-      motivo: "Vaga híbrida fora da Paraíba ou sem localização em PB confirmada."
+      motivo: "Vaga presencial, híbrida ou sem modalidade remota confirmada fora de João Pessoa/PB."
     }
   }
 

@@ -39,101 +39,113 @@ describe("política de vagas focada no Brasil", () => {
     )
   })
 
-  test("rejeita vaga híbrida em São Paulo", () => {
+  test("aceita vaga remota localizada em São Paulo", () => {
     const resultado = avaliarPoliticaVagaBrasil({
       title: "Analista de Suporte",
 
-      location: "São Paulo, SP",
+      location: "São Paulo, SP, Brasil",
 
-      description: "Modelo híbrido com três dias presenciais."
+      remote: true
     })
 
-    assert.equal(resultado.permitida, false)
-
-    assert.ok(resultado.motivo?.includes("híbrida fora da Paraíba"))
+    assert.equal(resultado.permitida, true)
   })
 
-  test("rejeita vaga híbrida em Recife", () => {
+  test("aceita vaga remota localizada em Recife", () => {
     const resultado = avaliarPoliticaVagaBrasil({
       title: "Analista de Sistemas",
 
-      location: "Recife, PE",
+      location: "Recife, PE, Brasil",
 
-      description: "Regime híbrido com comparecimento ao escritório."
+      remote: true
     })
 
-    assert.equal(resultado.permitida, false)
+    assert.equal(resultado.permitida, true)
   })
 
-  test("aceita vaga híbrida em João Pessoa", () => {
+  test("aceita vaga presencial em João Pessoa", () => {
     const resultado = avaliarPoliticaVagaBrasil({
       title: "Analista de Suporte",
+
+      location: "João Pessoa, PB, Brasil",
+
+      remote: false
+    })
+
+    assert.equal(resultado.permitida, true)
+  })
+
+  test("aceita vaga híbrida em João Pessoa quando normalizada como não remota", () => {
+    const resultado = avaliarPoliticaVagaBrasil({
+      title: "Analista de Sistemas",
 
       location: "João Pessoa, PB",
 
-      description: "Modelo híbrido."
+      remote: false
     })
 
     assert.equal(resultado.permitida, true)
   })
 
-  test("aceita vaga híbrida em Campina Grande", () => {
+  test("rejeita vaga presencial em São Paulo", () => {
+    const resultado = avaliarPoliticaVagaBrasil({
+      title: "Analista de Suporte",
+
+      location: "São Paulo, SP, Brasil",
+
+      remote: false
+    })
+
+    assert.equal(resultado.permitida, false)
+
+    assert.ok(resultado.motivo?.includes("fora de João Pessoa"))
+  })
+
+  test("rejeita vaga presencial em Governador Valadares", () => {
+    const resultado = avaliarPoliticaVagaBrasil({
+      title: "Analista de Suporte",
+
+      location: "Governador Valadares, Minas Gerais, Brasil",
+
+      remote: false
+    })
+
+    assert.equal(resultado.permitida, false)
+  })
+
+  test("rejeita vaga não remota em Campina Grande", () => {
     const resultado = avaliarPoliticaVagaBrasil({
       title: "Analista de Sistemas",
 
-      location: "Campina Grande, PB",
+      location: "Campina Grande, PB, Brasil",
 
-      description: "Modalidade híbrida."
+      remote: false
     })
 
-    assert.equal(resultado.permitida, true)
+    assert.equal(resultado.permitida, false)
   })
 
-  test("aceita híbrida quando Paraíba aparece explicitamente", () => {
+  test("rejeita vaga não remota informando apenas Paraíba", () => {
     const resultado = avaliarPoliticaVagaBrasil({
       title: "Analista de Infraestrutura",
 
       location: "Paraíba",
 
-      description: "Trabalho híbrido."
-    })
-
-    assert.equal(resultado.permitida, true)
-  })
-
-  test("rejeita híbrida sem localização PB confirmada", () => {
-    const resultado = avaliarPoliticaVagaBrasil({
-      title: "Analista de Suporte",
-
-      location: null,
-
-      description: "Modelo híbrido com dois dias presenciais."
+      remote: false
     })
 
     assert.equal(resultado.permitida, false)
   })
 
-  test("não bloqueia vaga remota brasileira por ser remota", () => {
+  test("rejeita vaga não remota sem localização confirmada", () => {
     const resultado = avaliarPoliticaVagaBrasil({
       title: "Analista de Suporte",
 
-      location: "Brasil",
+      location: null,
 
-      description: "Trabalho 100% remoto."
+      remote: false
     })
 
-    assert.equal(resultado.permitida, true)
-  })
-
-  test("não bloqueia vaga presencial brasileira fora da Paraíba", () => {
-    const resultado = avaliarPoliticaVagaBrasil({
-      title: "Analista de Suporte",
-
-      location: "São Paulo, SP",
-
-      description: "Atuação presencial no escritório."
-    })
-
-    assert.equal(resultado.permitida, true)
+    assert.equal(resultado.permitida, false)
   })
 })

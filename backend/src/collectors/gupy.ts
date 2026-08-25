@@ -2,6 +2,8 @@ import * as cheerio from "cheerio"
 
 import { gerarTermosBuscaNativaGupy } from "../config/search-queries.js"
 
+import { trabalhoEhRemotoPorFonteEstruturada } from "../services/modalidade-vaga.js"
+
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
 import type { NewJob } from "../types/job.js"
@@ -123,22 +125,6 @@ function montarLocalizacao(vaga: GupyJob) {
   return [...unicas.values()].join(", ")
 }
 
-function detectarRemoto(vaga: GupyJob, descricao: string) {
-  const modalidade = normalizarTexto(texto(vaga.workplaceType))
-
-  if (modalidade === "remote" || modalidade === "remoto") {
-    return true
-  }
-
-  if (vaga.isRemoteWork === true) {
-    return true
-  }
-
-  const contexto = `${texto(vaga.name)} ${descricao}`
-
-  return /\b(remote|remoto|remota|100%\s*remot[oa]|home\s*office)\b/i.test(contexto)
-}
-
 function normalizarVaga(vaga: GupyJob): NewJob | null {
   const id = vaga.id
 
@@ -170,7 +156,14 @@ function normalizarVaga(vaga: GupyJob): NewJob | null {
 
     location: montarLocalizacao(vaga),
 
-    remote: detectarRemoto(vaga, descricao),
+    /**
+     * A modalidade vem exclusivamente dos campos estruturados da Gupy.
+     *
+     * workplaceType possui prioridade sobre o antigo isRemoteWork.
+     *
+     * A descrição da vaga não participa desta decisão.
+     */
+    remote: trabalhoEhRemotoPorFonteEstruturada(vaga.workplaceType, vaga.isRemoteWork),
 
     url,
 
