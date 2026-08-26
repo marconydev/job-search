@@ -4,6 +4,12 @@ import { gupyCollector } from "./gupy.js"
 
 import { solidesCollector } from "./solides.js"
 
+import { vagasComCollector } from "./vagas-com.js"
+
+import { geekHunterCollector } from "./geekhunter.js"
+
+import { getOnBoardCollector } from "./getonboard.js"
+
 import { arbeitnowCollector } from "./arbeitnow.js"
 
 import { jobicyCollector } from "./jobicy.js"
@@ -13,20 +19,34 @@ import { remotiveCollector } from "./remotive.js"
 import { remoteOkCollector } from "./remote-ok.js"
 
 /**
- * Estas fontes podem ser consultadas diretamente sem depender da Brave.
+ * Fontes consultadas diretamente sem depender da Brave.
  *
- * Gupy e Sólides ficam primeiro porque são duas das principais fontes
- * brasileiras utilizadas pela aplicação e possuem busca nativa por cargo.
+ * Ordem:
  *
- * ATS baseados em empresas, como Lever e Greenhouse, continuam sendo
- * tratados separadamente porque primeiro precisamos descobrir qual
- * organização ou job board deve ser consultado.
+ * 1. grandes portais brasileiros;
+ * 2. fontes tech relevantes para Brasil;
+ * 3. fontes internacionais/remotas complementares.
+ *
+ * Cada coletor implementa o mesmo contrato JobCollector, portanto uma
+ * integração pode ser adicionada, desativada ou substituída sem alterar
+ * matcher, persistência ou dashboard.
  */
 export const collectors: JobCollector[] = [
   gupyCollector,
+
   solidesCollector,
+
+  vagasComCollector,
+
+  geekHunterCollector,
+
+  getOnBoardCollector,
+
   remotiveCollector,
+
   remoteOkCollector,
+
   jobicyCollector,
+
   arbeitnowCollector
 ]
