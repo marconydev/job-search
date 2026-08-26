@@ -9,7 +9,11 @@ import {
   registrarSucessoColetaFonteAts
 } from "../repositories/fonte-ats-repository.js"
 
-import { listJobs, refreshExistingJobs } from "../repositories/job-repository.js"
+import {
+  listJobs,
+  reconcileCompleteSourceAvailability,
+  refreshExistingJobs
+} from "../repositories/job-repository.js"
 
 import type { PaginaClassificada } from "../types/discovery.js"
 
@@ -271,8 +275,12 @@ function obterNomeFonte(provedor: string, identificador: string) {
 /**
  * Consulto diretamente os boards já aprendidos.
  *
- * Antes do filtro, atualizo os registros que já existem para que
- * alterações de modalidade/localização também sejam refletidas.
+ * Uma coleta também funciona como confirmação de disponibilidade:
+ *
+ * - vagas presentes recebem last_seen_at;
+ * - vagas que reaparecem deixam de estar indisponíveis;
+ * - se a leitura do board foi completa, vagas ausentes são marcadas
+ *   como indisponíveis.
  */
 export async function coletarFontesAtsAprendidas(
   perfil: PerfilProfissional,
@@ -305,7 +313,7 @@ export async function coletarFontesAtsAprendidas(
 
       const quantidadeBruta = coleta.jobs.length
 
-      const atualizacao = await refreshExistingJobs(coleta.jobs)
+      const atualizacao = await refreshExistingJobs(coleta.jobs, coleta.sourceKey)
 
       if (atualizacao.updated > 0 || atualizacao.invalidated > 0) {
         console.log(
@@ -322,8 +330,20 @@ export async function coletarFontesAtsAprendidas(
       const importacao = await importJobs({
         source: coleta.source,
 
+        sourceKey: coleta.sourceKey,
+
         jobs: vagasAderentes
       })
+
+      let indisponiveis = 0
+
+      /**
+       * Só comparo ausências quando tenho certeza de que percorri a origem
+       * inteira. Uma resposta truncada nunca é tratada como encerramento.
+       */
+      if (coleta.complete === true && coleta.sourceKey) {
+        indisponiveis = await reconcileCompleteSourceAvailability(coleta.sourceKey, coleta.jobs)
+      }
 
       await registrarSucessoColetaFonteAts(fonte.id)
 
@@ -341,7 +361,8 @@ export async function coletarFontesAtsAprendidas(
           `${quantidadeBruta} encontrada(s),`,
           `${vagasAderentes.length} aderente(s),`,
           `${importacao.inserted} nova(s),`,
-          `${importacao.duplicates} duplicada(s).`
+          `${importacao.duplicates} duplicada(s),`,
+          `${indisponiveis} encerrada(s).`
         ].join(" ")
       )
     } catch (erro) {

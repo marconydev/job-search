@@ -26,7 +26,7 @@ function deduplicarVagas(jobs: NewJob[]) {
   return [...unicas.values()]
 }
 
-function prepararLote(jobs: NewJob[]) {
+function prepararLote(jobs: NewJob[], sourceKey?: string) {
   return jobs.map(job => ({
     source: job.source,
 
@@ -46,34 +46,26 @@ function prepararLote(jobs: NewJob[]) {
 
     published_at: job.publishedAt,
 
-    partial: job.partial ?? false
+    partial: job.partial ?? false,
+
+    source_key: sourceKey ?? null
   }))
 }
 
 /**
  * Atualizo somente vagas que já existem.
  *
- * Isso é proposital:
+ * Além dos dados da oportunidade, cada reencontro da vaga atualiza:
  *
- * - vagas novas continuam passando pelo filtro antes do INSERT;
- * - vagas existentes recebem correções da fonte antes do filtro.
+ * - last_seen_at;
+ * - source_key, quando a coleta possui uma origem identificável;
+ * - unavailable_at volta para NULL caso uma vaga anteriormente encerrada
+ *   reapareça na fonte.
  *
- * Isso permite corrigir, por exemplo:
- *
- * remote=true
- * Governador Valadares
- *
- * para:
- *
- * remote=false
- * Governador Valadares
- *
- * mesmo que a vaga, depois da correção, deixe de passar pelo filtro.
- *
- * Quando título, descrição, localização ou modalidade mudam,
- * matcher_version volta para 0 e a vaga será reanalisada.
+ * Alterações que influenciam o matcher continuam invalidando somente a
+ * versão da análise correspondente.
  */
-async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
+async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) {
   const result = await db.query(
     `
       WITH incoming AS (
@@ -88,7 +80,8 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
           remote BOOLEAN,
           url TEXT,
           published_at TIMESTAMPTZ,
-          partial BOOLEAN
+          partial BOOLEAN,
+          source_key TEXT
         )
       ),
 
@@ -133,7 +126,12 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
           (
             j.partial
             AND i.partial
-          ) AS partial
+          ) AS partial,
+
+          COALESCE(
+            i.source_key,
+            j.source_key
+          ) AS source_key
 
         FROM jobs j
 
@@ -168,7 +166,8 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
             j.remote,
             j.url,
             j.published_at,
-            j.partial
+            j.partial,
+            j.source_key
           )
           IS DISTINCT FROM
           ROW(
@@ -179,13 +178,20 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
             p.remote,
             p.url,
             p.published_at,
-            p.partial
+            p.partial,
+            p.source_key
           ) AS has_change
 
         FROM prepared p
 
         INNER JOIN jobs j
           ON j.id = p.id
+      ),
+
+      metadata_changes AS (
+        SELECT id
+        FROM changes
+        WHERE has_change
       ),
 
       updated AS (
@@ -206,13 +212,17 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
 
           published_at = c.published_at,
 
-          partial = c.partial
+          partial = c.partial,
+
+          source_key = c.source_key,
+
+          last_seen_at = NOW(),
+
+          unavailable_at = NULL
 
         FROM changes c
 
-        WHERE
-          j.id = c.id
-          AND c.has_change
+        WHERE j.id = c.id
 
         RETURNING j.id
       ),
@@ -235,7 +245,7 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
       SELECT
         (
           SELECT COUNT(*)::int
-          FROM updated
+          FROM metadata_changes
         ) AS updated,
 
         (
@@ -243,7 +253,7 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
           FROM invalidated
         ) AS invalidated
     `,
-    [JSON.stringify(prepararLote(jobs))]
+    [JSON.stringify(prepararLote(jobs, sourceKey))]
   )
 
   return {
@@ -254,16 +264,15 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[]) {
 }
 
 /**
- * Atualizo em lotes para evitar:
+ * Atualizo em lotes para evitar centenas de UPDATEs individuais ou uma
+ * query gigantesca contendo todas as descrições.
  *
- * - centenas de UPDATEs individuais;
- * - uma única query gigantesca contendo todas as descrições.
- *
- * Com 775 vagas da Gupy, por exemplo, serão aproximadamente
- * 8 operações no PostgreSQL em vez de 775.
+ * O reencontro de uma oportunidade sempre atualiza last_seen_at, mesmo
+ * quando título, descrição e demais metadados continuam iguais.
  */
 export async function refreshExistingJobs(
-  jobs: NewJob[]
+  jobs: NewJob[],
+  sourceKey?: string
 ): Promise<ResultadoAtualizacaoVagasExistentes> {
   const unicas = deduplicarVagas(jobs)
 
@@ -274,7 +283,7 @@ export async function refreshExistingJobs(
   for (let inicio = 0; inicio < unicas.length; inicio += TAMANHO_LOTE_ATUALIZACAO) {
     const lote = unicas.slice(inicio, inicio + TAMANHO_LOTE_ATUALIZACAO)
 
-    const resultado = await atualizarLoteVagasExistentes(lote)
+    const resultado = await atualizarLoteVagasExistentes(lote, sourceKey)
 
     updated += resultado.updated
 
@@ -286,6 +295,67 @@ export async function refreshExistingJobs(
 
     invalidated
   }
+}
+
+/**
+ * Quando uma coleta de um board foi comprovadamente completa, qualquer
+ * vaga conhecida daquele mesmo board que não apareceu na resposta atual
+ * pode ser marcada como indisponível.
+ *
+ * Não executo esta rotina para buscas parciais, paginações interrompidas
+ * ou agregadores. A ausência nesses casos não prova encerramento.
+ */
+export async function reconcileCompleteSourceAvailability(sourceKey: string, jobs: NewJob[]) {
+  const chave = sourceKey.trim()
+
+  if (!chave) {
+    return 0
+  }
+
+  const vistos = deduplicarVagas(jobs).map(job => ({
+    source: job.source,
+
+    external_id: job.externalId
+  }))
+
+  const result = await db.query(
+    `
+      WITH seen AS (
+        SELECT *
+        FROM jsonb_to_recordset($2::jsonb) AS s(
+          source TEXT,
+          external_id TEXT
+        )
+      )
+
+      UPDATE jobs j
+
+      SET
+        unavailable_at =
+          COALESCE(
+            j.unavailable_at,
+            NOW()
+          )
+
+      WHERE
+        j.source_key = $1
+
+        AND j.unavailable_at IS NULL
+
+        AND NOT EXISTS (
+          SELECT 1
+          FROM seen s
+          WHERE
+            s.source = j.source
+            AND s.external_id = j.external_id
+        )
+
+      RETURNING j.id
+    `,
+    [chave, JSON.stringify(vistos)]
+  )
+
+  return result.rowCount ?? 0
 }
 
 /**
@@ -350,8 +420,12 @@ export async function listJobsPendingAnalysis(matcherVersion: number): Promise<S
         ON jm.job_id = j.id
 
       WHERE
-        jm.id IS NULL
-        OR jm.matcher_version < $1
+        (
+          jm.id IS NULL
+          OR jm.matcher_version < $1
+        )
+
+        AND j.unavailable_at IS NULL
 
       ORDER BY
         j.published_at DESC NULLS LAST,
@@ -388,7 +462,9 @@ export async function listUnmatchedJobs(): Promise<StoredJob[]> {
       LEFT JOIN job_matches jm
         ON jm.job_id = j.id
 
-      WHERE jm.id IS NULL
+      WHERE
+        jm.id IS NULL
+        AND j.unavailable_at IS NULL
 
       ORDER BY
         j.published_at DESC NULLS LAST,
@@ -438,10 +514,10 @@ export async function findJobBySourceExternalId(
 /**
  * Salvo uma oportunidade nova.
  *
- * partial é opcional para manter compatibilidade com os coletores
- * existentes. Quando não informado considero uma vaga completa.
+ * sourceKey é opcional porque fontes agregadas ou descobertas web podem
+ * não representar um único board autoritativo.
  */
-export async function createJob(job: NewJob): Promise<StoredJob> {
+export async function createJob(job: NewJob, sourceKey?: string): Promise<StoredJob> {
   const result = await db.query(
     `
         INSERT INTO jobs (
@@ -454,7 +530,8 @@ export async function createJob(job: NewJob): Promise<StoredJob> {
           remote,
           url,
           published_at,
-          partial
+          partial,
+          source_key
         )
 
         VALUES (
@@ -467,7 +544,8 @@ export async function createJob(job: NewJob): Promise<StoredJob> {
           $7,
           $8,
           $9,
-          $10
+          $10,
+          $11
         )
 
         RETURNING *
@@ -491,7 +569,9 @@ export async function createJob(job: NewJob): Promise<StoredJob> {
 
       job.publishedAt,
 
-      job.partial ?? false
+      job.partial ?? false,
+
+      sourceKey ?? null
     ]
   )
 

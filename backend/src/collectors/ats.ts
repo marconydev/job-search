@@ -41,6 +41,29 @@ function nomeResultado(fonte: FonteAts) {
   return `ats:${fonte.provedor}:${fonte.identificador}`
 }
 
+/**
+ * Chave interna e estável do board.
+ *
+ * A variante participa da chave para que, por exemplo, um board Lever
+ * europeu e um global nunca sejam reconciliados como se fossem a mesma
+ * origem.
+ */
+function chaveFonte(fonte: FonteAts) {
+  return `ats:${fonte.provedor}:${fonte.variante}:${fonte.identificador}`
+}
+
+function criarColecaoAts(fonte: FonteAts, jobs: NewJob[], complete: boolean): JobCollection {
+  return {
+    source: nomeResultado(fonte),
+
+    sourceKey: chaveFonte(fonte),
+
+    complete,
+
+    jobs
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                  Greenhouse                                */
 /* -------------------------------------------------------------------------- */
@@ -104,7 +127,9 @@ async function coletarGreenhouse(fonte: FonteAts, limite: number): Promise<JobCo
 
   const dados = (await respostaJobs.json()) as GreenhouseResponse
 
-  const jobs = (dados.jobs ?? [])
+  const vagasBrutas = dados.jobs ?? []
+
+  const jobs = vagasBrutas
     .slice(0, limite)
     .map(vaga => {
       const titulo = vaga.title?.trim()
@@ -139,11 +164,7 @@ async function coletarGreenhouse(fonte: FonteAts, limite: number): Promise<JobCo
     })
     .filter((vaga): vaga is NewJob => vaga !== null)
 
-  return {
-    source: nomeResultado(fonte),
-
-    jobs
-  }
+  return criarColecaoAts(fonte, jobs, vagasBrutas.length <= limite)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -183,16 +204,20 @@ async function coletarLever(fonte: FonteAts, limite: number): Promise<JobCollect
 
   let skip = 0
 
+  let complete = false
+
   const tamanhoPagina = 100
 
   while (jobs.length < limite) {
+    const limitePagina = Math.min(tamanhoPagina, limite - jobs.length)
+
     const url = new URL(`${base}/v0/postings/${encodeURIComponent(fonte.identificador)}`)
 
     url.searchParams.set("mode", "json")
 
     url.searchParams.set("skip", String(skip))
 
-    url.searchParams.set("limit", String(Math.min(tamanhoPagina, limite - jobs.length)))
+    url.searchParams.set("limit", String(limitePagina))
 
     const resposta = await fetch(url, {
       headers: {
@@ -244,6 +269,11 @@ async function coletarLever(fonte: FonteAts, limite: number): Promise<JobCollect
 
         url: urlVaga,
 
+        /**
+         * A API pública da Lever não fornece uma data confiável de
+         * publicação nesta resposta. Não inventamos created_at como se
+         * fosse publishedAt.
+         */
         publishedAt: null
       })
 
@@ -252,18 +282,20 @@ async function coletarLever(fonte: FonteAts, limite: number): Promise<JobCollect
       }
     }
 
-    if (pagina.length < tamanhoPagina) {
+    if (pagina.length < limitePagina) {
+      complete = true
+
+      break
+    }
+
+    if (jobs.length >= limite) {
       break
     }
 
     skip += pagina.length
   }
 
-  return {
-    source: nomeResultado(fonte),
-
-    jobs
-  }
+  return criarColecaoAts(fonte, jobs, complete)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -327,7 +359,9 @@ async function coletarWorkable(fonte: FonteAts, limite: number): Promise<JobColl
 
   const empresa = dados.name?.trim() || fonte.identificador
 
-  const jobs = (dados.jobs ?? [])
+  const vagasBrutas = dados.jobs ?? []
+
+  const jobs = vagasBrutas
     .slice(0, limite)
     .map(vaga => {
       const titulo = vaga.title?.trim()
@@ -364,11 +398,7 @@ async function coletarWorkable(fonte: FonteAts, limite: number): Promise<JobColl
     })
     .filter((vaga): vaga is NewJob => vaga !== null)
 
-  return {
-    source: nomeResultado(fonte),
-
-    jobs
-  }
+  return criarColecaoAts(fonte, jobs, vagasBrutas.length <= limite)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -420,8 +450,9 @@ async function coletarAshby(fonte: FonteAts, limite: number): Promise<JobCollect
 
   const dados = (await resposta.json()) as AshbyResponse
 
-  const jobs = (dados.jobs ?? [])
-    .filter(vaga => vaga.isListed !== false)
+  const vagasListadas = (dados.jobs ?? []).filter(vaga => vaga.isListed !== false)
+
+  const jobs = vagasListadas
     .slice(0, limite)
     .map(vaga => {
       const titulo = vaga.title?.trim()
@@ -471,11 +502,7 @@ async function coletarAshby(fonte: FonteAts, limite: number): Promise<JobCollect
     })
     .filter((vaga): vaga is NewJob => vaga !== null)
 
-  return {
-    source: nomeResultado(fonte),
-
-    jobs
-  }
+  return criarColecaoAts(fonte, jobs, vagasListadas.length <= limite)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -554,7 +581,9 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
 
   const dados = (await resposta.json()) as RecruiteeResponse
 
-  const jobs = (dados.offers ?? [])
+  const ofertas = dados.offers ?? []
+
+  const jobs = ofertas
     .slice(0, limite)
     .map(oferta => {
       const titulo = oferta.title?.trim()
@@ -600,11 +629,7 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
     })
     .filter((vaga): vaga is NewJob => vaga !== null)
 
-  return {
-    source: nomeResultado(fonte),
-
-    jobs
-  }
+  return criarColecaoAts(fonte, jobs, ofertas.length <= limite)
 }
 
 /* -------------------------------------------------------------------------- */

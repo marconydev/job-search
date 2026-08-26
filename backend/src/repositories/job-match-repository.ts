@@ -1,8 +1,12 @@
+import { JOB_LIFECYCLE } from "../config/job-lifecycle.js"
+
 import { MATCHER_VERSION } from "../config/matcher.js"
 
 import { db } from "../database/connection.js"
 
 import type { NewJobMatch, UserJobStatus } from "../types/job.js"
+
+const { maxAgeDays, requireConfirmationAfterDays, confirmationFreshnessDays } = JOB_LIFECYCLE
 
 /**
  * Salvo ou atualizo o resultado produzido pelo matcher.
@@ -110,11 +114,16 @@ export async function saveJobMatch(match: NewJobMatch) {
 }
 
 /**
- * Retorno oportunidades ainda em aberto.
+ * Retorno somente oportunidades abertas e ainda atuais.
  *
- * O suporte a status='viewed' aqui é intencional durante a transição da
- * migration 009. Depois da migration não existirão novos registros assim,
- * mas manter a leitura compatível torna o deploy seguro antes do backfill.
+ * Regras:
+ *
+ * - indisponível na fonte: não aparece;
+ * - até 15 dias: normal;
+ * - entre 15 e 21 dias: exige confirmação recente;
+ * - acima de 21 dias: deixa a fila operacional.
+ *
+ * Aplicadas e ignoradas não passam por esta consulta.
  */
 export async function listRelevantJobMatches(minScore: number) {
   const result = await db.query(
@@ -162,6 +171,23 @@ export async function listRelevantJobMatches(minScore: number) {
 
           AND jm.local_score >= $1
 
+          AND j.unavailable_at IS NULL
+
+          AND COALESCE(
+            j.published_at,
+            j.created_at
+          ) >= NOW() - ($2::int * INTERVAL '1 day')
+
+          AND (
+            COALESCE(
+              j.published_at,
+              j.created_at
+            ) >= NOW() - ($3::int * INTERVAL '1 day')
+
+            OR j.last_seen_at >=
+              NOW() - ($4::int * INTERVAL '1 day')
+          )
+
         ORDER BY
           CASE
             WHEN jm.viewed_at IS NULL
@@ -176,7 +202,7 @@ export async function listRelevantJobMatches(minScore: number) {
 
           j.created_at DESC
       `,
-    [minScore]
+    [minScore, maxAgeDays, requireConfirmationAfterDays, confirmationFreshnessDays]
   )
 
   return result.rows
@@ -185,11 +211,13 @@ export async function listRelevantJobMatches(minScore: number) {
 /**
  * Esta é a consulta principal utilizada pelo frontend.
  *
- * Registros legados com status='viewed' são apresentados como relevant;
- * viewed_at é a fonte de verdade para saber se a vaga já foi aberta.
+ * Regras temporais são aplicadas somente às oportunidades ainda em aberto.
+ * Aplicadas e ignoradas continuam disponíveis como histórico mesmo quando
+ * a publicação já envelheceu ou saiu do ATS.
  */
 export async function listDashboardJobMatches() {
-  const result = await db.query(`
+  const result = await db.query(
+    `
       SELECT
         j.id,
         j.source,
@@ -228,6 +256,37 @@ export async function listDashboardJobMatches() {
       WHERE
         jm.status <> 'discarded'
 
+        AND (
+          jm.status IN (
+            'applied',
+            'ignored'
+          )
+
+          OR (
+            jm.status IN (
+              'relevant',
+              'viewed'
+            )
+
+            AND j.unavailable_at IS NULL
+
+            AND COALESCE(
+              j.published_at,
+              j.created_at
+            ) >= NOW() - ($1::int * INTERVAL '1 day')
+
+            AND (
+              COALESCE(
+                j.published_at,
+                j.created_at
+              ) >= NOW() - ($2::int * INTERVAL '1 day')
+
+              OR j.last_seen_at >=
+                NOW() - ($3::int * INTERVAL '1 day')
+            )
+          )
+        )
+
       ORDER BY
         CASE
           WHEN
@@ -250,75 +309,120 @@ export async function listDashboardJobMatches() {
         jm.local_score DESC,
 
         j.created_at DESC
-    `)
+    `,
+    [maxAgeDays, requireConfirmationAfterDays, confirmationFreshnessDays]
+  )
 
   return result.rows
 }
 
 /**
- * Calculo os indicadores apresentados nos cards superiores do dashboard.
+ * Calculo os indicadores a partir exatamente do mesmo conjunto de vagas
+ * que pode aparecer no dashboard.
  *
- * Uma oportunidade vista continua em aberto. Por isso "novas" e "vistas"
- * são duas subdivisões do status relevant, diferenciadas por viewed_at.
+ * Assim contadores e lista não possuem políticas temporais diferentes.
  */
 export async function getJobDashboardSummary() {
-  const result = await db.query(`
+  const result = await db.query(
+    `
+      WITH dashboard AS (
+        SELECT
+          j.partial,
+
+          j.created_at AS job_created_at,
+
+          jm.local_score,
+
+          jm.status,
+
+          jm.viewed_at
+
+        FROM job_matches jm
+
+        INNER JOIN jobs j
+          ON j.id = jm.job_id
+
+        WHERE
+          jm.status <> 'discarded'
+
+          AND (
+            jm.status IN (
+              'applied',
+              'ignored'
+            )
+
+            OR (
+              jm.status IN (
+                'relevant',
+                'viewed'
+              )
+
+              AND j.unavailable_at IS NULL
+
+              AND COALESCE(
+                j.published_at,
+                j.created_at
+              ) >= NOW() - ($1::int * INTERVAL '1 day')
+
+              AND (
+                COALESCE(
+                  j.published_at,
+                  j.created_at
+                ) >= NOW() - ($2::int * INTERVAL '1 day')
+
+                OR j.last_seen_at >=
+                  NOW() - ($3::int * INTERVAL '1 day')
+              )
+            )
+          )
+      )
+
       SELECT
 
         COUNT(*) FILTER (
           WHERE
-            jm.status IN ('relevant', 'viewed')
-            AND jm.viewed_at IS NULL
+            status IN ('relevant', 'viewed')
+            AND viewed_at IS NULL
         )::int AS novas,
 
         COUNT(*) FILTER (
           WHERE
-            jm.status IN ('relevant', 'viewed')
-            AND jm.viewed_at IS NOT NULL
+            status IN ('relevant', 'viewed')
+            AND viewed_at IS NOT NULL
         )::int AS vistas,
 
         COUNT(*) FILTER (
-          WHERE jm.status = 'applied'
+          WHERE status = 'applied'
         )::int AS aplicadas,
 
         COUNT(*) FILTER (
-          WHERE jm.status = 'ignored'
+          WHERE status = 'ignored'
         )::int AS ignoradas,
 
         COUNT(*) FILTER (
           WHERE
-            jm.status IN ('relevant', 'viewed')
-            AND j.created_at::date =
-                CURRENT_DATE
+            status IN ('relevant', 'viewed')
+            AND job_created_at::date =
+              CURRENT_DATE
         )::int AS novas_hoje,
 
         COUNT(*) FILTER (
-          WHERE
-            jm.status <> 'discarded'
-            AND j.partial = TRUE
+          WHERE partial = TRUE
         )::int AS parciais,
 
-        COUNT(*) FILTER (
-          WHERE
-            jm.status <> 'discarded'
-        )::int AS total,
+        COUNT(*)::int AS total,
 
         COALESCE(
           ROUND(
-            AVG(jm.local_score)
-            FILTER (
-              WHERE
-                jm.status <> 'discarded'
-            )
+            AVG(local_score)
           ),
           0
         )::int AS pontuacao_media
 
-      FROM job_matches jm
-
-      INNER JOIN jobs j
-        ON j.id = jm.job_id
-    `)
+      FROM dashboard
+    `,
+    [maxAgeDays, requireConfirmationAfterDays, confirmationFreshnessDays]
+  )
 
   return result.rows[0]
 }

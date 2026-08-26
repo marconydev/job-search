@@ -4,8 +4,11 @@ import type { JobCollection } from "../types/collector.js"
 
 export type JobImportResult = {
   source: string
+
   found: number
+
   inserted: number
+
   duplicates: number
 }
 
@@ -14,20 +17,29 @@ export type JobImportResult = {
  *
  * O coletor cuida apenas de buscar e normalizar os dados. A partir daqui
  * o processo de persistência é o mesmo, independentemente da fonte.
+ *
+ * sourceKey é opcional porque nem toda coleta representa um board
+ * completo e identificável.
  */
 export async function importJobs(collection: JobCollection): Promise<JobImportResult> {
   let inserted = 0
+
   let duplicates = 0
 
   for (const job of collection.jobs) {
     try {
-      await createJob(job)
+      await createJob(job, collection.sourceKey)
+
       inserted++
     } catch (error) {
-      // Encontrar novamente uma vaga já salva é esperado nas coletas diárias.
-      // Outros erros continuam subindo para não esconder falhas reais.
+      /**
+       * Encontrar novamente uma vaga já salva é esperado nas coletas
+       * recorrentes. Outros erros continuam subindo para não esconder
+       * falhas reais.
+       */
       if (isDuplicateJobError(error)) {
         duplicates++
+
         continue
       }
 
@@ -37,8 +49,11 @@ export async function importJobs(collection: JobCollection): Promise<JobImportRe
 
   return {
     source: collection.source,
+
     found: collection.jobs.length,
+
     inserted,
+
     duplicates
   }
 }
