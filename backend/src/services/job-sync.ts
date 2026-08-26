@@ -8,10 +8,7 @@ import { analyzePendingJobs } from "./job-analysis.js"
 
 import { coletarFontesAtsAprendidas } from "./fontes-ats.js"
 
-import {
-  filtrarVagasComDiagnosticoComYield,
-  type DiagnosticoFiltragemVagas
-} from "./filtragem-vagas.js"
+import { filtrarVagasAderentesComYield } from "./filtragem-vagas.js"
 
 import { importJobs, type JobImportResult } from "./job-import.js"
 
@@ -34,7 +31,7 @@ type OpcoesSincronizacao = {
 }
 
 /**
- * Eu mantenho uma rotação conservadora para caber no ambiente gratuito.
+ * Rotação conservadora para o ambiente gratuito.
  */
 const LIMITE_FONTES_ATS_POR_EXECUCAO = 8
 
@@ -62,32 +59,6 @@ async function atualizarEtapa(opcoes: OpcoesSincronizacao, etapa: EtapaSincroniz
   await cederEventLoop()
 }
 
-function registrarDiagnosticoFonte(fonte: string, diagnostico: DiagnosticoFiltragemVagas) {
-  console.log(
-    [
-      `Funil fonte: ${fonte}`,
-      `recebidas=${diagnostico.recebidas}`,
-      `fora_janela=${diagnostico.foraDaJanela}`,
-      `localizacao=${diagnostico.localizacaoIncompativel}`,
-      `politica_brasil=${diagnostico.politicaBrasilIncompativel}`,
-      `matcher=${diagnostico.matcherAbaixoDoMinimo}`,
-      `score_0=${diagnostico.scoreZero}`,
-      `score_1_39=${diagnostico.score1a39}`,
-      `score_40_49=${diagnostico.score40a49}`,
-      `score_50_59=${diagnostico.score50a59}`,
-      `score_60_mais=${diagnostico.score60OuMais}`,
-      `aderentes=${diagnostico.aderentes}`
-    ].join(" | ")
-  )
-
-  for (const exemplo of diagnostico.exemplosQuaseAderentes) {
-    console.log(
-      `Quase aderente: ${fonte} | score=${exemplo.score} | ` +
-        `${exemplo.title} | ${exemplo.company} | ${exemplo.reason}`
-    )
-  }
-}
-
 async function coletarFontesDiretas(
   perfil: PerfilProfissional,
   limite: number
@@ -101,8 +72,11 @@ async function coletarFontesDiretas(
       const coleta = await coletor.collect(limite, perfil)
 
       /**
-       * Eu atualizo vagas existentes antes do filtro para corrigir dados da
-       * fonte mesmo quando a oportunidade deixa de ser aderente depois disso.
+       * Atualizo vagas existentes antes do filtro.
+       *
+       * Isso permite que uma oportunidade que antes parecia remota
+       * seja corrigida para presencial mesmo que, após a correção,
+       * deixe de passar pelo filtro atual.
        */
       const atualizacao = await refreshExistingJobs(coleta.jobs)
 
@@ -116,11 +90,7 @@ async function coletarFontesDiretas(
         )
       }
 
-      const filtragem = await filtrarVagasComDiagnosticoComYield(coleta.jobs, perfil)
-
-      registrarDiagnosticoFonte(coleta.source, filtragem.diagnostico)
-
-      const vagasAderentes = filtragem.vagasAderentes
+      const vagasAderentes = await filtrarVagasAderentesComYield(coleta.jobs, perfil)
 
       const importacao = await importJobs({
         source: coleta.source,
@@ -197,6 +167,9 @@ export async function syncJobs(
       : "Sincronização: Brave desativada. Usando fontes diretas, ATS aprendidos e cache."
   )
 
+  /**
+   * ETAPA 1
+   */
   await atualizarEtapa(opcoes, "fontes_diretas")
 
   const inicioFontes = agoraMs()
@@ -207,6 +180,9 @@ export async function syncJobs(
 
   await cederEventLoop()
 
+  /**
+   * ETAPA 2
+   */
   await atualizarEtapa(opcoes, "web")
 
   const inicioWeb = agoraMs()
@@ -223,6 +199,9 @@ export async function syncJobs(
 
   await cederEventLoop()
 
+  /**
+   * ETAPA 3
+   */
   await atualizarEtapa(opcoes, "ats")
 
   const inicioAts = agoraMs()
@@ -240,7 +219,9 @@ export async function syncJobs(
   await cederEventLoop()
 
   /**
-   * Eu analiso somente o que está pendente para a versão atual:
+   * ETAPA 4
+   *
+   * Analiso somente o que está pendente para a versão atual:
    *
    * - vagas novas;
    * - análises de versão antiga;
