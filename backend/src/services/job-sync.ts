@@ -8,7 +8,11 @@ import { analyzePendingJobs } from "./job-analysis.js"
 
 import { coletarFontesAtsAprendidas } from "./fontes-ats.js"
 
-import { filtrarVagasAderentesComYield } from "./filtragem-vagas.js"
+import {
+  diagnosticarFunilVagasComYield,
+  filtrarVagasAderentesComYield,
+  type DiagnosticoFunilVagas
+} from "./filtragem-vagas.js"
 
 import { importJobs, type JobImportResult } from "./job-import.js"
 
@@ -59,6 +63,33 @@ async function atualizarEtapa(opcoes: OpcoesSincronizacao, etapa: EtapaSincroniz
   await cederEventLoop()
 }
 
+function registrarDiagnosticoFonte(fonte: string, diagnostico: DiagnosticoFunilVagas) {
+  console.log(
+    [
+      `Funil fonte: ${fonte}`,
+      `recebidas=${diagnostico.recebidas}`,
+      `fora_janela=${diagnostico.foraDaJanela}`,
+      `localizacao=${diagnostico.localizacaoIncompativel}`,
+      `titulo_fora_foco=${diagnostico.tituloForaFoco}`,
+      `nao_remota_fora_jp=${diagnostico.naoRemotaForaJoaoPessoa}`,
+      `matcher=${diagnostico.matcherAbaixoDoMinimo}`,
+      `score_0=${diagnostico.scoreZero}`,
+      `score_1_39=${diagnostico.score1a39}`,
+      `score_40_49=${diagnostico.score40a49}`,
+      `score_50_59=${diagnostico.score50a59}`,
+      `aderentes=${diagnostico.aderentes}`,
+      `divergencias=${diagnostico.divergencias}`
+    ].join(" | ")
+  )
+
+  for (const exemplo of diagnostico.exemplosQuaseAderentes) {
+    console.log(
+      `Quase aderente: ${fonte} | score=${exemplo.score} | ` +
+        `${exemplo.title} | ${exemplo.company} | ${exemplo.reason}`
+    )
+  }
+}
+
 async function coletarFontesDiretas(
   perfil: PerfilProfissional,
   limite: number
@@ -90,6 +121,10 @@ async function coletarFontesDiretas(
         )
       }
 
+      /**
+       * Eu mantenho exatamente o filtro original como única fonte da lista
+       * que será importada.
+       */
       const vagasAderentes = await filtrarVagasAderentesComYield(coleta.jobs, perfil)
 
       const importacao = await importJobs({
@@ -116,6 +151,26 @@ async function coletarFontesDiretas(
           `tempo: ${formatarDuracao(inicioFonte)}s.`
         ].join(" ")
       )
+
+      /**
+       * Eu executo a observabilidade somente depois que filtro, importação,
+       * contadores e resultado da fonte já foram definidos. Uma falha aqui
+       * nunca transforma uma sincronização válida em falha.
+       */
+      try {
+        const diagnostico = await diagnosticarFunilVagasComYield(
+          coleta.jobs,
+          perfil,
+          vagasAderentes
+        )
+
+        registrarDiagnosticoFonte(coleta.source, diagnostico)
+      } catch (erroDiagnostico) {
+        const mensagem =
+          erroDiagnostico instanceof Error ? erroDiagnostico.message : "Erro desconhecido"
+
+        console.warn(`Diagnóstico da fonte ${coleta.source} não foi concluído: ${mensagem}`)
+      }
     } catch (erro) {
       const mensagem = erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta"
 

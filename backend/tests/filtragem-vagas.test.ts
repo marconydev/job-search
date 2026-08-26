@@ -2,9 +2,67 @@ import assert from "node:assert/strict"
 
 import test from "node:test"
 
-import { vagaEstaDentroDaJanelaTemporal } from "../src/services/filtragem-vagas.js"
+import {
+  diagnosticarFunilVagasComYield,
+  filtrarVagasAderentesComYield,
+  vagaEstaDentroDaJanelaTemporal
+} from "../src/services/filtragem-vagas.js"
+
+import type { NewJob } from "../src/types/job.js"
+
+import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
 
 const AGORA = new Date("2026-08-26T15:00:00.000Z")
+
+function criarPerfil(): PerfilProfissional {
+  return {
+    resumoProfissional: "",
+
+    cargosPrincipais: ["Analista de Suporte"],
+
+    cargosRelacionados: ["Analista de Sistemas"],
+
+    cargosDesvio: [],
+
+    competencias: [],
+
+    experiencias: [],
+
+    formacoes: [],
+
+    cursos: [],
+
+    localizacoesAceitas: ["Brasil"],
+
+    titulosExcluidos: []
+  }
+}
+
+function criarVaga(alteracoes: Partial<NewJob> = {}): NewJob {
+  return {
+    source: "teste",
+
+    externalId: "vaga-1",
+
+    company: "Empresa Teste",
+
+    title: "Analista de Suporte",
+
+    description: "Atendimento técnico e suporte a usuários.",
+
+    location: "Brasil",
+
+    remote: true,
+
+    url: "https://example.com/vaga",
+
+    publishedAt: null,
+
+    partial: false,
+
+    ...alteracoes
+  }
+}
 
 test("aceita vaga recente com data de publicacao conhecida", () => {
   assert.equal(
@@ -64,4 +122,97 @@ test("nao descarta vaga por uma data invalida fornecida pela origem", () => {
     ),
     true
   )
+})
+
+test("diagnostico observa o filtro original sem alterar as vagas aderentes", async () => {
+  const vagas: NewJob[] = [
+    criarVaga({
+      externalId: "antiga",
+
+      publishedAt: "2025-01-01T15:00:00.000Z"
+    }),
+
+    criarVaga({
+      externalId: "exterior",
+
+      location: "Lisboa, Portugal"
+    }),
+
+    criarVaga({
+      externalId: "titulo-fora",
+
+      title: "Technical Support Specialist"
+    }),
+
+    criarVaga({
+      externalId: "presencial-fora",
+
+      location: "São Paulo, SP",
+
+      remote: false
+    }),
+
+    criarVaga({
+      externalId: "quase",
+
+      title: "Analista de Sistemas",
+
+      location: "Remote",
+
+      remote: true
+    }),
+
+    criarVaga({
+      externalId: "aderente"
+    })
+  ]
+
+  const aderentes = await filtrarVagasAderentesComYield(vagas, criarPerfil())
+
+  assert.deepEqual(
+    aderentes.map(vaga => vaga.externalId),
+    ["aderente"]
+  )
+
+  const diagnostico = await diagnosticarFunilVagasComYield(
+    vagas,
+    criarPerfil(),
+    aderentes,
+    60,
+    25,
+    AGORA
+  )
+
+  assert.equal(diagnostico.recebidas, 6)
+
+  assert.equal(diagnostico.foraDaJanela, 1)
+
+  assert.equal(diagnostico.localizacaoIncompativel, 1)
+
+  assert.equal(diagnostico.tituloForaFoco, 1)
+
+  assert.equal(diagnostico.naoRemotaForaJoaoPessoa, 1)
+
+  assert.equal(diagnostico.matcherAbaixoDoMinimo, 1)
+
+  assert.equal(diagnostico.score50a59, 1)
+
+  assert.equal(diagnostico.aderentes, 1)
+
+  assert.equal(diagnostico.divergencias, 0)
+
+  assert.equal(diagnostico.exemplosQuaseAderentes.length, 1)
+
+  assert.equal(diagnostico.exemplosQuaseAderentes[0]?.title, "Analista de Sistemas")
+
+  const totalDiagnosticado =
+    diagnostico.foraDaJanela +
+    diagnostico.localizacaoIncompativel +
+    diagnostico.tituloForaFoco +
+    diagnostico.naoRemotaForaJoaoPessoa +
+    diagnostico.matcherAbaixoDoMinimo +
+    diagnostico.aderentes +
+    diagnostico.divergencias
+
+  assert.equal(totalDiagnosticado, diagnostico.recebidas)
 })
