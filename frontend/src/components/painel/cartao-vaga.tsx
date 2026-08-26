@@ -66,6 +66,30 @@ function formatarDataHoraCurta(valor: string | null) {
   }).format(data)
 }
 
+/**
+ * Nunca apresento created_at como se fosse a data de publicação.
+ *
+ * Quando a fonte fornece published_at:
+ *   "Publicada em 20 ago."
+ *
+ * Quando não fornece:
+ *   "Encontrada em 20 ago."
+ *
+ * Isso é especialmente importante para fontes como Lever, cuja API
+ * pública não informa uma data confiável de publicação.
+ */
+function obterReferenciaTemporal(vaga: VagaPainel) {
+  const publicadaEm = formatarDataCurta(vaga.published_at)
+
+  if (publicadaEm) {
+    return `Publicada em ${publicadaEm}`
+  }
+
+  const encontradaEm = formatarDataCurta(vaga.created_at)
+
+  return encontradaEm ? `Encontrada em ${encontradaEm}` : null
+}
+
 function obterAcompanhamento(vaga: VagaPainel) {
   if (vaga.status === "applied") {
     return {
@@ -111,7 +135,7 @@ function IconeEstado({ estado }: { estado: EstadoVisualVaga }) {
 }
 
 export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
-  const dataPublicacao = formatarDataCurta(vaga.published_at ?? vaga.created_at)
+  const referenciaTemporal = obterReferenciaTemporal(vaga)
 
   const acompanhamento = obterAcompanhamento(vaga)
 
@@ -193,11 +217,11 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
                 </span>
               )}
 
-              {dataPublicacao && (
+              {referenciaTemporal && (
                 <span className="inline-flex items-center gap-1.5">
                   <Clock3 size={13} />
 
-                  {dataPublicacao}
+                  {referenciaTemporal}
                 </span>
               )}
             </div>
