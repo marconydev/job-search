@@ -6,9 +6,9 @@ import { createJob, isDuplicateJobError, listJobs } from "../repositories/job-re
 
 import {
   getJobDashboardSummary,
-  isUserJobStatus,
   listDashboardJobMatches,
   listRelevantJobMatches,
+  markJobMatchViewed,
   updateJobMatchStatus
 } from "../repositories/job-match-repository.js"
 
@@ -24,6 +24,8 @@ import { obterPerfilProfissional } from "../services/perfil-profissional-service
 
 import { iniciarSincronizacaoAssincrona } from "../services/sincronizacao-assincrona.js"
 
+import { isUserJobStatus } from "../services/status-vaga.js"
+
 import type { NewJob } from "../types/job.js"
 
 const jobsRouter = Router()
@@ -36,6 +38,16 @@ function getImportLimit(value: unknown) {
   }
 
   return 100
+}
+
+function getJobId(value: string) {
+  const jobId = Number(value)
+
+  if (!Number.isInteger(jobId) || jobId <= 0) {
+    return null
+  }
+
+  return jobId
 }
 
 jobsRouter.get("/", async (_request, response) => {
@@ -99,16 +111,75 @@ jobsRouter.get("/relevant", async (request, response) => {
   }
 })
 
-jobsRouter.patch("/:id/status", async (request, response) => {
-  const jobId = Number(request.params.id)
+/**
+ * Visualização é um evento de acompanhamento e não um status.
+ *
+ * A vaga continua em aberto e somente viewed_at é preenchido.
+ */
+jobsRouter.patch("/:id/view", async (request, response) => {
+  const jobId = getJobId(request.params.id)
 
-  if (!Number.isInteger(jobId) || jobId <= 0) {
+  if (!jobId) {
+    return response.status(400).json({
+      message: "Identificador da vaga inválido"
+    })
+  }
+
+  try {
+    const atualizado = await markJobMatchViewed(jobId)
+
+    if (!atualizado) {
+      return response.status(404).json({
+        message: "Vaga analisada não encontrada"
+      })
+    }
+
+    return response.json(atualizado)
+  } catch (error) {
+    console.error("Erro ao registrar visualização da vaga:", error)
+
+    return response.status(500).json({
+      message: "Não foi possível registrar a visualização da vaga"
+    })
+  }
+})
+
+jobsRouter.patch("/:id/status", async (request, response) => {
+  const jobId = getJobId(request.params.id)
+
+  if (!jobId) {
     return response.status(400).json({
       message: "Identificador da vaga inválido"
     })
   }
 
   const status = request.body?.status
+
+  /**
+   * Compatibilidade durante o deploy:
+   * versões anteriores do frontend enviavam status="viewed" ao abrir a
+   * publicação. Eu converto essa chamada antiga para o novo evento sem
+   * alterar o estado operacional da oportunidade.
+   */
+  if (status === "viewed") {
+    try {
+      const atualizado = await markJobMatchViewed(jobId)
+
+      if (!atualizado) {
+        return response.status(404).json({
+          message: "Vaga analisada não encontrada"
+        })
+      }
+
+      return response.json(atualizado)
+    } catch (error) {
+      console.error("Erro ao registrar visualização legada da vaga:", error)
+
+      return response.status(500).json({
+        message: "Não foi possível registrar a visualização da vaga"
+      })
+    }
+  }
 
   if (!isUserJobStatus(status)) {
     return response.status(400).json({

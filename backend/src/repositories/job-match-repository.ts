@@ -2,16 +2,13 @@ import { MATCHER_VERSION } from "../config/matcher.js"
 
 import { db } from "../database/connection.js"
 
-import type { JobMatchStatus, NewJobMatch, UserJobStatus } from "../types/job.js"
+import type { NewJobMatch, UserJobStatus } from "../types/job.js"
 
 /**
  * Salvo ou atualizo o resultado produzido pelo matcher.
  *
  * Preservo decisões manuais definitivas como aplicada e ignorada.
- *
- * Uma vaga apenas visualizada continua como "viewed" enquanto
- * permanecer relevante, mas pode ser descartada posteriormente se
- * uma nova análise identificar incompatibilidade.
+ * Visualização não interfere no status e permanece registrada em viewed_at.
  *
  * matcher_version registra qual conjunto de regras produziu a análise.
  */
@@ -66,13 +63,6 @@ export async function saveJobMatch(match: NewJobMatch) {
                   job_matches.status_updated_at
 
               WHEN
-                job_matches.status = 'viewed'
-                AND EXCLUDED.status = 'relevant'
-
-                THEN
-                  job_matches.status_updated_at
-
-              WHEN
                 job_matches.status
                   IS DISTINCT FROM
                 EXCLUDED.status
@@ -93,12 +83,6 @@ export async function saveJobMatch(match: NewJobMatch) {
               )
                 THEN
                   job_matches.status
-
-              WHEN
-                job_matches.status = 'viewed'
-                AND EXCLUDED.status = 'relevant'
-
-                THEN 'viewed'
 
               ELSE
                 EXCLUDED.status
@@ -126,7 +110,11 @@ export async function saveJobMatch(match: NewJobMatch) {
 }
 
 /**
- * Continuo considerando uma vaga vista como oportunidade relevante.
+ * Retorno oportunidades ainda em aberto.
+ *
+ * O suporte a status='viewed' aqui é intencional durante a transição da
+ * migration 009. Depois da migration não existirão novos registros assim,
+ * mas manter a leitura compatível torna o deploy seguro antes do backfill.
  */
 export async function listRelevantJobMatches(minScore: number) {
   const result = await db.query(
@@ -148,7 +136,13 @@ export async function listRelevantJobMatches(minScore: number) {
           jm.local_score,
           jm.matched_skills,
           jm.reasons,
-          jm.status,
+
+          CASE
+            WHEN jm.status = 'viewed'
+              THEN 'relevant'
+            ELSE jm.status
+          END AS status,
+
           jm.matcher_version,
           jm.analyzed_at,
           jm.status_updated_at,
@@ -170,12 +164,9 @@ export async function listRelevantJobMatches(minScore: number) {
 
         ORDER BY
           CASE
-
-            WHEN jm.status = 'relevant'
+            WHEN jm.viewed_at IS NULL
               THEN 0
-
             ELSE 1
-
           END,
 
           jm.local_score DESC,
@@ -193,6 +184,9 @@ export async function listRelevantJobMatches(minScore: number) {
 
 /**
  * Esta é a consulta principal utilizada pelo frontend.
+ *
+ * Registros legados com status='viewed' são apresentados como relevant;
+ * viewed_at é a fonte de verdade para saber se a vaga já foi aberta.
  */
 export async function listDashboardJobMatches() {
   const result = await db.query(`
@@ -213,7 +207,13 @@ export async function listDashboardJobMatches() {
         jm.local_score,
         jm.matched_skills,
         jm.reasons,
-        jm.status,
+
+        CASE
+          WHEN jm.status = 'viewed'
+            THEN 'relevant'
+          ELSE jm.status
+        END AS status,
+
         jm.matcher_version,
         jm.analyzed_at,
         jm.status_updated_at,
@@ -229,22 +229,22 @@ export async function listDashboardJobMatches() {
         jm.status <> 'discarded'
 
       ORDER BY
-        CASE jm.status
-
-          WHEN 'relevant'
+        CASE
+          WHEN
+            jm.status IN ('relevant', 'viewed')
+            AND jm.viewed_at IS NULL
             THEN 0
 
-          WHEN 'viewed'
+          WHEN jm.status IN ('relevant', 'viewed')
             THEN 1
 
-          WHEN 'applied'
+          WHEN jm.status = 'applied'
             THEN 2
 
-          WHEN 'ignored'
+          WHEN jm.status = 'ignored'
             THEN 3
 
           ELSE 4
-
         END,
 
         jm.local_score DESC,
@@ -257,17 +257,24 @@ export async function listDashboardJobMatches() {
 
 /**
  * Calculo os indicadores apresentados nos cards superiores do dashboard.
+ *
+ * Uma oportunidade vista continua em aberto. Por isso "novas" e "vistas"
+ * são duas subdivisões do status relevant, diferenciadas por viewed_at.
  */
 export async function getJobDashboardSummary() {
   const result = await db.query(`
       SELECT
 
         COUNT(*) FILTER (
-          WHERE jm.status = 'relevant'
+          WHERE
+            jm.status IN ('relevant', 'viewed')
+            AND jm.viewed_at IS NULL
         )::int AS novas,
 
         COUNT(*) FILTER (
-          WHERE jm.status = 'viewed'
+          WHERE
+            jm.status IN ('relevant', 'viewed')
+            AND jm.viewed_at IS NOT NULL
         )::int AS vistas,
 
         COUNT(*) FILTER (
@@ -280,7 +287,7 @@ export async function getJobDashboardSummary() {
 
         COUNT(*) FILTER (
           WHERE
-            jm.status = 'relevant'
+            jm.status IN ('relevant', 'viewed')
             AND j.created_at::date =
                 CURRENT_DATE
         )::int AS novas_hoje,
@@ -317,7 +324,11 @@ export async function getJobDashboardSummary() {
 }
 
 /**
- * Atualizo uma decisão manual do usuário.
+ * Atualizo somente decisões que realmente mudam o estado operacional.
+ *
+ * A operação é idempotente: repetir o mesmo status não altera a data da
+ * última mudança. Datas históricas de visualização e candidatura também
+ * são preservadas.
  */
 export async function updateJobMatchStatus(jobId: number, status: UserJobStatus) {
   const result = await db.query(
@@ -329,34 +340,20 @@ export async function updateJobMatchStatus(jobId: number, status: UserJobStatus)
             $2::varchar,
 
           status_updated_at =
-            NOW(),
-
-          viewed_at =
             CASE
-
-              WHEN $2::varchar = 'viewed'
-                THEN COALESCE(
-                  viewed_at,
-                  NOW()
-                )
-
-              ELSE
-                viewed_at
-
+              WHEN status IS DISTINCT FROM $2::varchar
+                THEN NOW()
+              ELSE status_updated_at
             END,
 
           applied_at =
             CASE
-
               WHEN $2::varchar = 'applied'
                 THEN COALESCE(
                   applied_at,
                   NOW()
                 )
-
-              ELSE
-                applied_at
-
+              ELSE applied_at
             END
 
         WHERE job_id = $1
@@ -382,11 +379,49 @@ export async function updateJobMatchStatus(jobId: number, status: UserJobStatus)
 }
 
 /**
- * Uso esta validação também na rota para não aceitar qualquer texto
- * recebido pelo frontend.
+ * Registro a primeira abertura da oportunidade sem alterar seu status.
+ *
+ * COALESCE torna a operação idempotente: abrir novamente não sobrescreve
+ * a data original em que a vaga foi vista.
  */
-export function isUserJobStatus(value: unknown): value is UserJobStatus {
-  const statuses: JobMatchStatus[] = ["relevant", "viewed", "applied", "ignored"]
+export async function markJobMatchViewed(jobId: number) {
+  const result = await db.query(
+    `
+        UPDATE job_matches
 
-  return typeof value === "string" && statuses.includes(value as JobMatchStatus)
+        SET
+          viewed_at =
+            COALESCE(
+              viewed_at,
+              NOW()
+            )
+
+        WHERE
+          job_id = $1
+          AND status <> 'discarded'
+
+        RETURNING
+          id,
+          job_id,
+          local_score,
+          matched_skills,
+          reasons,
+
+          CASE
+            WHEN status = 'viewed'
+              THEN 'relevant'
+            ELSE status
+          END AS status,
+
+          matcher_version,
+          created_at,
+          analyzed_at,
+          status_updated_at,
+          viewed_at,
+          applied_at
+      `,
+    [jobId]
+  )
+
+  return result.rows[0] ?? null
 }

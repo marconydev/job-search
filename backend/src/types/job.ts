@@ -51,15 +51,20 @@ export type StoredJob = {
   created_at: string
 }
 
-export type JobMatchStatus = "relevant" | "viewed" | "discarded" | "applied" | "ignored"
+/**
+ * Status representa o estado operacional da oportunidade.
+ *
+ * "Vista" não é mais um status: a visualização é registrada em
+ * viewed_at sem retirar a vaga da fila de oportunidades em aberto.
+ */
+export type JobMatchStatus = "relevant" | "discarded" | "applied" | "ignored"
 
 /**
- * Estes são os estados que posso escolher manualmente pelo dashboard.
+ * Estados que o usuário pode escolher manualmente pelo dashboard.
  *
- * Não exponho "discarded" como ação normal porque ele é utilizado
- * internamente pelo matcher.
+ * "discarded" continua reservado ao matcher.
  */
-export type UserJobStatus = "relevant" | "viewed" | "applied" | "ignored"
+export type UserJobStatus = "relevant" | "applied" | "ignored"
 
 export type JobMatch = {
   job: StoredJob
