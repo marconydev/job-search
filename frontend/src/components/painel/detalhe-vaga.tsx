@@ -16,9 +16,11 @@ import {
   X
 } from "lucide-react"
 
-import type { StatusVaga, VagaPainel } from "@/types/painel"
-
 import { formatarDescricaoVaga } from "@/lib/formatar-descricao-vaga"
+
+import { obterEstadoVisualVaga, obterRotuloEstadoVaga } from "@/lib/estado-vaga"
+
+import type { StatusVaga, VagaPainel } from "@/types/painel"
 
 type Propriedades = {
   vaga: VagaPainel
@@ -40,22 +42,6 @@ type EtapaAcompanhamento = {
   concluida: boolean
 
   tipo: "encontrada" | "vista" | "aplicada"
-}
-
-function obterRotuloStatus(status: StatusVaga) {
-  switch (status) {
-    case "relevant":
-      return "Nova"
-
-    case "viewed":
-      return "Vista"
-
-    case "applied":
-      return "Aplicada"
-
-    case "ignored":
-      return "Ignorada"
-  }
 }
 
 function obterNomeFonte(fonte: string) {
@@ -161,9 +147,13 @@ function IconeEtapa({ etapa }: { etapa: EtapaAcompanhamento }) {
 
 export function DetalheVaga({
   vaga,
+
   processando,
+
   aoFechar,
+
   aoAbrir,
+
   aoAlterarStatus
 }: Propriedades) {
   const etapas = criarEtapasAcompanhamento(vaga)
@@ -172,7 +162,7 @@ export function DetalheVaga({
 
   const oportunidadeIgnorada = vaga.status === "ignored"
 
-  const statusRetorno = vaga.viewed_at ? "viewed" : "relevant"
+  const estado = obterEstadoVisualVaga(vaga)
 
   const descricaoFormatada = formatarDescricaoVaga(vaga.description)
 
@@ -193,16 +183,17 @@ export function DetalheVaga({
               <span
                 className={[
                   "rounded-full px-2.5 py-1 text-xs font-semibold",
-                  candidaturaAplicada
+
+                  estado === "aplicada"
                     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                    : oportunidadeIgnorada
+                    : estado === "ignorada"
                       ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                      : vaga.status === "viewed"
+                      : estado === "vista"
                         ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
                         : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
                 ].join(" ")}
               >
-                {obterRotuloStatus(vaga.status)}
+                {obterRotuloEstadoVaga(vaga)}
               </span>
 
               <span className="text-xs font-medium text-slate-500">
@@ -238,6 +229,7 @@ export function DetalheVaga({
             <div
               className={[
                 "flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl",
+
                 vaga.local_score >= 85
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                   : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
@@ -295,6 +287,7 @@ export function DetalheVaga({
                   key={etapa.titulo}
                   className={[
                     "flex items-center gap-3 px-4 py-3",
+
                     indice < etapas.length - 1
                       ? "border-b border-slate-100 dark:border-slate-900"
                       : ""
@@ -303,6 +296,7 @@ export function DetalheVaga({
                   <div
                     className={[
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+
                       etapa.concluida
                         ? etapa.tipo === "aplicada"
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
@@ -317,6 +311,7 @@ export function DetalheVaga({
                     <div
                       className={[
                         "text-xs font-semibold",
+
                         etapa.concluida
                           ? "text-slate-800 dark:text-slate-200"
                           : "text-slate-400 dark:text-slate-600"
@@ -453,7 +448,7 @@ export function DetalheVaga({
               <button
                 type="button"
                 disabled={processando}
-                onClick={() => aoAlterarStatus(statusRetorno)}
+                onClick={() => aoAlterarStatus("relevant")}
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900"
               >
                 {processando ? (

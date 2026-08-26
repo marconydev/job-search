@@ -28,6 +28,8 @@ import { ControleSincronizacao } from "./controle-sincronizacao"
 
 import { DetalheVaga } from "./detalhe-vaga"
 
+import { calcularResumoPainel, vagaEstaEmAberto, vagaPertenceAoFiltro } from "@/lib/estado-vaga"
+
 import type {
   DadosPainel,
   FiltroModalidade,
@@ -41,6 +43,14 @@ type Propriedades = {
   dadosIniciais: DadosPainel
 }
 
+type AlteracaoLocalVaga = Partial<
+  Pick<VagaPainel, "status" | "status_updated_at" | "viewed_at" | "applied_at">
+>
+
+type RetornoAtualizacaoVaga = AlteracaoLocalVaga & {
+  mensagem?: string
+}
+
 const QUANTIDADE_POR_LOTE = 12
 
 function normalizarTexto(texto: string) {
@@ -50,106 +60,26 @@ function normalizarTexto(texto: string) {
     .toLowerCase()
 }
 
-function vagaEhDeHoje(vaga: VagaPainel) {
-  const data = new Date(vaga.created_at)
+function extrairAlteracaoLocal(retorno: RetornoAtualizacaoVaga): AlteracaoLocalVaga {
+  const alteracao: AlteracaoLocalVaga = {}
 
-  const hoje = new Date()
-
-  return (
-    data.getFullYear() === hoje.getFullYear() &&
-    data.getMonth() === hoje.getMonth() &&
-    data.getDate() === hoje.getDate()
-  )
-}
-
-/**
- * Em aberto significa que a oportunidade ainda exige alguma decisão.
- *
- * Uma vaga nova ou já visualizada continua nesta fila.
- * Aplicadas e ignoradas são consideradas concluídas e ficam no histórico.
- */
-function statusPertenceAoFiltro(status: StatusVaga, filtro: FiltroStatus) {
-  if (filtro === "abertas") {
-    return status === "relevant" || status === "viewed"
+  if (retorno.status !== undefined) {
+    alteracao.status = retorno.status
   }
 
-  return status === filtro
-}
-
-/**
- * Eu recalculo os indicadores quando existe uma alteração local de
- * status que ainda não foi incorporada aos dados recebidos do servidor.
- */
-function atualizarResumoLocal(
-  resumoAtual: DadosPainel["resumo"],
-
-  vagaAnterior: VagaPainel,
-
-  novoStatus: StatusVaga
-) {
-  if (vagaAnterior.status === novoStatus) {
-    return resumoAtual
+  if (retorno.status_updated_at !== undefined) {
+    alteracao.status_updated_at = retorno.status_updated_at
   }
 
-  const resumo = {
-    ...resumoAtual
+  if (retorno.viewed_at !== undefined) {
+    alteracao.viewed_at = retorno.viewed_at
   }
 
-  function reduzir(status: StatusVaga) {
-    switch (status) {
-      case "relevant":
-        resumo.novas = Math.max(0, resumo.novas - 1)
-        break
-
-      case "viewed":
-        resumo.vistas = Math.max(0, resumo.vistas - 1)
-        break
-
-      case "applied":
-        resumo.aplicadas = Math.max(0, resumo.aplicadas - 1)
-        break
-
-      case "ignored":
-        resumo.ignoradas = Math.max(0, resumo.ignoradas - 1)
-        break
-    }
+  if (retorno.applied_at !== undefined) {
+    alteracao.applied_at = retorno.applied_at
   }
 
-  function aumentar(status: StatusVaga) {
-    switch (status) {
-      case "relevant":
-        resumo.novas++
-        break
-
-      case "viewed":
-        resumo.vistas++
-        break
-
-      case "applied":
-        resumo.aplicadas++
-        break
-
-      case "ignored":
-        resumo.ignoradas++
-        break
-    }
-  }
-
-  reduzir(vagaAnterior.status)
-
-  aumentar(novoStatus)
-
-  if (vagaEhDeHoje(vagaAnterior)) {
-    if (vagaAnterior.status === "relevant" && novoStatus !== "relevant") {
-      resumo.novas_hoje = Math.max(0, resumo.novas_hoje - 1)
-    }
-
-    if (vagaAnterior.status !== "relevant" && novoStatus === "relevant") {
-      resumo.novas_hoje++
-    }
-  }
-
-  return resumo
+  return alteracao
 }
 
 export function PainelVagas({ dadosIniciais }: Propriedades) {
@@ -158,30 +88,21 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   const [atualizandoPagina, iniciarAtualizacao] = useTransition()
 
   /**
-   * Eu armazeno somente mudanças feitas localmente.
+   * Guardo somente campos que mudaram depois da última carga do servidor.
    *
-   * Os dados oficiais continuam vindo de dadosIniciais.
+   * A resposta da API é a fonte do override; não calculo datas ou estados
+   * manualmente no navegador.
    */
-  const [statusLocais, setStatusLocais] = useState<Record<number, StatusVaga>>({})
+  const [alteracoesLocais, setAlteracoesLocais] = useState<Record<number, AlteracaoLocalVaga>>({})
 
-  /**
-   * O painel começa selecionando a primeira oportunidade ainda em aberto.
-   *
-   * Dessa forma uma vaga aplicada ou ignorada anteriormente nunca aparece
-   * selecionada por padrão na tela inicial.
-   */
   const [vagaSelecionadaId, setVagaSelecionadaId] = useState<number | null>(
-    dadosIniciais.vagas.find(vaga => vaga.status === "relevant" || vaga.status === "viewed")?.id ??
-      null
+    dadosIniciais.vagas.find(vaga => vagaEstaEmAberto(vaga))?.id ?? null
   )
 
   const [busca, setBusca] = useState("")
 
   const buscaAdiada = useDeferredValue(busca)
 
-  /**
-   * A visualização padrão agora é a caixa de oportunidades em aberto.
-   */
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("abertas")
 
   const [filtroModalidade, setFiltroModalidade] = useState<FiltroModalidade>("todas")
@@ -199,51 +120,29 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   const [limiteVisivel, setLimiteVisivel] = useState(QUANTIDADE_POR_LOTE)
 
   /**
-   * Eu combino os dados recebidos do servidor com alterações locais
-   * de status que ainda não apareceram na próxima resposta do backend.
+   * O resumo é derivado das próprias vagas exibidas.
+   *
+   * Isso elimina a antiga manutenção manual de +1/-1 nos contadores e
+   * mantém cards, filtros e lista usando exatamente a mesma fonte de dados.
    */
   const dados = useMemo(() => {
-    const vagas = dadosIniciais.vagas.map(vaga => {
-      const statusLocal = statusLocais[vaga.id]
+    const vagas = dadosIniciais.vagas.map(vaga => ({
+      ...vaga,
 
-      if (!statusLocal || statusLocal === vaga.status) {
-        return vaga
-      }
-
-      return {
-        ...vaga,
-
-        status: statusLocal
-      }
-    })
-
-    const resumo = vagas.reduce(
-      (resumoAtual, vagaAtual, indice) => {
-        const vagaOriginal = dadosIniciais.vagas[indice]
-
-        if (vagaAtual.status === vagaOriginal.status) {
-          return resumoAtual
-        }
-
-        return atualizarResumoLocal(resumoAtual, vagaOriginal, vagaAtual.status)
-      },
-      {
-        ...dadosIniciais.resumo
-      }
-    )
+      ...alteracoesLocais[vaga.id]
+    }))
 
     return {
       ...dadosIniciais,
 
-      resumo,
+      total: vagas.length,
+
+      resumo: calcularResumoPainel(vagas),
 
       vagas
     }
-  }, [dadosIniciais, statusLocais])
+  }, [alteracoesLocais, dadosIniciais])
 
-  /**
-   * A mensagem desaparece alguns segundos depois.
-   */
   useEffect(() => {
     if (!mensagem) {
       return
@@ -265,7 +164,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   )
 
   const quantidadeNoStatusSelecionado = useMemo(
-    () => dados.vagas.filter(vaga => statusPertenceAoFiltro(vaga.status, filtroStatus)).length,
+    () => dados.vagas.filter(vaga => vagaPertenceAoFiltro(vaga, filtroStatus)).length,
     [dados.vagas, filtroStatus]
   )
 
@@ -277,7 +176,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
         return false
       }
 
-      if (!statusPertenceAoFiltro(vaga.status, filtroStatus)) {
+      if (!vagaPertenceAoFiltro(vaga, filtroStatus)) {
         return false
       }
 
@@ -345,6 +244,20 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
 
   const quantidadeAbertas = dados.resumo.novas + dados.resumo.vistas
 
+  function registrarAlteracaoLocal(vagaId: number, retorno: RetornoAtualizacaoVaga) {
+    const alteracao = extrairAlteracaoLocal(retorno)
+
+    setAlteracoesLocais(atuais => ({
+      ...atuais,
+
+      [vagaId]: {
+        ...atuais[vagaId],
+
+        ...alteracao
+      }
+    }))
+  }
+
   function alterarBusca(valor: string) {
     setBusca(valor)
 
@@ -352,11 +265,6 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   }
 
   function alterarFiltroStatus(valor: FiltroStatus) {
-    /**
-     * O histórico deve mostrar todas as vagas, independentemente do score.
-     *
-     * Nas filas que ainda exigem análise, preservo o corte mínimo de 60%.
-     */
     const novoScoreMinimo = valor === "applied" || valor === "ignored" ? 0 : 60
 
     setFiltroStatus(valor)
@@ -365,12 +273,8 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
 
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
 
-    /**
-     * Ao trocar de área eu já seleciono uma oportunidade compatível com
-     * o novo status.
-     */
     const primeira = dados.vagas.find(
-      vaga => vaga.local_score >= novoScoreMinimo && statusPertenceAoFiltro(vaga.status, valor)
+      vaga => vaga.local_score >= novoScoreMinimo && vagaPertenceAoFiltro(vaga, valor)
     )
 
     setVagaSelecionadaId(primeira?.id ?? null)
@@ -401,12 +305,8 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
   }
 
   /**
-   * Quando uma vaga deixa a área atualmente exibida eu seleciono a
-   * próxima oportunidade da lista.
-   *
-   * Isso é especialmente importante ao marcar como Aplicada ou Ignorada,
-   * pois quero continuar trabalhando na fila sem precisar clicar
-   * manualmente em outra vaga.
+   * Aplicar ou ignorar encerra a oportunidade na fila atual. Nesse caso
+   * seleciono outra vaga para manter o fluxo de triagem contínuo.
    */
   function selecionarProximaVaga(vagaAtual: VagaPainel) {
     const indiceAtual = vagasFiltradas.findIndex(vaga => vaga.id === vagaAtual.id)
@@ -444,39 +344,31 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
         })
       })
 
-      const retorno = await resposta.json()
+      const retorno = (await resposta.json()) as RetornoAtualizacaoVaga
 
       if (!resposta.ok) {
         throw new Error(retorno.mensagem ?? "Não foi possível atualizar a vaga.")
       }
 
-      /**
-       * Antes de atualizar o estado eu verifico se o novo status continua
-       * pertencendo à área que está sendo exibida.
-       */
-      const continuaVisivel = statusPertenceAoFiltro(novoStatus, filtroStatus)
+      const vagaAtualizada: VagaPainel = {
+        ...vaga,
 
-      if (!continuaVisivel) {
+        ...extrairAlteracaoLocal(retorno)
+      }
+
+      if (!vagaPertenceAoFiltro(vagaAtualizada, filtroStatus)) {
         selecionarProximaVaga(vaga)
       }
 
-      setStatusLocais(atuais => ({
-        ...atuais,
-
-        [vaga.id]: novoStatus
-      }))
+      registrarAlteracaoLocal(vaga.id, retorno)
 
       if (novoStatus === "applied") {
         setMensagem("Candidatura registrada. A oportunidade foi movida para Aplicadas.")
       } else if (novoStatus === "ignored") {
         setMensagem("Oportunidade movida para Ignoradas.")
-      } else if (novoStatus === "relevant") {
+      } else {
         setMensagem("Oportunidade reaberta e devolvida para Em aberto.")
       }
-
-      iniciarAtualizacao(() => {
-        router.refresh()
-      })
     } catch (erro) {
       setMensagem(
         erro instanceof Error ? erro.message : "Não foi possível atualizar a oportunidade."
@@ -486,22 +378,43 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     }
   }
 
-  function registrarAbertura(vaga: VagaPainel) {
-    if (vaga.status !== "relevant") {
+  /**
+   * Abrir a publicação registra somente viewed_at.
+   *
+   * A oportunidade continua status=relevant e, portanto, permanece em
+   * Em aberto até ser aplicada ou ignorada.
+   */
+  async function registrarAbertura(vaga: VagaPainel) {
+    if (vaga.viewed_at) {
       return
     }
 
-    void alterarStatus(vaga, "viewed")
+    try {
+      const resposta = await fetch(`/api/vagas/${vaga.id}/view`, {
+        method: "PATCH"
+      })
+
+      const retorno = (await resposta.json()) as RetornoAtualizacaoVaga
+
+      if (!resposta.ok) {
+        throw new Error(retorno.mensagem ?? "Não foi possível registrar a visualização.")
+      }
+
+      registrarAlteracaoLocal(vaga.id, retorno)
+    } catch (erro) {
+      setMensagem(
+        erro instanceof Error
+          ? erro.message
+          : "A vaga foi aberta, mas não foi possível registrar a visualização."
+      )
+    }
   }
 
   /**
-   * Este botão atualiza somente os dados existentes no banco.
-   *
-   * Eu removo os overrides locais antes da leitura para que a próxima
-   * resposta seja exibida exatamente como estiver no PostgreSQL.
+   * Uma atualização explícita descarta os overrides e relê o PostgreSQL.
    */
   function atualizarDados() {
-    setStatusLocais({})
+    setAlteracoesLocais({})
 
     iniciarAtualizacao(() => {
       router.refresh()
@@ -524,7 +437,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
 
     const primeiraAberta = dados.vagas.find(
-      vaga => vaga.local_score >= 60 && statusPertenceAoFiltro(vaga.status, "abertas")
+      vaga => vaga.local_score >= 60 && vagaPertenceAoFiltro(vaga, "abertas")
     )
 
     setVagaSelecionadaId(primeiraAberta?.id ?? null)
@@ -606,6 +519,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
         onClick={() => alterarFiltroStatus(item.status)}
         className={[
           "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+
           ativo
             ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
             : "text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
@@ -985,7 +899,7 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
                   vaga={vagaSelecionada}
                   processando={idProcessando === vagaSelecionada.id}
                   aoFechar={() => setVagaSelecionadaId(null)}
-                  aoAbrir={() => registrarAbertura(vagaSelecionada)}
+                  aoAbrir={() => void registrarAbertura(vagaSelecionada)}
                   aoAlterarStatus={status => alterarStatus(vagaSelecionada, status)}
                 />
               ) : (

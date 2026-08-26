@@ -10,7 +10,13 @@ import {
   Sparkles
 } from "lucide-react"
 
-import type { StatusVaga, VagaPainel } from "@/types/painel"
+import {
+  obterEstadoVisualVaga,
+  obterRotuloEstadoVaga,
+  type EstadoVisualVaga
+} from "@/lib/estado-vaga"
+
+import type { VagaPainel } from "@/types/painel"
 
 type Propriedades = {
   vaga: VagaPainel
@@ -18,22 +24,6 @@ type Propriedades = {
   selecionada: boolean
 
   aoSelecionar: () => void
-}
-
-function obterRotuloStatus(status: StatusVaga) {
-  switch (status) {
-    case "relevant":
-      return "Nova"
-
-    case "viewed":
-      return "Vista"
-
-    case "applied":
-      return "Aplicada"
-
-    case "ignored":
-      return "Ignorada"
-  }
 }
 
 function formatarDataCurta(valor: string | null) {
@@ -76,50 +66,46 @@ function formatarDataHoraCurta(valor: string | null) {
   }).format(data)
 }
 
-/**
- * Eu uso a data específica de cada ação para deixar claro em que ponto
- * do processo esta oportunidade está.
- */
 function obterAcompanhamento(vaga: VagaPainel) {
-  switch (vaga.status) {
-    case "viewed":
-      return {
-        rotulo: "Vista",
+  if (vaga.status === "applied") {
+    return {
+      rotulo: "Aplicada",
 
-        data: formatarDataHoraCurta(vaga.viewed_at ?? vaga.status_updated_at)
-      }
-
-    case "applied":
-      return {
-        rotulo: "Aplicada",
-
-        data: formatarDataHoraCurta(vaga.applied_at ?? vaga.status_updated_at)
-      }
-
-    case "ignored":
-      return {
-        rotulo: "Ignorada",
-
-        data: formatarDataHoraCurta(vaga.status_updated_at)
-      }
-
-    default:
-      return null
+      data: formatarDataHoraCurta(vaga.applied_at ?? vaga.status_updated_at)
+    }
   }
+
+  if (vaga.status === "ignored") {
+    return {
+      rotulo: "Ignorada",
+
+      data: formatarDataHoraCurta(vaga.status_updated_at)
+    }
+  }
+
+  if (vaga.viewed_at) {
+    return {
+      rotulo: "Vista",
+
+      data: formatarDataHoraCurta(vaga.viewed_at)
+    }
+  }
+
+  return null
 }
 
-function IconeStatus({ status }: { status: StatusVaga }) {
-  switch (status) {
-    case "relevant":
+function IconeEstado({ estado }: { estado: EstadoVisualVaga }) {
+  switch (estado) {
+    case "nova":
       return <Sparkles size={12} />
 
-    case "viewed":
+    case "vista":
       return <Eye size={12} />
 
-    case "applied":
+    case "aplicada":
       return <CheckCircle2 size={12} />
 
-    case "ignored":
+    case "ignorada":
       return <ArchiveX size={12} />
   }
 }
@@ -129,10 +115,13 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
 
   const acompanhamento = obterAcompanhamento(vaga)
 
+  const estado = obterEstadoVisualVaga(vaga)
+
   return (
     <article
       className={[
         "group relative overflow-hidden rounded-2xl border transition-all duration-200",
+
         selecionada
           ? "border-indigo-300 bg-indigo-50/70 shadow-sm dark:border-indigo-800 dark:bg-indigo-950/30"
           : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700"
@@ -152,18 +141,19 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
               <span
                 className={[
                   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-                  vaga.status === "relevant"
+
+                  estado === "nova"
                     ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                    : vaga.status === "viewed"
+                    : estado === "vista"
                       ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                      : vaga.status === "applied"
+                      : estado === "aplicada"
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                         : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                 ].join(" ")}
               >
-                <IconeStatus status={vaga.status} />
+                <IconeEstado estado={estado} />
 
-                {obterRotuloStatus(vaga.status)}
+                {obterRotuloEstadoVaga(vaga)}
               </span>
 
               {vaga.partial && (
@@ -212,13 +202,14 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
               )}
             </div>
 
-            {acompanhamento && acompanhamento.data && (
+            {acompanhamento?.data && (
               <div
                 className={[
                   "mt-3 inline-flex w-fit items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium",
-                  vaga.status === "applied"
+
+                  estado === "aplicada"
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                    : vaga.status === "viewed"
+                    : estado === "vista"
                       ? "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
                       : "bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400"
                 ].join(" ")}
@@ -252,6 +243,7 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
             <div
               className={[
                 "flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-bold tabular-nums",
+
                 vaga.local_score >= 85
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                   : vaga.local_score >= 75

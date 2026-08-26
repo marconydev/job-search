@@ -1,4 +1,4 @@
-export type StatusVaga = "relevant" | "viewed" | "applied" | "ignored"
+export type StatusVaga = "relevant" | "applied" | "ignored"
 
 export type ResumoPainel = {
   novas: number
@@ -69,11 +69,9 @@ export type DadosPainel = {
 }
 
 /**
- * O painel inicial mostra somente oportunidades que ainda exigem ação.
- *
- * Aplicadas e ignoradas continuam disponíveis separadamente no histórico.
+ * "viewed" é um filtro de acompanhamento, não um status persistido.
  */
-export type FiltroStatus = "abertas" | StatusVaga
+export type FiltroStatus = "abertas" | "viewed" | StatusVaga
 
 export type FiltroModalidade = "todas" | "remota" | "nao-remota"
 

@@ -12,14 +12,8 @@ type ContextoRota = {
   }>
 }
 
-const statusPermitidos = new Set<StatusVaga>(["relevant", "viewed", "applied", "ignored"])
+const statusPermitidos = new Set<StatusVaga>(["relevant", "applied", "ignored"])
 
-/**
- * Eu mantenho esta alteração passando pelo próprio Next.
- *
- * Assim o navegador conversa somente com o frontend e o Next fica
- * responsável por encaminhar a ação autenticada para a API Express.
- */
 export async function PATCH(requisicao: NextRequest, contexto: ContextoRota) {
   const { id } = await contexto.params
 
