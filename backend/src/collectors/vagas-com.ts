@@ -3,7 +3,7 @@ import * as cheerio from "cheerio"
 import {
   criarSlugBusca,
   fetchComTimeout,
-  gerarTermosPerfil,
+  gerarTermosBuscaPortugues,
   interpretarDataPtBr,
   limparEspacos,
   normalizarTexto,
@@ -19,6 +19,20 @@ import type { PerfilProfissional } from "../types/perfil-profissional.js"
 const BASE_URL = "https://www.vagas.com.br"
 
 const LIMITE_TERMOS = 10
+
+const LIMITE_MAXIMO_POR_TERMO = 100
+
+const LIMITE_MAXIMO_GLOBAL = 500
+
+const LIMITE_MAXIMO_PAGINAS_POR_TERMO = 5
+
+function normalizarLimitePorTermo(valor: number | undefined) {
+  if (typeof valor !== "number" || !Number.isFinite(valor)) {
+    return LIMITE_MAXIMO_POR_TERMO
+  }
+
+  return Math.min(Math.max(Math.floor(valor), 1), LIMITE_MAXIMO_POR_TERMO)
+}
 
 function extrairIdVaga(url: string) {
   const resultado = url.match(/\/vagas\/v(\d+)(?:\/|$)/i)
@@ -47,18 +61,25 @@ function extrairLocalizacaoBrasil(texto: string) {
 }
 
 /**
- * Parser isolado para permitir testes sem acesso à internet.
+ * Leio os cards que o Vagas.com já entrega no HTML da busca.
  *
- * Seletores possuem alternativas porque o Vagas.com mantém mais de um
- * formato de card em páginas diferentes.
+ * Priorizo os atributos e classes semânticas do próprio card para não usar o texto inteiro
+ * do link como título. Isso evita valores poluídos como "Vaga ... | Vagas.com" e também
+ * preserva empresa, localização e data em campos separados.
  */
 export function parseVagasComHtml(html: string, agora = new Date()) {
   const $ = cheerio.load(html)
 
   const vagas = new Map<string, NewJob>()
 
-  $("a[href*='/vagas/v']").each((_indice, elemento) => {
-    const link = $(elemento)
+  $("li.vaga, li[id^='id_vaga']").each((_indice, elemento) => {
+    const card = $(elemento)
+
+    const link = card.find("a.link-detalhes-vaga, h2.cargo a").first()
+
+    if (link.length === 0) {
+      return
+    }
 
     const url = resolverUrl(BASE_URL, link.attr("href"))
 
@@ -66,60 +87,43 @@ export function parseVagasComHtml(html: string, agora = new Date()) {
       return
     }
 
-    const externalId = extrairIdVaga(url)
+    const externalId = limparEspacos(link.attr("data-id-vaga")) || extrairIdVaga(url)
 
     if (!externalId || vagas.has(externalId)) {
       return
     }
 
-    const containerConhecido = link.closest("li, article, .vaga, .grupoVaga, li[id^='id_vaga']")
-
-    const container =
-      containerConhecido.length > 0 ? containerConhecido : link.parent().parent().parent()
-
-    const titulo =
-      limparEspacos(link.text()) || limparEspacos(container.find("h1, h2, h3").first().text())
+    const titulo = limparEspacos(link.attr("title")) || limparEspacos(link.text())
 
     if (!titulo) {
       return
     }
 
     const empresa =
-      limparEspacos(container.find(".emprVaga, [class*='empresa']").first().text()) ||
-      (() => {
-        const alt = container.find("img[alt]").first().attr("alt")
-
-        if (alt && normalizarTexto(alt).includes("logo da empresa")) {
-          return limparEspacos(alt.replace(/logo da empresa/gi, ""))
-        }
-
-        return ""
-      })() ||
+      limparEspacos(card.find("span.emprVaga, [class*='empresa']").first().text()) ||
       "Empresa não identificada"
 
-    const textoCard = limparEspacos(container.text())
+    const textoLocalizacao = limparEspacos(card.find(".vaga-local, .local").first().text())
 
-    const textoMetadados =
-      limparEspacos(
-        container.find(".local, .vaga-local, .infoVaga, time, [class*='data']").text()
-      ) || textoCard.slice(-500)
+    const textoData = limparEspacos(card.find("span.data-publicacao, time").first().text())
+
+    const descricaoCompleta = limparEspacos(
+      card.find("div.detalhes, .descricaoVaga").first().text()
+    )
+
+    const localizacaoNormalizada = normalizarTexto(textoLocalizacao)
 
     /**
-     * Não inferimos remoto a partir da descrição.
+     * Só marco como remoto quando o próprio campo de localização informa Home Office.
      *
-     * "100% Home Office" é o rótulo explícito utilizado pelo próprio
-     * Vagas.com para modalidade remota.
+     * Não uso a descrição para adivinhar modalidade e mantenho híbrido/presencial como
+     * não remoto quando o card não fornece essa distinção de forma confiável.
      */
     const remoto =
-      normalizarTexto(textoMetadados).includes("100% home office") ||
-      normalizarTexto(textoMetadados).includes("100 home office")
+      localizacaoNormalizada.includes("100% home office") ||
+      localizacaoNormalizada.includes("100 home office")
 
-    const localizacao = remoto ? "Brasil" : extrairLocalizacaoBrasil(textoMetadados)
-
-    const descricao =
-      limparEspacos(container.find(".detalhes, .descricaoVaga").first().text()) ||
-      textoCard ||
-      titulo
+    const localizacao = remoto ? "Brasil" : extrairLocalizacaoBrasil(textoLocalizacao)
 
     vagas.set(externalId, {
       source: "vagas",
@@ -130,7 +134,7 @@ export function parseVagasComHtml(html: string, agora = new Date()) {
 
       title: titulo,
 
-      description: descricao,
+      description: descricaoCompleta || titulo,
 
       location: localizacao,
 
@@ -138,12 +142,8 @@ export function parseVagasComHtml(html: string, agora = new Date()) {
 
       url,
 
-      publishedAt: interpretarDataPtBr(textoMetadados, agora),
+      publishedAt: interpretarDataPtBr(textoData, agora),
 
-      /**
-       * O card da busca não contém necessariamente a publicação inteira.
-       * Marcamos como parcial em vez de fingir possuir todos os dados.
-       */
       partial: true
     })
   })
@@ -151,14 +151,31 @@ export function parseVagasComHtml(html: string, agora = new Date()) {
   return [...vagas.values()]
 }
 
-async function pesquisarVagasCom(termo: string) {
+/**
+ * Monto a URL separadamente para manter paginação e ordenação testáveis sem fazer rede.
+ */
+export function montarUrlBuscaVagasCom(termo: string, pagina: number) {
   const slug = criarSlugBusca(termo)
 
   if (!slug) {
-    return []
+    return null
   }
 
-  const url = `${BASE_URL}/vagas-de-${slug}` + "?ordenar_por=mais_recentes"
+  const url = new URL(`${BASE_URL}/vagas-de-${slug}`)
+
+  url.searchParams.set("ordenar_por", "mais_recentes")
+
+  url.searchParams.set("pagina", String(Math.max(1, Math.floor(pagina))))
+
+  return url
+}
+
+async function buscarPaginaVagasCom(termo: string, pagina: number) {
+  const url = montarUrlBuscaVagasCom(termo, pagina)
+
+  if (!url) {
+    return []
+  }
 
   const resposta = await fetchComTimeout(url, {
     headers: {
@@ -170,13 +187,49 @@ async function pesquisarVagasCom(termo: string) {
     throw new Error(`Vagas.com respondeu com status ${resposta.status}`)
   }
 
-  const html = await resposta.text()
+  return parseVagasComHtml(await resposta.text())
+}
 
-  return parseVagasComHtml(html)
+async function pesquisarVagasCom(termo: string, limitePorTermo: number) {
+  const vagasPorId = new Map<string, NewJob>()
+
+  for (
+    let pagina = 1;
+    pagina <= LIMITE_MAXIMO_PAGINAS_POR_TERMO && vagasPorId.size < limitePorTermo;
+    pagina++
+  ) {
+    const vagas = await buscarPaginaVagasCom(termo, pagina)
+
+    if (vagas.length === 0) {
+      break
+    }
+
+    let novasNestaPagina = 0
+
+    for (const vaga of vagas) {
+      if (vagasPorId.has(vaga.externalId)) {
+        continue
+      }
+
+      vagasPorId.set(vaga.externalId, vaga)
+
+      novasNestaPagina++
+
+      if (vagasPorId.size >= limitePorTermo) {
+        break
+      }
+    }
+
+    if (novasNestaPagina === 0) {
+      break
+    }
+  }
+
+  return [...vagasPorId.values()]
 }
 
 export async function collectVagasComJobs(
-  limit = 100,
+  limit = LIMITE_MAXIMO_POR_TERMO,
   perfil?: PerfilProfissional
 ): Promise<JobCollection> {
   if (!perfil) {
@@ -187,47 +240,62 @@ export async function collectVagasComJobs(
     }
   }
 
-  const termos = gerarTermosPerfil(perfil, LIMITE_TERMOS)
+  const termos = gerarTermosBuscaPortugues(perfil, LIMITE_TERMOS)
 
-  const limite =
-    typeof limit === "number" && Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : 100
+  if (termos.length === 0) {
+    return {
+      source: "vagas",
+
+      jobs: []
+    }
+  }
+
+  const limitePorTermo = normalizarLimitePorTermo(limit)
+
+  const limiteGlobal = Math.min(Math.max(limitePorTermo * 5, 200), LIMITE_MAXIMO_GLOBAL)
 
   const vagasPorId = new Map<string, NewJob>()
 
   for (const termo of termos) {
+    if (vagasPorId.size >= limiteGlobal) {
+      break
+    }
+
     try {
-      const vagas = await pesquisarVagasCom(termo)
+      const vagas = await pesquisarVagasCom(termo, limitePorTermo)
 
       for (const vaga of vagas) {
-        if (!vagasPorId.has(vaga.externalId)) {
-          vagasPorId.set(vaga.externalId, vaga)
+        if (vagasPorId.size >= limiteGlobal) {
+          break
         }
 
-        if (vagasPorId.size >= limite) {
-          break
+        if (!vagasPorId.has(vaga.externalId)) {
+          vagasPorId.set(vaga.externalId, vaga)
         }
       }
 
       console.log(
-        `Vagas.com: "${termo}" consultado, ` + `${vagas.length} resultado(s) extraído(s).`
+        `Vagas.com: "${termo}" consultado em português, ` +
+          `${vagas.length} resultado(s) único(s) extraído(s).`
       )
     } catch (erro) {
       const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
 
       console.warn(`Vagas.com: falha ao pesquisar "${termo}": ${mensagem}`)
     }
-
-    if (vagasPorId.size >= limite) {
-      break
-    }
   }
 
-  console.log(`Vagas.com: ${vagasPorId.size} vaga(s) única(s) coletada(s).`)
+  const jobs = [...vagasPorId.values()]
+
+  console.log(
+    `Vagas.com: ${termos.length} termo(s) em português disponível(is), ` +
+      `${jobs.length} vaga(s) única(s) coletada(s).`
+  )
 
   return {
     source: "vagas",
 
-    jobs: [...vagasPorId.values()]
+    jobs
   }
 }
 

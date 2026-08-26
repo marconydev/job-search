@@ -1,5 +1,7 @@
 import * as cheerio from "cheerio"
 
+import { gerarTermosBuscaNativaGupy } from "../config/search-queries.js"
+
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 const TEMPO_LIMITE_REQUISICAO_MS = 15_000
@@ -17,10 +19,10 @@ const MILISSEGUNDOS = {
 } as const
 
 /**
- * Cliente HTTP mínimo compartilhado pelos coletores públicos.
+ * Compartilho um cliente HTTP mínimo entre os coletores públicos.
  *
- * Não adiciono axios ou outra dependência porque o Node já fornece fetch.
- * Cada coletor continua responsável por interpretar a resposta da sua fonte.
+ * Não adiciono outra dependência porque o Node já fornece fetch e cada
+ * coletor continua responsável por interpretar a resposta da própria fonte.
  */
 export async function fetchComTimeout(
   url: string | URL,
@@ -29,9 +31,7 @@ export async function fetchComTimeout(
 ) {
   const controlador = new AbortController()
 
-  const temporizador = setTimeout(() => {
-    controlador.abort()
-  }, tempoLimiteMs)
+  const temporizador = setTimeout(() => controlador.abort(), tempoLimiteMs)
 
   const headers = new Headers(init.headers)
 
@@ -44,7 +44,7 @@ export async function fetchComTimeout(
   }
 
   if (!headers.has("Accept-Language")) {
-    headers.set("Accept-Language", "pt-BR,pt;q=0.9,en;q=0.8")
+    headers.set("Accept-Language", "pt-BR,pt;q=0.9")
   }
 
   try {
@@ -61,7 +61,7 @@ export async function fetchComTimeout(
 }
 
 /**
- * Converte HTML de descrição em texto legível para o matcher.
+ * Transformo HTML de descrição em texto legível antes de enviar a vaga ao matcher.
  */
 export function limparHtml(valor: string | null | undefined) {
   const html = valor?.trim()
@@ -125,38 +125,21 @@ export function resolverUrl(base: string, href: string | null | undefined) {
 }
 
 /**
- * Termos simples derivados diretamente do perfil.
+ * Reaproveito a mesma matriz de cargos em português já usada pela Gupy e pela Sólides.
  *
- * Não reutilizo gerarTermosBuscaNativaGupy porque aquele método representa
- * uma estratégia específica da Gupy. Os coletores novos só precisam dos
- * cargos efetivamente presentes no perfil.
+ * O perfil pode manter aliases em inglês para o matcher, mas não deixo esses aliases
+ * virarem termos de consulta nos portais. Assim evito que um novo coletor reintroduza
+ * buscas como "technical support" ou "support analyst" por acidente.
  */
-export function gerarTermosPerfil(perfil: PerfilProfissional, limite = 12) {
-  const termos = [...perfil.cargosPrincipais, ...perfil.cargosRelacionados]
+export function gerarTermosBuscaPortugues(perfil: PerfilProfissional, limite = 12) {
+  const limiteNormalizado = Math.min(Math.max(Math.floor(limite), 1), 30)
 
-  const unicos = new Map<string, string>()
-
-  for (const termo of termos) {
-    const limpo = limparEspacos(termo)
-
-    if (!limpo) {
-      continue
-    }
-
-    const chave = normalizarTexto(limpo)
-
-    if (!unicos.has(chave)) {
-      unicos.set(chave, limpo)
-    }
-  }
-
-  return [...unicos.values()].slice(0, Math.max(1, Math.floor(limite)))
+  return gerarTermosBuscaNativaGupy(perfil).slice(0, limiteNormalizado)
 }
 
 /**
- * Interpreta as formas de data relativas mais comuns nos portais
- * brasileiros sem confundir a data em que nosso sistema coletou a vaga
- * com a data real informada pelo portal.
+ * Interpreto as formas de data relativas mais comuns nos portais brasileiros sem
+ * confundir a data em que encontrei a vaga com a data publicada pela própria fonte.
  */
 export function interpretarDataPtBr(valor: string, agora = new Date()) {
   const texto = normalizarTexto(valor)

@@ -1,6 +1,6 @@
 import {
   fetchComTimeout,
-  gerarTermosPerfil,
+  gerarTermosBuscaPortugues,
   limparHtml,
   limparEspacos,
   normalizarTexto
@@ -18,7 +18,13 @@ const BASE_VAGAS = "https://www.getonbrd.com/jobs/"
 
 const LIMITE_TERMOS = 8
 
-const LIMITE_MAXIMO_RESULTADOS = 120
+const LIMITE_MAXIMO_POR_TERMO = 50
+
+const LIMITE_MAXIMO_GLOBAL = 300
+
+const LIMITE_MAXIMO_POR_PAGINA = 25
+
+const LIMITE_MAXIMO_PAGINAS_POR_TERMO = 2
 
 type GetOnBoardCompany = {
   data?: {
@@ -72,12 +78,22 @@ type GetOnBoardResponse = {
   }
 }
 
-function normalizarLimite(valor: number | undefined) {
+type PaginaGetOnBoard = {
+  jobs: GetOnBoardJob[]
+
+  totalPages: number | null
+}
+
+function normalizarLimitePorTermo(valor: number | undefined) {
   if (typeof valor !== "number" || !Number.isFinite(valor)) {
-    return 100
+    return LIMITE_MAXIMO_POR_TERMO
   }
 
-  return Math.min(Math.max(Math.floor(valor), 1), LIMITE_MAXIMO_RESULTADOS)
+  return Math.min(Math.max(Math.floor(valor), 1), LIMITE_MAXIMO_POR_TERMO)
+}
+
+function normalizarLimitePagina(valor: number) {
+  return Math.min(Math.max(Math.floor(valor), 1), LIMITE_MAXIMO_POR_PAGINA)
 }
 
 function normalizarDataPublicacao(valor: number | string | null | undefined) {
@@ -111,16 +127,20 @@ function normalizarDataPublicacao(valor: number | string | null | undefined) {
 }
 
 /**
- * remote_modality é a fonte principal da verdade.
+ * Uso remote_modality como fonte principal porque ela diferencia remoto, híbrido e presencial.
  *
- * Importante para nossa política:
- * híbrida NÃO é tratada como remota, porque vagas híbridas só podem
- * entrar quando localizadas em João Pessoa/PB.
+ * Não trato híbrido como remoto: pela regra do projeto, uma vaga híbrida só pode seguir
+ * quando a localização for compatível com João Pessoa/PB.
  */
 function trabalhoEhRemoto(atributos: GetOnBoardJobAttributes) {
   const modalidade = normalizarTexto(atributos.remote_modality ?? "").replace(/\s+/g, "_")
 
-  if (modalidade === "fully_remote" || modalidade === "remote") {
+  if (
+    modalidade === "fully_remote" ||
+    modalidade === "remote" ||
+    modalidade === "remote_local" ||
+    modalidade === "remote_global"
+  ) {
     return true
   }
 
@@ -199,20 +219,37 @@ export function normalizarVagaGetOnBoard(vaga: GetOnBoardJob): NewJob | null {
   }
 }
 
-async function pesquisarTermo(termo: string, limite: number) {
+/**
+ * Monto a consulta separadamente para conseguir testar o contrato da API sem fazer rede.
+ *
+ * Uso country=br, expand[]=company e uma página pequena. A combinação anterior
+ * estava retornando 422 em produção, então mantenho os parâmetros compatíveis
+ * com o formato usado pelo endpoint público.
+ */
+export function montarUrlBuscaGetOnBoard(termo: string, pagina: number, limitePagina: number) {
   const url = new URL(`${BASE_API}/search/jobs`)
 
   url.searchParams.set("query", termo)
 
-  url.searchParams.set("country_code", "BRA")
+  url.searchParams.set("country", "br")
 
   url.searchParams.set("lang", "pt")
 
-  url.searchParams.set("expand", JSON.stringify(["company"]))
+  url.searchParams.append("expand[]", "company")
 
-  url.searchParams.set("page", "1")
+  url.searchParams.set("page", String(Math.max(1, Math.floor(pagina))))
 
-  url.searchParams.set("per_page", String(limite))
+  url.searchParams.set("per_page", String(normalizarLimitePagina(limitePagina)))
+
+  return url
+}
+
+async function pesquisarPagina(
+  termo: string,
+  pagina: number,
+  limitePagina: number
+): Promise<PaginaGetOnBoard> {
+  const url = montarUrlBuscaGetOnBoard(termo, pagina, limitePagina)
 
   const resposta = await fetchComTimeout(url, {
     headers: {
@@ -221,16 +258,27 @@ async function pesquisarTermo(termo: string, limite: number) {
   })
 
   if (!resposta.ok) {
-    throw new Error(`GetOnBoard respondeu com status ${resposta.status}`)
+    const detalhe = limparEspacos((await resposta.text()).slice(0, 300))
+
+    const complemento = detalhe ? `: ${detalhe}` : ""
+
+    throw new Error(`GetOnBoard respondeu com status ${resposta.status}${complemento}`)
   }
 
   const dados = (await resposta.json()) as GetOnBoardResponse
 
-  return Array.isArray(dados.data) ? dados.data : []
+  return {
+    jobs: Array.isArray(dados.data) ? dados.data : [],
+
+    totalPages:
+      typeof dados.meta?.total_pages === "number" && Number.isFinite(dados.meta.total_pages)
+        ? Math.max(1, Math.floor(dados.meta.total_pages))
+        : null
+  }
 }
 
 export async function collectGetOnBoardJobs(
-  limit = 100,
+  limit = LIMITE_MAXIMO_POR_TERMO,
   perfil?: PerfilProfissional
 ): Promise<JobCollection> {
   if (!perfil) {
@@ -241,7 +289,7 @@ export async function collectGetOnBoardJobs(
     }
   }
 
-  const termos = gerarTermosPerfil(perfil, LIMITE_TERMOS)
+  const termos = gerarTermosBuscaPortugues(perfil, LIMITE_TERMOS)
 
   if (termos.length === 0) {
     return {
@@ -251,47 +299,81 @@ export async function collectGetOnBoardJobs(
     }
   }
 
-  const limite = normalizarLimite(limit)
+  const limitePorTermo = normalizarLimitePorTermo(limit)
+
+  const limiteGlobal = Math.min(Math.max(limitePorTermo * 6, 150), LIMITE_MAXIMO_GLOBAL)
 
   const vagasPorId = new Map<string, NewJob>()
 
   for (const termo of termos) {
-    try {
-      const resultados = await pesquisarTermo(termo, limite)
+    if (vagasPorId.size >= limiteGlobal) {
+      break
+    }
 
-      let validas = 0
+    let pagina = 1
 
-      for (const resultado of resultados) {
-        const vaga = normalizarVagaGetOnBoard(resultado)
+    let recebidasNoTermo = 0
 
-        if (!vaga) {
-          continue
+    while (recebidasNoTermo < limitePorTermo && pagina <= LIMITE_MAXIMO_PAGINAS_POR_TERMO) {
+      const restanteDoTermo = limitePorTermo - recebidasNoTermo
+
+      const tamanhoPagina = normalizarLimitePagina(restanteDoTermo)
+
+      try {
+        const resultado = await pesquisarPagina(termo, pagina, tamanhoPagina)
+
+        if (resultado.jobs.length === 0) {
+          break
         }
 
-        validas++
+        recebidasNoTermo += resultado.jobs.length
 
-        if (!vagasPorId.has(vaga.externalId)) {
+        for (const resultadoBruto of resultado.jobs) {
+          const vaga = normalizarVagaGetOnBoard(resultadoBruto)
+
+          if (vagasPorId.size >= limiteGlobal) {
+            break
+          }
+
+          if (!vaga || vagasPorId.has(vaga.externalId)) {
+            continue
+          }
+
           vagasPorId.set(vaga.externalId, vaga)
         }
+
+        if (resultado.totalPages !== null && pagina >= resultado.totalPages) {
+          break
+        }
+
+        if (resultado.jobs.length < tamanhoPagina) {
+          break
+        }
+
+        pagina++
+      } catch (erro) {
+        const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
+
+        console.warn(`GetOnBoard: falha ao pesquisar "${termo}" na página ${pagina}: ${mensagem}`)
+
+        break
       }
-
-      console.log(`GetOnBoard: "${termo}" retornou ${validas} vaga(s) válida(s).`)
-    } catch (erro) {
-      const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
-
-      console.warn(`GetOnBoard: falha ao pesquisar "${termo}": ${mensagem}`)
     }
+
+    console.log(`GetOnBoard: "${termo}" consultado, ${recebidasNoTermo} resultado(s) recebido(s).`)
   }
 
+  const jobs = [...vagasPorId.values()]
+
   console.log(
-    `GetOnBoard: ${termos.length} termo(s) pesquisado(s), ` +
-      `${vagasPorId.size} vaga(s) única(s) coletada(s).`
+    `GetOnBoard: ${termos.length} termo(s) em português pesquisado(s), ` +
+      `${jobs.length} vaga(s) única(s) coletada(s).`
   )
 
   return {
     source: "getonboard",
 
-    jobs: [...vagasPorId.values()]
+    jobs
   }
 }
 

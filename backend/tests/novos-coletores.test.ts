@@ -2,15 +2,101 @@ import assert from "node:assert/strict"
 
 import test from "node:test"
 
-import { interpretarDataPtBr } from "../src/collectors/collector-utils.js"
+import {
+  gerarTermosBuscaPortugues,
+  interpretarDataPtBr
+} from "../src/collectors/collector-utils.js"
 
-import { normalizarVagaGetOnBoard } from "../src/collectors/getonboard.js"
+import { montarUrlBuscaGetOnBoard, normalizarVagaGetOnBoard } from "../src/collectors/getonboard.js"
 
 import { parseGeekHunterHtml } from "../src/collectors/geekhunter.js"
 
-import { parseVagasComHtml } from "../src/collectors/vagas-com.js"
+import { montarUrlBuscaVagasCom, parseVagasComHtml } from "../src/collectors/vagas-com.js"
+
+import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
 
 const AGORA = new Date("2026-08-26T15:00:00.000Z")
+
+function criarPerfilComAliasesIngles(): PerfilProfissional {
+  return {
+    resumoProfissional: "",
+
+    cargosPrincipais: [
+      "Analista de Suporte",
+      "Technical Support",
+      "Analista de Sistemas",
+      "Application Support"
+    ],
+
+    cargosRelacionados: ["Support Analyst", "NOC Analyst", "BI Analyst"],
+
+    cargosDesvio: [],
+
+    competencias: [],
+
+    experiencias: [],
+
+    formacoes: [],
+
+    cursos: [],
+
+    localizacoesAceitas: ["Brasil"],
+
+    titulosExcluidos: []
+  }
+}
+
+test("gera termos em português mesmo quando o perfil possui aliases em inglês", () => {
+  const termos = gerarTermosBuscaPortugues(criarPerfilComAliasesIngles(), 10)
+
+  const texto = termos.join(" | ").toLowerCase()
+
+  assert.ok(termos.includes("Analista de Suporte"))
+
+  assert.ok(termos.includes("Analista de Sistemas"))
+
+  assert.equal(texto.includes("technical support"), false)
+
+  assert.equal(texto.includes("support analyst"), false)
+
+  assert.equal(texto.includes("application support"), false)
+
+  assert.equal(texto.includes("noc analyst"), false)
+
+  assert.equal(texto.includes("bi analyst"), false)
+})
+
+test("monta a busca do GetOnBoard com parâmetros compatíveis e termo em português", () => {
+  const url = montarUrlBuscaGetOnBoard("Analista de Suporte", 1, 100)
+
+  assert.equal(url.searchParams.get("query"), "Analista de Suporte")
+
+  assert.equal(url.searchParams.get("country"), "br")
+
+  assert.equal(url.searchParams.get("country_code"), null)
+
+  assert.deepEqual(url.searchParams.getAll("expand[]"), ["company"])
+
+  assert.equal(url.searchParams.get("lang"), "pt")
+
+  assert.equal(url.searchParams.get("per_page"), "25")
+})
+
+test("monta a paginação do Vagas.com com termo em português", () => {
+  const url = montarUrlBuscaVagasCom("Analista de Suporte", 2)
+
+  assert.ok(url)
+
+  if (!url) {
+    return
+  }
+
+  assert.equal(url.pathname, "/vagas-de-analista-de-suporte")
+
+  assert.equal(url.searchParams.get("ordenar_por"), "mais_recentes")
+
+  assert.equal(url.searchParams.get("pagina"), "2")
+})
 
 test("interpreta datas relativas e absolutas em pt-BR", () => {
   assert.equal(interpretarDataPtBr("Publicada há 3 dias", AGORA), "2026-08-23T15:00:00.000Z")
@@ -53,6 +139,10 @@ test("GetOnBoard prioriza modalidade estruturada sobre booleano remoto", () => {
 
   assert.ok(vaga)
 
+  if (!vaga) {
+    return
+  }
+
   assert.equal(vaga.company, "Empresa Teste")
 
   assert.equal(vaga.remote, false)
@@ -62,35 +152,39 @@ test("GetOnBoard prioriza modalidade estruturada sobre booleano remoto", () => {
   assert.match(vaga.description, /Gestão de incidentes/)
 })
 
-test("Vagas.com reconhece modalidade remota somente pelo rótulo do portal", () => {
+test("Vagas.com usa os campos semânticos do card sem poluir o título", () => {
   const html = `
-    <ul>
-      <li class="vaga" id="id_vaga_123456">
-        <h2>
-          <a
-            class="link-detalhes-vaga"
-            href="/vagas/v123456/analista-de-suporte"
-          >
-            Analista de Suporte
-          </a>
-        </h2>
+      <ul>
+        <li class="vaga" id="id_vaga_123456">
+          <h2 class="cargo">
+            <a
+              class="link-detalhes-vaga"
+              data-id-vaga="123456"
+              title="Analista de Suporte"
+              href="/vagas/v123456/analista-de-suporte"
+            >
+              Vaga Analista de Suporte - Empresa Brasileira | Vagas.com
+            </a>
+          </h2>
 
-        <span class="emprVaga">
-          Empresa Brasileira
-        </span>
+          <span class="emprVaga">
+            Empresa Brasileira
+          </span>
 
-        <div class="detalhes">
-          Atendimento técnico e gestão de incidentes.
-        </div>
+          <div class="detalhes">
+            Atendimento técnico e gestão de incidentes.
+          </div>
 
-        <div class="infoVaga">
-          Brasil
-          100% Home Office
-          Publicada há 3 dias
-        </div>
-      </li>
-    </ul>
-  `
+          <div class="vaga-local">
+            100% Home Office
+          </div>
+
+          <span class="data-publicacao">
+            Há 3 dias
+          </span>
+        </li>
+      </ul>
+    `
 
   const vagas = parseVagasComHtml(html, AGORA)
 
@@ -99,6 +193,8 @@ test("Vagas.com reconhece modalidade remota somente pelo rótulo do portal", () 
   const vaga = vagas[0]
 
   assert.equal(vaga.externalId, "123456")
+
+  assert.equal(vaga.title, "Analista de Suporte")
 
   assert.equal(vaga.company, "Empresa Brasileira")
 
@@ -109,35 +205,80 @@ test("Vagas.com reconhece modalidade remota somente pelo rótulo do portal", () 
   assert.equal(vaga.publishedAt, "2026-08-23T15:00:00.000Z")
 })
 
+test("Vagas.com preserva cidade e UF quando a vaga não é remota", () => {
+  const html = `
+      <ul>
+        <li class="vaga">
+          <h2 class="cargo">
+            <a
+              class="link-detalhes-vaga"
+              data-id-vaga="654321"
+              title="Analista de Sistemas"
+              href="/vagas/v654321/analista-de-sistemas"
+            >
+              Analista de Sistemas
+            </a>
+          </h2>
+
+          <span class="emprVaga">
+            Empresa Paraibana
+          </span>
+
+          <div class="detalhes">
+            Sustentação de sistemas corporativos.
+          </div>
+
+          <div class="vaga-local">
+            João Pessoa / PB
+          </div>
+
+          <span class="data-publicacao">
+            26/08/2026
+          </span>
+        </li>
+      </ul>
+    `
+
+  const vagas = parseVagasComHtml(html, AGORA)
+
+  assert.equal(vagas.length, 1)
+
+  assert.equal(vagas[0].remote, false)
+
+  assert.equal(vagas[0].location, "João Pessoa, PB, Brasil")
+
+  assert.equal(vagas[0].publishedAt, "2026-08-26T12:00:00.000Z")
+})
+
 test("GeekHunter extrai vaga remota e data real de publicacao", () => {
   const html = `
-    <article>
-      <a href="/pt/code-group-123/jobs/analista-de-service-desk">
-        <h2>
-          Analista de Service Desk
-        </h2>
-      </a>
+      <article>
+        <a href="/pt/code-group-123/jobs/analista-de-service-desk">
+          <h2>
+            Analista de Service Desk
+          </h2>
+        </a>
 
-      <div>
-        Publicada há 2 dias
-      </div>
+        <div>
+          Publicada há 2 dias
+        </div>
 
-      <div>
-        Remoto
-      </div>
+        <div>
+          Remoto
+        </div>
 
-      <section>
-        Tarefas e Responsabilidades
+        <section>
+          Tarefas e Responsabilidades
 
-        Atendimento de chamados,
-        suporte técnico e gestão de incidentes.
+          Atendimento de chamados,
+          suporte técnico e gestão de incidentes.
 
-        Requisitos
+          Requisitos
 
-        Conhecimento em Service Desk.
-      </section>
-    </article>
-  `
+          Conhecimento em Service Desk.
+        </section>
+      </article>
+    `
 
   const vagas = parseGeekHunterHtml(html, AGORA)
 
@@ -158,31 +299,31 @@ test("GeekHunter extrai vaga remota e data real de publicacao", () => {
 
 test("GeekHunter nao transforma data de atualizacao em publicacao", () => {
   const html = `
-    <article>
-      <a href="/pt/empresa-teste-98/jobs/analista-de-infraestrutura">
-        Analista de Infraestrutura
-      </a>
+      <article>
+        <a href="/pt/empresa-teste-98/jobs/analista-de-infraestrutura">
+          Analista de Infraestrutura
+        </a>
 
-      <div>
-        Atualizada há 1 hora
-      </div>
+        <div>
+          Atualizada há 1 hora
+        </div>
 
-      <div>
-        Híbrido
-        João Pessoa, PB, Brasil
-      </div>
+        <div>
+          Híbrido
+          João Pessoa, PB, Brasil
+        </div>
 
-      <section>
-        Tarefas e Responsabilidades
+        <section>
+          Tarefas e Responsabilidades
 
-        Administração de redes e servidores.
+          Administração de redes e servidores.
 
-        Requisitos
+          Requisitos
 
-        Active Directory e Windows Server.
-      </section>
-    </article>
-  `
+          Active Directory e Windows Server.
+        </section>
+      </article>
+    `
 
   const vagas = parseGeekHunterHtml(html, AGORA)
 
