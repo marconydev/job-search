@@ -4,8 +4,7 @@ import pg from "pg"
 
 const { Pool } = pg
 
-const databaseUrl =
-  process.env.DATABASE_URL?.trim()
+const databaseUrl = process.env.DATABASE_URL?.trim()
 
 const configuracaoPool = {
   /**
@@ -70,8 +69,5 @@ export const db = databaseUrl
  * As próximas consultas poderão utilizar/criar outra conexão.
  */
 db.on("error", erro => {
-  console.error(
-    "PostgreSQL: erro inesperado em conexão ociosa do pool:",
-    erro
-  )
+  console.error("PostgreSQL: erro inesperado em conexão ociosa do pool:", erro)
 })

@@ -35,28 +35,17 @@ function criarVagaTemporaria(vaga: NewJob): StoredJob {
 }
 
 function vagaPodeSeguirParaAnalise(vaga: NewJob) {
-  const elegibilidade = avaliarElegibilidadeBrasil(
-    vaga.location,
-    vaga.description,
-    vaga.title
-  )
+  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
 
   return elegibilidade.situacao !== "incompativel"
 }
 
-function vagaEhAderente(
-  vaga: NewJob,
-  perfil: PerfilProfissional,
-  pontuacaoMinima: number
-) {
+function vagaEhAderente(vaga: NewJob, perfil: PerfilProfissional, pontuacaoMinima: number) {
   if (!vagaPodeSeguirParaAnalise(vaga)) {
     return false
   }
 
-  const resultado = matchJob(
-    criarVagaTemporaria(vaga),
-    perfil
-  )
+  const resultado = matchJob(criarVagaTemporaria(vaga), perfil)
 
   return resultado.score >= pontuacaoMinima
 }
@@ -69,13 +58,7 @@ export function filtrarVagasAderentes(
   perfil: PerfilProfissional,
   pontuacaoMinima = 60
 ) {
-  return vagas.filter(vaga =>
-    vagaEhAderente(
-      vaga,
-      perfil,
-      pontuacaoMinima
-    )
-  )
+  return vagas.filter(vaga => vagaEhAderente(vaga, perfil, pontuacaoMinima))
 }
 
 /**
@@ -105,31 +88,16 @@ export async function filtrarVagasAderentesComYield(
 ) {
   const aderentes: NewJob[] = []
 
-  const lote = Math.max(
-    1,
-    Math.floor(tamanhoLote)
-  )
+  const lote = Math.max(1, Math.floor(tamanhoLote))
 
-  for (
-    let indice = 0;
-    indice < vagas.length;
-    indice++
-  ) {
+  for (let indice = 0; indice < vagas.length; indice++) {
     const vaga = vagas[indice]
 
-    if (
-      vagaEhAderente(
-        vaga,
-        perfil,
-        pontuacaoMinima
-      )
-    ) {
+    if (vagaEhAderente(vaga, perfil, pontuacaoMinima)) {
       aderentes.push(vaga)
     }
 
-    if (
-      (indice + 1) % lote === 0
-    ) {
+    if ((indice + 1) % lote === 0) {
       await cederEventLoop()
     }
   }
