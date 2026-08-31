@@ -43,6 +43,8 @@ export type VagaPainel = {
 
   created_at: string
 
+  nova_sincronizacao: boolean
+
   local_score: number
 
   matched_skills: string[]

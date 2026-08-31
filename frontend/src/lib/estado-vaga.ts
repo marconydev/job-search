@@ -1,6 +1,6 @@
 import type { FiltroStatus, ResumoPainel, VagaPainel } from "@/types/painel"
 
-export type EstadoVisualVaga = "nova" | "vista" | "aplicada" | "ignorada"
+export type EstadoVisualVaga = "nova" | "aberta" | "vista" | "aplicada" | "ignorada"
 
 export function vagaEstaEmAberto(vaga: VagaPainel) {
   return vaga.status === "relevant"
@@ -8,6 +8,10 @@ export function vagaEstaEmAberto(vaga: VagaPainel) {
 
 export function vagaFoiVista(vaga: VagaPainel) {
   return vaga.viewed_at !== null
+}
+
+function vagaEhNova(vaga: VagaPainel) {
+  return vagaEstaEmAberto(vaga) && vaga.nova_sincronizacao && !vagaFoiVista(vaga)
 }
 
 export function obterEstadoVisualVaga(vaga: VagaPainel): EstadoVisualVaga {
@@ -19,7 +23,11 @@ export function obterEstadoVisualVaga(vaga: VagaPainel): EstadoVisualVaga {
     return "ignorada"
   }
 
-  return vagaFoiVista(vaga) ? "vista" : "nova"
+  if (vagaFoiVista(vaga)) {
+    return "vista"
+  }
+
+  return vagaEhNova(vaga) ? "nova" : "aberta"
 }
 
 export function obterRotuloEstadoVaga(vaga: VagaPainel) {
@@ -28,6 +36,9 @@ export function obterRotuloEstadoVaga(vaga: VagaPainel) {
   switch (estado) {
     case "nova":
       return "Nova"
+
+    case "aberta":
+      return "Em aberto"
 
     case "vista":
       return "Vista"
@@ -46,7 +57,7 @@ export function vagaPertenceAoFiltro(vaga: VagaPainel, filtro: FiltroStatus) {
       return vagaEstaEmAberto(vaga)
 
     case "relevant":
-      return vagaEstaEmAberto(vaga) && !vagaFoiVista(vaga)
+      return vagaEhNova(vaga)
 
     case "viewed":
       return vagaEstaEmAberto(vaga) && vagaFoiVista(vaga)
@@ -105,7 +116,7 @@ export function calcularResumoPainel(vagas: VagaPainel[]): ResumoPainel {
 
     if (vagaFoiVista(vaga)) {
       vistas++
-    } else {
+    } else if (vagaEhNova(vaga)) {
       novas++
     }
 

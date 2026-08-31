@@ -242,7 +242,14 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
     [dados.vagas, vagaSelecionadaId]
   )
 
-  const quantidadeAbertas = dados.resumo.novas + dados.resumo.vistas
+  /**
+   * Eu conto oportunidades abertas diretamente.
+   *
+   * Novas e Vistas não formam mais uma partição completa das vagas
+   * abertas porque uma oportunidade antiga ainda não visualizada continua
+   * em aberto sem ser considerada nova.
+   */
+  const quantidadeAbertas = dados.vagas.filter(vagaEstaEmAberto).length
 
   function registrarAlteracaoLocal(vagaId: number, retorno: RetornoAtualizacaoVaga) {
     const alteracao = extrairAlteracaoLocal(retorno)

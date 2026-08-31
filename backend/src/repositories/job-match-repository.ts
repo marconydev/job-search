@@ -214,6 +214,10 @@ export async function listRelevantJobMatches(minScore: number) {
  * Regras temporais são aplicadas somente às oportunidades ainda em aberto.
  * Aplicadas e ignoradas continuam disponíveis como histórico mesmo quando
  * a publicação já envelheceu ou saiu do ATS.
+ *
+ * Eu calculo nova_sincronizacao usando a janela da última execução
+ * concluída. Assim uma vaga reencontrada não volta a ser tratada como
+ * nova somente porque apareceu novamente em uma coleta.
  */
 export async function listDashboardJobMatches() {
   const result = await db.query(
@@ -231,6 +235,25 @@ export async function listDashboardJobMatches() {
         j.published_at,
         j.partial,
         j.created_at,
+
+        EXISTS (
+          SELECT 1
+
+          FROM estado_sincronizacao es
+
+          WHERE
+            es.id = 1
+
+            AND es.estado = 'concluida'
+
+            AND es.iniciado_em IS NOT NULL
+
+            AND es.concluido_em IS NOT NULL
+
+            AND j.created_at >= es.iniciado_em
+
+            AND j.created_at <= es.concluido_em
+        ) AS nova_sincronizacao,
 
         jm.local_score,
         jm.matched_skills,
@@ -331,6 +354,25 @@ export async function getJobDashboardSummary() {
 
           j.created_at AS job_created_at,
 
+          EXISTS (
+            SELECT 1
+
+            FROM estado_sincronizacao es
+
+            WHERE
+              es.id = 1
+
+              AND es.estado = 'concluida'
+
+              AND es.iniciado_em IS NOT NULL
+
+              AND es.concluido_em IS NOT NULL
+
+              AND j.created_at >= es.iniciado_em
+
+              AND j.created_at <= es.concluido_em
+          ) AS nova_sincronizacao,
+
           jm.local_score,
 
           jm.status,
@@ -383,6 +425,7 @@ export async function getJobDashboardSummary() {
           WHERE
             status IN ('relevant', 'viewed')
             AND viewed_at IS NULL
+            AND nova_sincronizacao = TRUE
         )::int AS novas,
 
         COUNT(*) FILTER (

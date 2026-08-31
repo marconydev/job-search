@@ -123,6 +123,9 @@ function IconeEstado({ estado }: { estado: EstadoVisualVaga }) {
     case "nova":
       return <Sparkles size={12} />
 
+    case "aberta":
+      return <Clock3 size={12} />
+
     case "vista":
       return <Eye size={12} />
 
