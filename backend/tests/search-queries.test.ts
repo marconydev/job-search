@@ -136,6 +136,18 @@ describe("gerador de consultas de vagas", () => {
     }
   })
 
+  test("não usa mais Brave direcionado ao Vagas.com", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    for (const consulta of consultas) {
+      assert.equal(
+        consulta.texto.includes("site:vagas.com.br"),
+        false,
+        `Consulta ainda direcionada ao Vagas.com: ${consulta.texto}`
+      )
+    }
+  })
+
   test("não envia nomes de cargos em inglês para a Brave", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
@@ -210,7 +222,7 @@ describe("gerador de consultas de vagas", () => {
     assert.ok(plataformas.has("web"))
   })
 
-  test("mantém Vagas.com InfoJobs e Catho no grupo brasileiro", () => {
+  test("mantém InfoJobs Catho e Pandapé no grupo brasileiro", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
     const portaisBr = consultas.filter(consulta => consulta.plataforma === "portais-br")
@@ -219,11 +231,15 @@ describe("gerador de consultas de vagas", () => {
 
     const texto = portaisBr.map(consulta => consulta.texto).join("\n")
 
-    assert.ok(texto.includes("site:vagas.com.br"))
+    assert.equal(texto.includes("site:vagas.com.br"), false)
 
     assert.ok(texto.includes("site:infojobs.com.br"))
 
     assert.ok(texto.includes("site:catho.com.br"))
+
+    assert.ok(texto.includes("site:pandape.infojobs.com.br"))
+
+    assert.ok(texto.includes("site:pandape.catho.com.br"))
   })
 
   test("mantém os novos portais brasileiros no grupo complementar", () => {
@@ -309,7 +325,7 @@ describe("gerador de consultas de vagas", () => {
     }
   })
 
-  test("mantém prioridades regionais sem duplicar Gupy", () => {
+  test("mantém prioridades regionais sem duplicar fontes com coleta direta", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 
     const regionais = consultas.filter(consulta => consulta.familia === "regional")
@@ -325,6 +341,14 @@ describe("gerador de consultas de vagas", () => {
     assert.ok(texto.includes("Brasília"))
 
     assert.equal(texto.includes("site:gupy.io"), false)
+
+    assert.equal(texto.includes("site:vagas.com.br"), false)
+
+    assert.ok(texto.includes("site:linkedin.com/jobs/view"))
+
+    assert.ok(texto.includes("site:br.indeed.com/viewjob"))
+
+    assert.ok(texto.includes("site:myworkdayjobs.com"))
   })
 
   test("não usa cargos de desvio na descoberta", () => {

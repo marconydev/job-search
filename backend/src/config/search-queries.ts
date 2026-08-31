@@ -174,14 +174,12 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
 const PORTAIS_AGREGADORES_PRIORITARIOS: PortalAgregador[] = []
 
 /**
- * Fontes complementares continuam usando Brave.
+ * Eu mantenho no Brave apenas as fontes que ainda precisam de descoberta
+ * complementar.
  *
- * Vagas.com.br, InfoJobs e Catho ficam agrupados em uma mesma
- * estratégia para aproveitar melhor cada chamada.
- *
- * Os portais adicionais enviados pelo usuário serão tratados em um
- * commit separado para que também recebam classificação de provedor,
- * e não apenas apareçam como resultados genéricos da web.
+ * Não direciono mais pesquisas ao Vagas.com porque ele já possui coletor
+ * direto. InfoJobs, Catho e Pandapé continuam agrupados para aproveitar
+ * melhor cada chamada.
  */
 const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
   {
@@ -204,7 +202,7 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
     /**
      * Segundo grupo de portais brasileiros.
      *
-     * Mantenho separado de Vagas.com/InfoJobs/Catho para evitar que
+     * Eu mantenho separado de InfoJobs, Catho e Pandapé para evitar que
      * cinco domínios adicionais disputem as mesmas vinte posições
      * retornadas pela Brave.
      *
@@ -237,7 +235,6 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
 
     escopo:
       "(" +
-      "site:vagas.com.br OR " +
       "site:infojobs.com.br OR " +
       "site:catho.com.br OR " +
       "site:pandape.infojobs.com.br OR " +
@@ -423,14 +420,14 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
 const CONTEXTO_LOCALIZACAO = '"Brasil"'
 
 /**
- * Gupy não aparece neste escopo porque já será coletada diretamente.
+ * Eu não incluo Gupy nem Vagas.com neste escopo porque ambas já possuem
+ * coleta direta e não precisam disputar resultados das buscas regionais.
  */
 const ESCOPO_VAGAS_REGIONAIS =
   "(" +
   "site:linkedin.com/jobs/view OR " +
   "site:br.indeed.com/viewjob OR " +
-  "site:myworkdayjobs.com OR " +
-  "site:vagas.com.br" +
+  "site:myworkdayjobs.com" +
   ")"
 
 function normalizarTexto(valor: string) {
