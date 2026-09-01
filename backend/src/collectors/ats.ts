@@ -16,15 +16,41 @@ function normalizarData(valor: string | number | null | undefined) {
   return Number.isNaN(data.getTime()) ? null : data.toISOString()
 }
 
+function normalizarTexto(valor: string | null | undefined) {
+  return (valor ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/**
+ * Eu trato modalidade estruturada sem depender de maiúsculas/minúsculas.
+ *
+ * Não considero híbrido como remoto e não tento inferir modalidade a
+ * partir da descrição livre da vaga.
+ */
+function modalidadeEhRemota(valor: string | null | undefined) {
+  const normalizado = normalizarTexto(valor)
+
+  return new Set([
+    "remote",
+    "remoto",
+    "remota",
+    "fully remote",
+    "full remote",
+    "100% remote",
+    "home office"
+  ]).has(normalizado)
+}
+
 function localizacaoPareceRemota(valor: string | null | undefined) {
   if (!valor) {
     return false
   }
 
-  const texto = valor
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
+  const texto = normalizarTexto(valor)
 
   return ["remote", "remoto", "remota", "home office", "worldwide", "anywhere"].some(termo =>
     texto.includes(termo)
@@ -35,6 +61,16 @@ function criarIdWeb(url: string) {
   const hash = createHash("sha256").update(url).digest("hex").slice(0, 48)
 
   return `web_${hash}`
+}
+
+function slugificar(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120)
 }
 
 function nomeResultado(fonte: FonteAts) {
@@ -265,7 +301,7 @@ async function coletarLever(fonte: FonteAts, limite: number): Promise<JobCollect
 
         location: localizacao,
 
-        remote: vaga.workplaceType === "remote" || localizacaoPareceRemota(localizacao),
+        remote: modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao),
 
         url: urlVaga,
 
@@ -389,7 +425,10 @@ async function coletarWorkable(fonte: FonteAts, limite: number): Promise<JobColl
 
         location: localizacao,
 
-        remote: vaga.telecommuting === true || vaga.workplace_type === "remote",
+        remote:
+          vaga.telecommuting === true ||
+          modalidadeEhRemota(vaga.workplace_type) ||
+          localizacaoPareceRemota(localizacao),
 
         url: urlVaga,
 
@@ -492,7 +531,7 @@ async function coletarAshby(fonte: FonteAts, limite: number): Promise<JobCollect
 
         remote:
           vaga.isRemote === true ||
-          vaga.workplaceType === "Remote" ||
+          modalidadeEhRemota(vaga.workplaceType) ||
           localizacaoPareceRemota(localizacao),
 
         url: urlVaga,
@@ -619,7 +658,7 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
 
         remote:
           oferta.remote === true ||
-          oferta.workplace_type === "remote" ||
+          modalidadeEhRemota(oferta.workplace_type) ||
           localizacaoPareceRemota(localizacao),
 
         url: urlVaga,
@@ -630,6 +669,117 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
     .filter((vaga): vaga is NewJob => vaga !== null)
 
   return criarColecaoAts(fonte, jobs, ofertas.length <= limite)
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   InHire                                   */
+/* -------------------------------------------------------------------------- */
+
+type InHireJob = {
+  jobId?: string | number
+
+  displayName?: string
+
+  workplaceType?: string
+
+  location?: string
+
+  status?: string
+
+  description?: string
+
+  descriptionHtml?: string
+}
+
+type InHireResponse = {
+  tenantName?: string
+
+  jobsPage?: InHireJob[]
+}
+
+function vagaInHireEstaPublicada(vaga: InHireJob) {
+  const status = normalizarTexto(vaga.status)
+
+  return status === "" || status === "published"
+}
+
+async function coletarInHire(fonte: FonteAts, limite: number): Promise<JobCollection> {
+  const resposta = await fetch("https://api.inhire.app/job-posts/public/pages", {
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Inhire-Client": "web-inhire",
+      "X-Tenant": fonte.identificador
+    }
+  })
+
+  if (!resposta.ok) {
+    throw new Error(`InHire ${fonte.identificador} respondeu com status ${resposta.status}`)
+  }
+
+  const dados = (await resposta.json()) as InHireResponse | unknown[]
+
+  /**
+   * A API pública responde com array para um slug que não representa um
+   * tenant válido. Não trato esse retorno como um board vazio porque isso
+   * poderia encerrar vagas existentes indevidamente.
+   */
+  if (Array.isArray(dados)) {
+    throw new Error(`InHire ${fonte.identificador} não retornou um tenant válido`)
+  }
+
+  const empresa = dados.tenantName?.trim() || fonte.identificador
+
+  const vagasPublicadas = (dados.jobsPage ?? []).filter(vagaInHireEstaPublicada)
+
+  const jobs = vagasPublicadas
+    .slice(0, limite)
+    .map<NewJob | null>(vaga => {
+      const id = vaga.jobId === null || vaga.jobId === undefined ? "" : String(vaga.jobId).trim()
+
+      const titulo = vaga.displayName?.trim()
+
+      if (!id || !titulo) {
+        return null
+      }
+
+      const localizacao = vaga.location?.trim() || null
+
+      const slug = slugificar(titulo)
+
+      const url = `https://${fonte.identificador}.inhire.app/vagas/${encodeURIComponent(id)}${
+        slug ? `/${slug}` : ""
+      }`
+
+      return {
+        source: "inhire",
+
+        externalId: id,
+
+        company: empresa,
+
+        title: titulo,
+
+        description: vaga.description?.trim() || vaga.descriptionHtml?.trim() || titulo,
+
+        location: localizacao,
+
+        remote:
+          modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao),
+
+        url,
+
+        /**
+         * O contrato público validado não fornece uma data de publicação
+         * confiável. Prefiro deixar nulo a transformar outra data em
+         * publishedAt.
+         */
+        publishedAt: null
+      } satisfies NewJob
+    })
+    .filter((vaga): vaga is NewJob => vaga !== null)
+
+  return criarColecaoAts(fonte, jobs, vagasPublicadas.length <= limite)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -650,5 +800,8 @@ export async function coletarFonteAts(fonte: FonteAts, limite = 500): Promise<Jo
 
     case "recruitee":
       return coletarRecruitee(fonte, limite)
+
+    case "inhire":
+      return coletarInHire(fonte, limite)
   }
 }

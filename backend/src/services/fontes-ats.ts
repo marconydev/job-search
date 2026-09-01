@@ -21,7 +21,11 @@ import type { NovaFonteAts } from "../types/fonte-ats.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
-import { filtrarVagasAderentes } from "./filtragem-vagas.js"
+import {
+  diagnosticarFunilVagasComYield,
+  filtrarVagasAderentes,
+  type DiagnosticoFunilVagas
+} from "./filtragem-vagas.js"
 
 import { importJobs, type JobImportResult } from "./job-import.js"
 
@@ -30,6 +34,25 @@ export type ResultadoFonteAts = JobImportResult & {
 
   error?: string
 }
+
+const SUBDOMINIOS_INHIRE_RESERVADOS = new Set([
+  "www",
+  "api",
+  "auth",
+  "app",
+  "status",
+  "login",
+  "admin",
+  "portal",
+  "board",
+  "people",
+  "preview",
+  "files",
+  "docs",
+  "email",
+  "analytics",
+  "carreiras"
+])
 
 function obterPrimeiroSegmento(url: URL) {
   const segmento = url.pathname.split("/").filter(Boolean)[0]
@@ -106,11 +129,50 @@ function identificarFonteWorkable(
   return null
 }
 
+function identificarFonteInHire(pagina: PaginaClassificada, hostname: string): NovaFonteAts | null {
+  const sufixo = ".inhire.app"
+
+  if (!hostname.endsWith(sufixo)) {
+    return null
+  }
+
+  const identificador = hostname.slice(0, -sufixo.length).trim()
+
+  if (
+    !identificador ||
+    identificador.includes(".") ||
+    SUBDOMINIOS_INHIRE_RESERVADOS.has(identificador)
+  ) {
+    return null
+  }
+
+  return {
+    provedor: "inhire",
+
+    identificador,
+
+    variante: "padrao",
+
+    urlOrigem: pagina.url
+  }
+}
+
 export function identificarFonteAtsDaPagina(pagina: PaginaClassificada): NovaFonteAts | null {
   try {
     const url = new URL(pagina.url)
 
     const hostname = url.hostname.toLowerCase().replace(/^www\./, "")
+
+    /**
+     * A InHire ainda pode chegar classificada como página desconhecida.
+     * Identifico o tenant pelo hostname porque a coleta direta depende
+     * somente do subdomínio público da empresa.
+     */
+    const fonteInHire = identificarFonteInHire(pagina, hostname)
+
+    if (fonteInHire) {
+      return fonteInHire
+    }
 
     if (pagina.provedor === "lever") {
       const identificador = obterPrimeiroSegmento(url)
@@ -272,6 +334,33 @@ function obterNomeFonte(provedor: string, identificador: string) {
   return `ats:${provedor}:${identificador}`
 }
 
+function registrarDiagnosticoFonteAts(fonte: string, diagnostico: DiagnosticoFunilVagas) {
+  console.log(
+    [
+      `Funil fonte: ${fonte}`,
+      `recebidas=${diagnostico.recebidas}`,
+      `fora_janela=${diagnostico.foraDaJanela}`,
+      `localizacao=${diagnostico.localizacaoIncompativel}`,
+      `titulo_fora_foco=${diagnostico.tituloForaFoco}`,
+      `nao_remota_fora_jp=${diagnostico.naoRemotaForaJoaoPessoa}`,
+      `matcher=${diagnostico.matcherAbaixoDoMinimo}`,
+      `score_0=${diagnostico.scoreZero}`,
+      `score_1_39=${diagnostico.score1a39}`,
+      `score_40_49=${diagnostico.score40a49}`,
+      `score_50_59=${diagnostico.score50a59}`,
+      `aderentes=${diagnostico.aderentes}`,
+      `divergencias=${diagnostico.divergencias}`
+    ].join(" | ")
+  )
+
+  for (const exemplo of diagnostico.exemplosQuaseAderentes) {
+    console.log(
+      `Quase aderente: ${fonte} | score=${exemplo.score} | ` +
+        `${exemplo.title} | ${exemplo.company} | ${exemplo.reason}`
+    )
+  }
+}
+
 /**
  * Consulto diretamente os boards já aprendidos.
  *
@@ -365,6 +454,26 @@ export async function coletarFontesAtsAprendidas(
           `${indisponiveis} encerrada(s).`
         ].join(" ")
       )
+
+      /**
+       * Eu executo o diagnóstico somente depois que atualização, filtro,
+       * importação, reconciliação, contadores e sucesso da fonte já foram
+       * definidos. Uma falha aqui nunca muda o resultado produtivo.
+       */
+      try {
+        const diagnostico = await diagnosticarFunilVagasComYield(
+          coleta.jobs,
+          perfil,
+          vagasAderentes
+        )
+
+        registrarDiagnosticoFonteAts(nomeFonte, diagnostico)
+      } catch (erroDiagnostico) {
+        const mensagem =
+          erroDiagnostico instanceof Error ? erroDiagnostico.message : "Erro desconhecido"
+
+        console.warn(`Diagnóstico da fonte ${nomeFonte} não foi concluído: ${mensagem}`)
+      }
     } catch (erro) {
       const mensagem =
         erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta ATS"

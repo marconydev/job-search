@@ -148,6 +148,20 @@ describe("gerador de consultas de vagas", () => {
     }
   })
 
+  test("inclui InHire no grupo ATS sem criar uma chamada Brave exclusiva", () => {
+    const consultas = gerarConsultasBuscaVagas(criarPerfil())
+
+    const ats = consultas.filter(consulta => consulta.plataforma === "ats")
+
+    assert.ok(ats.length > 0)
+
+    const texto = ats.map(consulta => consulta.texto).join("\n")
+
+    assert.ok(texto.includes("site:inhire.app"))
+
+    assert.equal(consultas.some(consulta => consulta.plataforma === "inhire"), false)
+  })
+
   test("não envia nomes de cargos em inglês para a Brave", () => {
     const consultas = gerarConsultasBuscaVagas(criarPerfil())
 

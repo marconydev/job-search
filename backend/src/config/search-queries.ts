@@ -256,7 +256,8 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
       "site:apply.workable.com OR " +
       "site:jobs.smartrecruiters.com OR " +
       "site:jobs.ashbyhq.com OR " +
-      "site:recruitee.com" +
+      "site:recruitee.com OR " +
+      "site:inhire.app" +
       ")",
 
     restringirAoBrasil: true
@@ -682,8 +683,9 @@ function montarConsultaRegional(localizacoes: string[], termos: string[]) {
 }
 
 /**
- * Neste Commit 1 somente a Sólides continua sendo tratada como
- * portal prioritário via Brave.
+ * A estrutura permanece pronta para um portal futuro que ainda precise
+ * de busca Brave dedicada. No estado atual, os prioritários possuem
+ * coleta direta e este grupo fica vazio.
  */
 function criarConsultasPortaisPrioritarios(
   familias: Record<NomeFamilia, string[]>
@@ -828,14 +830,14 @@ function criarConsultasRotativasComplementares(familias: Record<NomeFamilia, str
 }
 
 /**
- * Ordem de prioridade da Brave após a Gupy nativa:
+ * Ordem de prioridade da Brave:
  *
- * 1. Sólides, enquanto ainda não possui coletor nativo;
- * 2. fontes web complementares;
- * 3. empresas e regiões estratégicas;
- * 4. aliases detalhados em rotação.
+ * 1. fontes web complementares e ATS que ainda precisam ser descobertos;
+ * 2. empresas e regiões estratégicas;
+ * 3. aliases detalhados em rotação.
  *
- * Gupy não gera mais nenhuma chamada Brave dedicada.
+ * Gupy, Sólides e Vagas.com não geram chamadas Brave dedicadas porque
+ * possuem coleta direta.
  */
 export function gerarConsultasBuscaVagas(perfil: PerfilProfissional): ConsultaBuscaVaga[] {
   const familias = criarFamilias(perfil)

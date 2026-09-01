@@ -1,4 +1,10 @@
-export type ProvedorFonteAts = "greenhouse" | "lever" | "workable" | "recruitee" | "ashby"
+export type ProvedorFonteAts =
+  | "greenhouse"
+  | "lever"
+  | "workable"
+  | "recruitee"
+  | "ashby"
+  | "inhire"
 
 export type NovaFonteAts = {
   provedor: ProvedorFonteAts

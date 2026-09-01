@@ -43,7 +43,10 @@ import {
   paginaPareceRelacionada
 } from "./vagas-web/triagem-vagas-web.js"
 
-import { registrarFontesAtsDescobertas } from "./fontes-ats.js"
+import {
+  identificarFonteAtsDaPagina,
+  registrarFontesAtsDescobertas
+} from "./fontes-ats.js"
 
 type OpcoesProcessamentoWeb = {
   salvarCompativeis?: boolean
@@ -365,6 +368,12 @@ export async function processarVagasWeb(
 
   const somenteDescoberta: PaginaSomenteDescoberta[] = paginasIndividuais
     .filter(pagina => !ehProvedorProcessavel(pagina))
+    /**
+     * Uma página InHire já ensinou o tenant ao coletor ATS acima.
+     * Não salvo a mesma oportunidade como descoberta genérica porque a
+     * coleta direta da InHire trará dados mais confiáveis na etapa ATS.
+     */
+    .filter(pagina => identificarFonteAtsDaPagina(pagina)?.provedor !== "inhire")
     .map(pagina => ({
       provedor: pagina.provedor,
 
