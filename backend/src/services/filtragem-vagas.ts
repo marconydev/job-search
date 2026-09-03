@@ -120,7 +120,12 @@ function vagaPodeSeguirParaAnalise(vaga: NewJob) {
     return false
   }
 
-  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
+  const elegibilidade = avaliarElegibilidadeBrasil(
+    vaga.location,
+    vaga.description,
+    vaga.title,
+    vaga.remote
+  )
 
   return elegibilidade.situacao !== "incompativel"
 }
@@ -302,7 +307,12 @@ export async function diagnosticarFunilVagasComYield(
     } else if (!vagaEstaDentroDaJanelaTemporal(vaga, agora)) {
       diagnostico.foraDaJanela++
     } else {
-      const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
+      const elegibilidade = avaliarElegibilidadeBrasil(
+        vaga.location,
+        vaga.description,
+        vaga.title,
+        vaga.remote
+      )
 
       if (elegibilidade.situacao === "incompativel") {
         diagnostico.localizacaoIncompativel++

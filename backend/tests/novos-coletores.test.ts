@@ -11,6 +11,8 @@ import { montarUrlBuscaGetOnBoard, normalizarVagaGetOnBoard } from "../src/colle
 
 import { parseGeekHunterHtml } from "../src/collectors/geekhunter.js"
 
+import { montarUrlBuscaJobicy } from "../src/collectors/jobicy.js"
+
 import { montarUrlBuscaVagasCom, parseVagasComHtml } from "../src/collectors/vagas-com.js"
 
 import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
@@ -80,6 +82,24 @@ test("monta a busca do GetOnBoard com parâmetros compatíveis e termo em portug
   assert.equal(url.searchParams.get("lang"), "pt")
 
   assert.equal(url.searchParams.get("per_page"), "25")
+})
+
+test("direciona a Jobicy para vagas remotas elegíveis no Brasil", () => {
+  const url = montarUrlBuscaJobicy(100)
+
+  assert.equal(url.origin + url.pathname, "https://jobicy.com/api/v2/remote-jobs")
+
+  assert.equal(url.searchParams.get("geo"), "brazil")
+
+  assert.equal(url.searchParams.get("count"), "100")
+})
+
+test("respeita o limite máximo público da Jobicy", () => {
+  const url = montarUrlBuscaJobicy(500)
+
+  assert.equal(url.searchParams.get("count"), "200")
+
+  assert.equal(url.searchParams.get("geo"), "brazil")
 })
 
 test("monta a paginação do Vagas.com com termo em português", () => {

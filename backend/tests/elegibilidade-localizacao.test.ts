@@ -30,13 +30,13 @@ describe("elegibilidade de localização no Brasil", () => {
   })
 
   test("aceita vaga remota localizada no Brasil", () => {
-    const resultado = avaliarElegibilidadeBrasil("Brazil - Remote")
+    const resultado = avaliarElegibilidadeBrasil("Brazil - Remote", null, null, true)
 
     assert.equal(resultado.situacao, "compativel")
   })
 
   test("aceita vaga remota no Brasil informada em português", () => {
-    const resultado = avaliarElegibilidadeBrasil("Brasil - Remoto")
+    const resultado = avaliarElegibilidadeBrasil("Brasil - Remoto", null, null, true)
 
     assert.equal(resultado.situacao, "compativel")
   })
@@ -47,14 +47,93 @@ describe("elegibilidade de localização no Brasil", () => {
     assert.equal(resultado.situacao, "compativel")
   })
 
+  test("aceita Worldwide quando a vaga foi confirmada como remota", () => {
+    const resultado = avaliarElegibilidadeBrasil(
+      "Worldwide",
+      "Atuação totalmente remota.",
+      "Analista de Suporte",
+      true
+    )
+
+    assert.equal(resultado.situacao, "compativel")
+  })
+
+  test("aceita Anywhere quando a vaga foi confirmada como remota", () => {
+    const resultado = avaliarElegibilidadeBrasil("Anywhere", null, "Analista de Sistemas", true)
+
+    assert.equal(resultado.situacao, "compativel")
+  })
+
+  test("aceita LATAM quando a vaga foi confirmada como remota", () => {
+    const resultado = avaliarElegibilidadeBrasil(
+      "LATAM - Remote",
+      null,
+      "Analista de Suporte",
+      true
+    )
+
+    assert.equal(resultado.situacao, "compativel")
+  })
+
+  test("aceita Latin America, South America e Americas para vaga remota", () => {
+    const localizacoes = ["Latin America", "South America", "Americas"]
+
+    for (const localizacao of localizacoes) {
+      const resultado = avaliarElegibilidadeBrasil(localizacao, null, "Analista de Suporte", true)
+
+      assert.equal(resultado.situacao, "compativel", localizacao)
+    }
+  })
+
+  test("não usa região global para liberar vaga que não foi confirmada como remota", () => {
+    const worldwide = avaliarElegibilidadeBrasil("Worldwide", null, "Analista de Suporte", false)
+
+    const latam = avaliarElegibilidadeBrasil("LATAM", null, "Analista de Suporte", false)
+
+    assert.equal(worldwide.situacao, "incompativel")
+
+    assert.equal(latam.situacao, "incompativel")
+  })
+
+  test("rejeita regiões remotas que não incluem o Brasil", () => {
+    const regioes = ["Europe - Remote", "EMEA", "APAC"]
+
+    for (const localizacao of regioes) {
+      const resultado = avaliarElegibilidadeBrasil(localizacao, null, "Analista de Suporte", true)
+
+      assert.equal(resultado.situacao, "incompativel", localizacao)
+    }
+  })
+
+  test("rejeita Worldwide quando a própria localização exclui o Brasil", () => {
+    const resultado = avaliarElegibilidadeBrasil(
+      "Worldwide except Brazil",
+      null,
+      "Analista de Suporte",
+      true
+    )
+
+    assert.equal(resultado.situacao, "incompativel")
+  })
+
   test("rejeita Lituânia mesmo sendo remota", () => {
-    const resultado = avaliarElegibilidadeBrasil("Lithuania - Remote")
+    const resultado = avaliarElegibilidadeBrasil(
+      "Lithuania - Remote",
+      null,
+      "Analista de Suporte",
+      true
+    )
 
     assert.equal(resultado.situacao, "incompativel")
   })
 
   test("rejeita Sérvia mesmo sendo remota", () => {
-    const resultado = avaliarElegibilidadeBrasil("Serbia - Remote")
+    const resultado = avaliarElegibilidadeBrasil(
+      "Serbia - Remote",
+      null,
+      "Analista de Suporte",
+      true
+    )
 
     assert.equal(resultado.situacao, "incompativel")
   })
@@ -93,26 +172,14 @@ describe("elegibilidade de localização no Brasil", () => {
     assert.equal(resultado.situacao, "incompativel")
   })
 
-  test("rejeita vaga global sem foco específico no Brasil", () => {
-    const resultado = avaliarElegibilidadeBrasil("Worldwide")
-
-    assert.equal(resultado.situacao, "incompativel")
-  })
-
-  test("rejeita LATAM sem Brasil explícito", () => {
-    const resultado = avaliarElegibilidadeBrasil("LATAM - Remote")
-
-    assert.equal(resultado.situacao, "incompativel")
-  })
-
   test("mantém apenas Remote como localização indefinida", () => {
-    const resultado = avaliarElegibilidadeBrasil("Remote")
+    const resultado = avaliarElegibilidadeBrasil("Remote", null, "Analista de Suporte", true)
 
     assert.equal(resultado.situacao, "indefinida")
   })
 
   test("mantém apenas Remoto como localização indefinida", () => {
-    const resultado = avaliarElegibilidadeBrasil("Remoto")
+    const resultado = avaliarElegibilidadeBrasil("Remoto", null, "Analista de Suporte", true)
 
     assert.equal(resultado.situacao, "indefinida")
   })
@@ -127,7 +194,8 @@ describe("elegibilidade de localização no Brasil", () => {
     const resultado = avaliarElegibilidadeBrasil(
       null,
       "Work location: Brazil - Remote",
-      "Analista de Suporte"
+      "Analista de Suporte",
+      true
     )
 
     assert.equal(resultado.situacao, "compativel")
@@ -137,7 +205,8 @@ describe("elegibilidade de localização no Brasil", () => {
     const resultado = avaliarElegibilidadeBrasil(
       null,
       "Vaga remota no Brasil para atuação com suporte técnico.",
-      "Analista de Suporte"
+      "Analista de Suporte",
+      true
     )
 
     assert.equal(resultado.situacao, "compativel")
@@ -145,9 +214,10 @@ describe("elegibilidade de localização no Brasil", () => {
 
   test("rejeita descrição que exclui explicitamente o Brasil", () => {
     const resultado = avaliarElegibilidadeBrasil(
-      "Remote",
+      "Worldwide",
       "This position is available worldwide except Brazil.",
-      "Analista de Suporte"
+      "Analista de Suporte",
+      true
     )
 
     assert.equal(resultado.situacao, "incompativel")
@@ -155,9 +225,10 @@ describe("elegibilidade de localização no Brasil", () => {
 
   test("rejeita descrição que exige residência nos Estados Unidos", () => {
     const resultado = avaliarElegibilidadeBrasil(
-      "Remote",
+      "Worldwide",
       "Candidates must be based in United States.",
-      "Analista de Suporte"
+      "Analista de Suporte",
+      true
     )
 
     assert.equal(resultado.situacao, "incompativel")

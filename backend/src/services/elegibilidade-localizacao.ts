@@ -25,10 +25,11 @@ function contemAlgumTermo(texto: string, termos: string[]) {
 }
 
 /**
- * Aqui eu considero somente sinais que realmente permitem associar a
- * oportunidade ao território brasileiro.
+ * Aqui eu considero sinais que realmente permitem associar a oportunidade
+ * ao território brasileiro.
  *
- * Regiões globais, LATAM ou simplesmente "remote" não são suficientes.
+ * Regiões amplas só são tratadas como compatíveis quando a própria vaga
+ * foi confirmada como remota e a região inclui candidatos no Brasil.
  */
 const localizacoesBrasil = [
   "brasil",
@@ -122,10 +123,11 @@ const ufsBrasil = [
 ]
 
 /**
- * Esses termos indicam alcance internacional, mas não uma vaga
- * localizada no Brasil.
+ * Estas regiões incluem o Brasil e podem ser elegíveis quando a vaga é
+ * realmente remota. Eu não uso esses termos para transformar uma vaga
+ * presencial ou híbrida em remota.
  */
-const regioesGlobais = [
+const regioesRemotasQueIncluemBrasil = [
   "worldwide",
   "anywhere",
   "global",
@@ -133,11 +135,13 @@ const regioesGlobais = [
   "latam",
   "south america",
   "americas",
-  "world",
-  "emea",
-  "europe",
-  "apac"
+  "world"
 ]
+
+/**
+ * Estas regiões não comprovam possibilidade de trabalho a partir do Brasil.
+ */
+const regioesSemBrasil = ["emea", "europe", "apac"]
 
 const localizacoesEstrangeiras = [
   "united states",
@@ -318,19 +322,22 @@ function descricaoIndicaLocalizacaoBrasil(descricao: string) {
 }
 
 /**
- * A regra é propositalmente conservadora:
+ * A regra continua conservadora, mas agora diferencia alcance remoto de
+ * localização física:
  *
- * - comprovação de Brasil -> compatível;
- * - comprovação de outro país/região global -> incompatível;
- * - sem informação suficiente -> indefinida.
+ * - Brasil explícito -> compatível;
+ * - vaga remota em região que inclui o Brasil -> compatível;
+ * - região que não inclui o Brasil ou país estrangeiro -> incompatível;
+ * - somente modalidade, sem localização suficiente -> indefinida.
  *
- * Tanto "incompatível" quanto "indefinida" são descartadas pelo pipeline
- * de importação. Assim uma vaga remota nunca entra apenas por ser remota.
+ * A confirmação de remoto vem do campo estruturado normalizado pelo
+ * coletor. Eu não transformo "Worldwide" ou "LATAM" em remoto por texto.
  */
 export function avaliarElegibilidadeBrasil(
   localizacao: string | null,
   descricao: string | null = null,
-  titulo: string | null = null
+  titulo: string | null = null,
+  remota = false
 ): ResultadoElegibilidadeLocalizacao {
   const textoLocalizacao = normalizarTexto(localizacao ?? "")
 
@@ -340,11 +347,13 @@ export function avaliarElegibilidadeBrasil(
 
   const textoReferencia = `${textoTitulo} ${textoLocalizacao}`.trim()
 
-  if (contemAlgumTermo(textoDescricao, exclusoesBrasil)) {
+  const textoRestricoesBrasil = `${textoLocalizacao} ${textoDescricao}`.trim()
+
+  if (contemAlgumTermo(textoRestricoesBrasil, exclusoesBrasil)) {
     return {
       situacao: "incompativel",
 
-      motivo: "A descrição exclui explicitamente candidatos localizados no Brasil."
+      motivo: "A oportunidade exclui explicitamente candidatos localizados no Brasil."
     }
   }
 
@@ -376,11 +385,27 @@ export function avaliarElegibilidadeBrasil(
     }
   }
 
-  if (contemAlgumTermo(textoReferencia, regioesGlobais)) {
+  if (remota && contemAlgumTermo(textoLocalizacao, regioesRemotasQueIncluemBrasil)) {
+    return {
+      situacao: "compativel",
+
+      motivo: "A vaga é remota e a região informada permite candidatos localizados no Brasil."
+    }
+  }
+
+  if (contemAlgumTermo(textoReferencia, regioesSemBrasil)) {
     return {
       situacao: "incompativel",
 
-      motivo: "A vaga é global ou regional e não está direcionada especificamente ao Brasil."
+      motivo: "A região informada não inclui o Brasil."
+    }
+  }
+
+  if (contemAlgumTermo(textoReferencia, regioesRemotasQueIncluemBrasil)) {
+    return {
+      situacao: "incompativel",
+
+      motivo: "A região inclui o Brasil, mas a vaga não foi confirmada como remota."
     }
   }
 

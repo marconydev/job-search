@@ -124,6 +124,37 @@ test("nao descarta vaga por uma data invalida fornecida pela origem", () => {
   )
 })
 
+test("aceita no funil vaga remota Worldwide compatível com o cargo principal", async () => {
+  const vaga = criarVaga({
+    externalId: "remota-global",
+
+    location: "Worldwide",
+
+    remote: true
+  })
+
+  const aderentes = await filtrarVagasAderentesComYield([vaga], criarPerfil())
+
+  assert.deepEqual(
+    aderentes.map(item => item.externalId),
+    ["remota-global"]
+  )
+})
+
+test("não usa Worldwide para liberar vaga não remota fora de João Pessoa", async () => {
+  const vaga = criarVaga({
+    externalId: "global-nao-remota",
+
+    location: "Worldwide",
+
+    remote: false
+  })
+
+  const aderentes = await filtrarVagasAderentesComYield([vaga], criarPerfil())
+
+  assert.equal(aderentes.length, 0)
+})
+
 test("diagnostico observa o filtro original sem alterar as vagas aderentes", async () => {
   const vagas: NewJob[] = [
     criarVaga({

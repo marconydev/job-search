@@ -327,7 +327,12 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
     }
   }
 
-  const elegibilidade = avaliarElegibilidadeBrasil(vaga.location, vaga.description, vaga.title)
+  const elegibilidade = avaliarElegibilidadeBrasil(
+    vaga.location,
+    vaga.description,
+    vaga.title,
+    vaga.remote
+  )
 
   if (elegibilidade.situacao === "incompativel") {
     return {
