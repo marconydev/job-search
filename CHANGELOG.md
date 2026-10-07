@@ -2,6 +2,20 @@
 
 Consolidado a partir do histórico de commits de `main` e das mudanças da sessão de outubro/2026.
 
+## [2026-10-07 — Fase 0.1] — baseline e inventário
+
+### Added
+
+- `RELATORIO_FASE0.md` com leitura direta do Neon: telemetria da última sync por fonte, totais por status, distribuição de score em baldes, comportamento real das chaves de `descartes` e amostra de vagas 40–59.
+
+### Notes
+
+- Sem mudança de comportamento. Apenas leitura.
+- 1197 vagas no banco (936 novas, 15 vistas, 36 aplicadas, 19 ignoradas).
+- Gupy responde por 483 coletadas / 229 aderentes. ATS de lever (thinkahead, filevine) caem 100% por localização.
+- Baldes 1–39, 40–49 e 50–59 praticamente vazios no banco.
+- `matcherAbaixoDoMinimo` = `scoreZero` em todos os casos hoje.
+
 ## [2026-10-07 — Auditoria knip] — limpeza de código morto e artefatos
 
 ### Removed

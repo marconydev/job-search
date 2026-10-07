@@ -24,10 +24,14 @@ Suíte: 186 testes verdes.
 - Fase 1B-Backend: `GET /jobs/telemetria/resumo` + `agregarLinhas` + `resumirTelemetria` + migration 016.
 - Fase 1B-Frontend: painel retratil `Telemetria` + rota-proxy `/api/telemetria/resumo` + 54 testes (Vitest + RTL).
 - Auditoria knip: 2 funções mortas, 34 exports decorativos, 1 intermediário, `apps/`, `backups/` e 10 `.bak` removidos; script `audit` na raiz; `PROTOCOLO.md` criado.
+- Fase 0.1 (baseline): `RELATORIO_FASE0.md` com leitura do Neon (telemetria, status, baldes, descartes).
 
 ## 3. Pendências
 
-- Fase 2 (futura): botão "segunda opinião por IA" on-demand.
+- Fase 0.2 — inventário dos 9 coletores (enumeração, cobertura, vagas/sync, última execução com sucesso).
+- Fase 1 — saneamento da base (`reprocess:eligibility`, dry-run, `reason_code`).
+- Fase 2 (futura) — botão "segunda opinião por IA" on-demand.
+- Fase 2–4 da diretiva v2 — piloto de sites próprios, queries do perfil, implementação.
 
 ## 4. Decisões
 
@@ -120,10 +124,13 @@ Estado atual (07/10/2026): 186 testes verdes. Últimos commits:
 - dceb9e2 feat(engine): trava geográfica em 3 estados
 - 2f98be3 feat: correção de endpoints, M1-M11, telemetria e priorização de ATS
 
-Concluído: endpoints Gupy e Sólides corrigidos; migrations 007-015 no Neon; M1 telemetria; M2 termos; M4 desconto; M9; M11; C11; trava geográfica 3 estados (presencial fora de JP/PB vetado, híbrida e remota livres no Brasil); ATS priorizados; Fase 1A (vocabulário expandido em search-queries.ts, LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5); Fase 1B-Backend (telemetria/resumo + agregarLinhas + migration 016); Fase 1B-Frontend (painel retratil + rota-proxy + 54 testes Vitest/RTL). Auditoria knip (limpeza de código morto + script `audit` na raiz + `PROTOCOLO.md`).
+Concluído: endpoints Gupy e Sólides corrigidos; migrations 007-015 no Neon; M1 telemetria; M2 termos; M4 desconto; M9; M11; C11; trava geográfica 3 estados (presencial fora de JP/PB vetado, híbrida e remota livres no Brasil); ATS priorizados; Fase 1A (vocabulário expandido em search-queries.ts, LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5); Fase 1B-Backend (telemetria/resumo + agregarLinhas + migration 016); Fase 1B-Frontend (painel retratil + rota-proxy + 54 testes Vitest/RTL). Auditoria knip (limpeza de código morto + script `audit` na raiz + `PROTOCOLO.md`). Fase 0.1 (RELATORIO_FASE0.md com baseline do Neon).
 
 Pendências:
-- Fase 2 (futura): botão "segunda opinião por IA" on-demand.
+- Fase 0.2 — inventário dos 9 coletores (enumeração, cobertura, vagas/sync, última execução com sucesso).
+- Fase 1 — saneamento da base (reprocess:eligibility, dry-run, reason_code).
+- Fase 2 (futura) — botão "segunda opinião por IA" on-demand.
+- Fase 2–4 da diretiva v2 — piloto de sites próprios, queries do perfil, implementação.
 
 Regras de trabalho: sem LLM no pipeline; scripts em bloco único cat > arquivo.sh <<'SCRIPT_END' ... SCRIPT_END; backup antes de alteração; typecheck + testes antes de considerar pronto; backend local usa Postgres local, para Neon usar .env.neon.
 

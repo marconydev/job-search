@@ -31,6 +31,7 @@ Snapshot do estado da aplicação após a sessão de 06-07/10/2026.
 - Fase 1B-Backend: `GET /jobs/telemetria/resumo` (funil da última execução, série diária e top motivos de descarte); `agregarLinhas` + `resumirTelemetria`; migration 016 (índice em `created_at DESC`).
 - Fase 1B-Frontend: painel retratil `Telemetria` no dashboard (botoes `[7d|14d|30d]` + `Atualizar`), rota-proxy `/api/telemetria/resumo`, utilitarios puros e 54 testes Vitest + RTL (utils 28, rota 12, componente 10, integracao 4).
 - Auditoria knip: 2 funções mortas, 34 exports decorativos, 1 intermediário, `apps/`, `backups/` e 10 `.bak` removidos; `npm run audit` na raiz; `PROTOCOLO.md` criado.
+- Fase 0.1 (baseline): `RELATORIO_FASE0.md` com telemetria do Neon, totais por status, baldes de score e amostra 40–59.
 
 ## Pendências
 
