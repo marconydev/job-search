@@ -52,7 +52,9 @@ function prepararLote(jobs: NewJob[], sourceKey?: string) {
 
     source_key: sourceKey ?? null,
 
-    content_hash: calcularContentHash(job)
+    content_hash: calcularContentHash(job),
+
+    workplace_type: job.workplaceType ?? "unknown"
   }))
 }
 
@@ -86,7 +88,8 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) 
           published_at TIMESTAMPTZ,
           partial BOOLEAN,
           source_key TEXT,
-          content_hash TEXT
+          content_hash TEXT,
+          workplace_type TEXT
         )
       ),
 
@@ -138,7 +141,9 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) 
             j.source_key
           ) AS source_key,
 
-          i.content_hash AS content_hash
+          i.content_hash AS content_hash,
+
+          COALESCE(i.workplace_type, j.workplace_type) AS workplace_type
 
         FROM jobs j
 
@@ -215,6 +220,8 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) 
           source_key = c.source_key,
 
           content_hash = c.content_hash,
+
+          workplace_type = c.workplace_type,
 
           last_seen_at = NOW(),
 
@@ -532,7 +539,8 @@ export async function createJob(job: NewJob, sourceKey?: string): Promise<Stored
           published_at,
           partial,
           source_key,
-          content_hash
+          content_hash,
+          workplace_type
         )
 
         VALUES (
@@ -547,7 +555,8 @@ export async function createJob(job: NewJob, sourceKey?: string): Promise<Stored
           $9,
           $10,
           $11,
-          $12
+          $12,
+          $13
         )
 
         RETURNING *
@@ -575,7 +584,9 @@ export async function createJob(job: NewJob, sourceKey?: string): Promise<Stored
 
       sourceKey ?? null,
 
-      calcularContentHash(job)
+      calcularContentHash(job),
+
+      job.workplaceType ?? "unknown"
     ]
   )
 

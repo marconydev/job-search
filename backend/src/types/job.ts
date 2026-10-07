@@ -1,3 +1,5 @@
+export type WorkplaceType = "remote" | "hybrid" | "on-site" | "unknown"
+
 export type NewJob = {
   source: string
 
@@ -13,15 +15,22 @@ export type NewJob = {
 
   remote: boolean
 
+  /**
+   * Modalidade estruturada da fonte.
+   *
+   * "remote"  → remoto puro.
+   * "hybrid"  → modelo híbrido (aceito no Brasil).
+   * "on-site" → presencial (restrito a João Pessoa/PB).
+   * "unknown" → a fonte não informou.
+   *
+   * Quando ausente, o matcher cai de volta para o booleano `remote`.
+   */
+  workplaceType?: WorkplaceType
+
   url: string
 
   publishedAt: string | null
 
-  /**
-   * Marco como parcial quando salvei a oportunidade usando apenas
-   * informações da descoberta, sem conseguir extrair a publicação
-   * completa no site original.
-   */
   partial?: boolean
 }
 
@@ -42,6 +51,8 @@ export type StoredJob = {
 
   remote: boolean
 
+  workplace_type?: string | null
+
   url: string
 
   published_at: string | null
@@ -49,32 +60,19 @@ export type StoredJob = {
   partial: boolean
 
   created_at: string
+
+  source_key?: string | null
+
+  last_seen_at?: string | null
+
+  unavailable_at?: string | null
+
+  content_hash?: string | null
 }
 
-/**
- * Status representa o estado operacional da oportunidade.
- *
- * "Vista" não é mais um status: a visualização é registrada em
- * viewed_at sem retirar a vaga da fila de oportunidades em aberto.
- */
 export type JobMatchStatus = "relevant" | "discarded" | "applied" | "ignored"
 
-/**
- * Estados que o usuário pode escolher manualmente pelo dashboard.
- *
- * "discarded" continua reservado ao matcher.
- */
 export type UserJobStatus = "relevant" | "applied" | "ignored"
-
-export type JobMatch = {
-  job: StoredJob
-
-  score: number
-
-  matchedSkills: string[]
-
-  reasons: string[]
-}
 
 export type NewJobMatch = {
   jobId: number
@@ -86,4 +84,14 @@ export type NewJobMatch = {
   reasons: string[]
 
   status: JobMatchStatus
+}
+
+export type JobMatch = {
+  job: StoredJob
+
+  score: number
+
+  matchedSkills: string[]
+
+  reasons: string[]
 }

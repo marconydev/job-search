@@ -140,6 +140,8 @@ export function parseVagasComHtml(html: string, agora = new Date()) {
 
       remote: remoto,
 
+      workplaceType: remoto ? "remote" : "unknown",
+
       url,
 
       publishedAt: interpretarDataPtBr(textoData, agora),

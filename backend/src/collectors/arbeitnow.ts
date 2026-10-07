@@ -74,6 +74,8 @@ function normalizarVaga(vaga: ArbeitnowJob): NewJob | null {
 
     remote: vaga.remote === true,
 
+    workplaceType: vaga.remote === true ? "remote" : "unknown",
+
     url,
 
     publishedAt: normalizarData(vaga.created_at)

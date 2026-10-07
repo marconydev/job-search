@@ -145,7 +145,16 @@ const regioesSemBrasil = ["emea", "europe", "apac"]
 
 const localizacoesEstrangeiras = [
   "united states",
+  "united states of america",
   "usa",
+  "us",
+  "u.s.",
+  "u s",
+  "eua",
+  "estados unidos",
+  "estados unidos da america",
+  "america do norte",
+  "north america",
   "canada",
 
   "united kingdom",

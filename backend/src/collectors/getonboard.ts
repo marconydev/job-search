@@ -12,6 +12,8 @@ import type { NewJob } from "../types/job.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
+import { interpretarModalidadeEstruturada } from "../services/modalidade-vaga.js"
+
 const BASE_API = "https://www.getonbrd.com/api/v0"
 
 const BASE_VAGAS = "https://www.getonbrd.com/jobs/"
@@ -210,6 +212,8 @@ export function normalizarVagaGetOnBoard(vaga: GetOnBoardJob): NewJob | null {
     location: localizacao,
 
     remote: remoto,
+
+    workplaceType: interpretarModalidadeEstruturada(atributos.remote_modality),
 
     url: `${BASE_VAGAS}${encodeURIComponent(String(id))}`,
 

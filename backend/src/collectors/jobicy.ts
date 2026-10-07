@@ -68,6 +68,8 @@ function normalizarVaga(vaga: JobicyJob): NewJob | null {
 
     remote: true,
 
+    workplaceType: "remote",
+
     url,
 
     publishedAt: normalizarData(vaga.pubDate)

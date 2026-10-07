@@ -40,6 +40,7 @@ function criarVagaTemporaria(vaga: NewJob): StoredJob {
     description: vaga.description,
     location: vaga.location,
     remote: vaga.remote,
+    workplace_type: vaga.workplaceType ?? "unknown",
     url: vaga.url,
     published_at: vaga.publishedAt,
     partial: vaga.partial ?? false,

@@ -280,6 +280,14 @@ export function parseGeekHunterHtml(html: string, agora = new Date()) {
 
       remote: remoto,
 
+      workplaceType: remoto
+        ? "remote"
+        : modalidade?.valor === "hibrido"
+          ? "hybrid"
+          : modalidade?.valor === "presencial"
+            ? "on-site"
+            : "unknown",
+
       url,
 
       /**

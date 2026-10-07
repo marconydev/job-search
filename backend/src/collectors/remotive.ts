@@ -37,6 +37,8 @@ function normalizeJob(job: RemotiveJob): NewJob {
     description: job.description,
     location: job.candidate_required_location || null,
     remote: true,
+
+    workplaceType: "remote",
     url: job.url,
     publishedAt: job.publication_date || null
   }

@@ -167,7 +167,7 @@ async function coletarGreenhouse(fonte: FonteAts, limite: number): Promise<JobCo
 
   const jobs = vagasBrutas
     .slice(0, limite)
-    .map(vaga => {
+    .map<NewJob | null>(vaga => {
       const titulo = vaga.title?.trim()
 
       const url = vaga.absolute_url?.trim()
@@ -192,6 +192,8 @@ async function coletarGreenhouse(fonte: FonteAts, limite: number): Promise<JobCo
         location: localizacao,
 
         remote: localizacaoPareceRemota(localizacao),
+
+        workplaceType: localizacaoPareceRemota(localizacao) ? "remote" : "unknown",
 
         url,
 
@@ -303,6 +305,8 @@ async function coletarLever(fonte: FonteAts, limite: number): Promise<JobCollect
 
         remote: modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao),
 
+        workplaceType: modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao) ? "remote" : "unknown",
+
         url: urlVaga,
 
         /**
@@ -399,7 +403,7 @@ async function coletarWorkable(fonte: FonteAts, limite: number): Promise<JobColl
 
   const jobs = vagasBrutas
     .slice(0, limite)
-    .map(vaga => {
+    .map<NewJob | null>(vaga => {
       const titulo = vaga.title?.trim()
 
       const urlVaga = vaga.application_url?.trim() || vaga.shortlink?.trim() || vaga.url?.trim()
@@ -429,6 +433,11 @@ async function coletarWorkable(fonte: FonteAts, limite: number): Promise<JobColl
           vaga.telecommuting === true ||
           modalidadeEhRemota(vaga.workplace_type) ||
           localizacaoPareceRemota(localizacao),
+
+        workplaceType:
+          vaga.telecommuting === true || modalidadeEhRemota(vaga.workplace_type) || localizacaoPareceRemota(localizacao)
+            ? "remote"
+            : "unknown",
 
         url: urlVaga,
 
@@ -493,7 +502,7 @@ async function coletarAshby(fonte: FonteAts, limite: number): Promise<JobCollect
 
   const jobs = vagasListadas
     .slice(0, limite)
-    .map(vaga => {
+    .map<NewJob | null>(vaga => {
       const titulo = vaga.title?.trim()
 
       const urlVaga = vaga.jobUrl?.trim() || vaga.applyUrl?.trim()
@@ -533,6 +542,11 @@ async function coletarAshby(fonte: FonteAts, limite: number): Promise<JobCollect
           vaga.isRemote === true ||
           modalidadeEhRemota(vaga.workplaceType) ||
           localizacaoPareceRemota(localizacao),
+
+        workplaceType:
+          vaga.isRemote === true || modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao)
+            ? "remote"
+            : "unknown",
 
         url: urlVaga,
 
@@ -624,7 +638,7 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
 
   const jobs = ofertas
     .slice(0, limite)
-    .map(oferta => {
+    .map<NewJob | null>(oferta => {
       const titulo = oferta.title?.trim()
 
       const slug = oferta.slug?.trim()
@@ -660,6 +674,11 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
           oferta.remote === true ||
           modalidadeEhRemota(oferta.workplace_type) ||
           localizacaoPareceRemota(localizacao),
+
+        workplaceType:
+          oferta.remote === true || modalidadeEhRemota(oferta.workplace_type) || localizacaoPareceRemota(localizacao)
+            ? "remote"
+            : "unknown",
 
         url: urlVaga,
 
@@ -766,6 +785,11 @@ async function coletarInHire(fonte: FonteAts, limite: number): Promise<JobCollec
 
         remote:
           modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao),
+
+        workplaceType:
+          modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao)
+            ? "remote"
+            : "unknown",
 
         url,
 

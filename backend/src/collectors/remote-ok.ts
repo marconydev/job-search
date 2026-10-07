@@ -92,6 +92,8 @@ function normalizarVaga(vaga: RemoteOkJob): NewJob | null {
 
     remote: true,
 
+    workplaceType: "remote",
+
     url,
 
     publishedAt: normalizarData(vaga)

@@ -154,6 +154,13 @@ function normalizarVaga(job: SolidesJob): NewJob | null {
 
   const remoto = vagaSolidesEhRemota(job)
 
+  const workplaceType = (() => {
+    const modalidade = interpretarModalidadeEstruturada(job.jobType)
+    if (modalidade !== "unknown") return modalidade
+    if (job.homeOffice === true) return "remote" as const
+    return "unknown" as const
+  })()
+
   return {
     source: "solides",
 
@@ -168,6 +175,8 @@ function normalizarVaga(job: SolidesJob): NewJob | null {
     location: localizacao,
 
     remote: remoto,
+
+    workplaceType,
 
     url,
 

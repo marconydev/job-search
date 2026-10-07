@@ -204,7 +204,13 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
   const politica = avaliarPoliticaVagaBrasil({
     title: vaga.title,
     location: vaga.location,
-    remote: vaga.remote
+    remote: vaga.remote,
+    workplaceType: ((vaga as { workplace_type?: string }).workplace_type ?? undefined) as
+      | "remote"
+      | "hybrid"
+      | "on-site"
+      | "unknown"
+      | undefined
   })
 
   let pontuacao = 0

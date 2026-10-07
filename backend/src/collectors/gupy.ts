@@ -2,7 +2,7 @@ import * as cheerio from "cheerio"
 
 import { gerarTermosBuscaNativaGupy } from "../config/search-queries.js"
 
-import { trabalhoEhRemotoPorFonteEstruturada } from "../services/modalidade-vaga.js"
+import { trabalhoEhRemotoPorFonteEstruturada, interpretarModalidadeEstruturada } from "../services/modalidade-vaga.js"
 
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
@@ -164,6 +164,10 @@ function normalizarVaga(vaga: GupyJob): NewJob | null {
      * A descrição da vaga não participa desta decisão.
      */
     remote: trabalhoEhRemotoPorFonteEstruturada(vaga.workplaceType, vaga.isRemoteWork),
+
+    workplaceType: interpretarModalidadeEstruturada(vaga.workplaceType) === "unknown" && vaga.isRemoteWork === true
+      ? "remote"
+      : interpretarModalidadeEstruturada(vaga.workplaceType),
 
     url,
 
