@@ -24,6 +24,10 @@ type LinhaFonteAts = {
   falhas_consecutivas: number
 
   ultimo_erro: string | null
+
+  ultimos_aderentes: number
+
+  coletas_sem_aderentes: number
 }
 
 function mapearFonte(linha: LinhaFonteAts): FonteAts {
@@ -48,7 +52,11 @@ function mapearFonte(linha: LinhaFonteAts): FonteAts {
 
     falhasConsecutivas: linha.falhas_consecutivas,
 
-    ultimoErro: linha.ultimo_erro
+    ultimoErro: linha.ultimo_erro,
+
+    ultimosAderentes: linha.ultimos_aderentes,
+
+    coletasSemAderentes: linha.coletas_sem_aderentes
   }
 }
 
@@ -98,11 +106,17 @@ export async function registrarFonteAts(fonte: NovaFonteAts): Promise<FonteAts> 
 }
 
 /**
- * Eu priorizo fontes nunca coletadas e, depois, as que estão há mais
- * tempo sem atualização.
+ * Ordem de prioridade da fila de coleta:
  *
- * Isso permite que o número de empresas aprendidas cresça sem gerar uma
- * tempestade de centenas de requisições simultâneas.
+ * 1. boards com menos coletas improdutivas seguidas;
+ * 2. empate desfeito pelo board que está há mais tempo sem coleta
+ *    (board nunca coletado vai primeiro);
+ * 3. empate final pela última descoberta.
+ *
+ * O cap em LEAST(coletas_sem_aderentes, 10) garante que um board que
+ * ficou muito tempo sem entregar nada não fique permanentemente fora da
+ * fila: quando ele empata com outros no topo do cap, a rotação por
+ * tempo volta a dar chance a ele.
  */
 export async function listarFontesAtsParaColeta(limite = 40): Promise<FonteAts[]> {
   const resultado = await db.query<LinhaFonteAts>(
@@ -113,6 +127,8 @@ export async function listarFontesAtsParaColeta(limite = 40): Promise<FonteAts[]
         WHERE ativa = TRUE
 
         ORDER BY
+          LEAST(coletas_sem_aderentes, 10) ASC,
+
           ultima_coleta_em
             ASC NULLS FIRST,
 
@@ -126,7 +142,11 @@ export async function listarFontesAtsParaColeta(limite = 40): Promise<FonteAts[]
   return resultado.rows.map(mapearFonte)
 }
 
-export async function registrarSucessoColetaFonteAts(id: string) {
+/**
+ * Registrar um sucesso de coleta com o número de vagas aderentes
+ * permite afastar boards improdutivos nas próximas rotações.
+ */
+export async function registrarSucessoColetaFonteAts(id: string, aderentes = 0) {
   await db.query(
     `
       UPDATE fontes_ats
@@ -135,11 +155,21 @@ export async function registrarSucessoColetaFonteAts(id: string) {
 
         falhas_consecutivas = 0,
 
-        ultimo_erro = NULL
+        ultimo_erro = NULL,
+
+        ultimos_aderentes = $2,
+
+        coletas_sem_aderentes =
+          CASE
+            WHEN $2 > 0
+              THEN 0
+            ELSE
+              coletas_sem_aderentes + 1
+          END
 
       WHERE id = $1
     `,
-    [id]
+    [id, aderentes]
   )
 }
 

@@ -8,9 +8,13 @@ import {
   resolverUrl
 } from "./collector-utils.js"
 
+import { gerarTermosBuscaPortugues } from "./collector-utils.js"
+
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
 import type { NewJob } from "../types/job.js"
+
+import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 const BASE_URL = "https://www.geekhunter.com"
 
@@ -299,8 +303,12 @@ function normalizarLimite(valor: number | undefined) {
   return Math.min(Math.max(Math.floor(valor), 1), LIMITE_PADRAO)
 }
 
-async function buscarPagina(pagina: number) {
+async function buscarPagina(pagina: number, termo?: string) {
   const url = new URL(URL_VAGAS)
+
+  if (termo) {
+    url.searchParams.set("title", termo)
+  }
 
   if (pagina > 1) {
     url.searchParams.set("page", String(pagina))
@@ -319,16 +327,24 @@ async function buscarPagina(pagina: number) {
   return resposta.text()
 }
 
-export async function collectGeekHunterJobs(limit = LIMITE_PADRAO): Promise<JobCollection> {
+export async function collectGeekHunterJobs(
+  limit = LIMITE_PADRAO,
+  perfil?: PerfilProfissional
+): Promise<JobCollection> {
   const limite = normalizarLimite(limit)
 
   const vagasPorId = new Map<string, NewJob>()
 
-  for (let pagina = 1; pagina <= LIMITE_MAXIMO_PAGINAS && vagasPorId.size < limite; pagina++) {
+  const termos = perfil ? gerarTermosBuscaPortugues(perfil, 10) : []
+
+  const escopos = termos.length > 0 ? termos : [undefined]
+
+  for (const termo of escopos) {
+    for (let pagina = 1; pagina <= LIMITE_MAXIMO_PAGINAS && vagasPorId.size < limite; pagina++) {
     let html: string
 
     try {
-      html = await buscarPagina(pagina)
+      html = await buscarPagina(pagina, termo)
     } catch (erro) {
       const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
 
@@ -360,7 +376,7 @@ export async function collectGeekHunterJobs(limit = LIMITE_PADRAO): Promise<JobC
     }
 
     console.log(
-      `GeekHunter: página ${pagina}, ` +
+      `GeekHunter: termo="${termo ?? "sem filtro"}" página ${pagina}, ` +
         `${vagas.length} vaga(s) extraída(s), ` +
         `${novasNestaPagina} nova(s) nesta coleta.`
     )
@@ -369,6 +385,11 @@ export async function collectGeekHunterJobs(limit = LIMITE_PADRAO): Promise<JobC
      * Proteção contra paginação repetida pelo servidor.
      */
     if (novasNestaPagina === 0) {
+      break
+    }
+    }
+
+    if (vagasPorId.size >= limite) {
       break
     }
   }

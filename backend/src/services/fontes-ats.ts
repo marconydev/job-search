@@ -436,7 +436,7 @@ export async function coletarFontesAtsAprendidas(
         indisponiveis = await reconcileCompleteSourceAvailability(coleta.sourceKey, coleta.jobs)
       }
 
-      await registrarSucessoColetaFonteAts(fonte.id)
+      await registrarSucessoColetaFonteAts(fonte.id, vagasAderentes.length)
 
       resultados.push({
         ...importacao,
@@ -495,10 +495,13 @@ export async function coletarFontesAtsAprendidas(
 
               descartes: {
                 foraDaJanela: diagnostico.foraDaJanela,
-
                 localizacaoIncompativel: diagnostico.localizacaoIncompativel,
-
-                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo
+                tituloForaFoco: diagnostico.tituloForaFoco,
+                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo,
+                scoreZero: diagnostico.scoreZero,
+                score1a39: diagnostico.score1a39,
+                score40a49: diagnostico.score40a49,
+                score50a59: diagnostico.score50a59
               }
             })
           } catch (erroTelemetria) {

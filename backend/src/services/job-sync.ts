@@ -200,10 +200,13 @@ async function coletarFontesDiretas(
 
               descartes: {
                 foraDaJanela: diagnostico.foraDaJanela,
-
                 localizacaoIncompativel: diagnostico.localizacaoIncompativel,
-
-                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo
+                tituloForaFoco: diagnostico.tituloForaFoco,
+                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo,
+                scoreZero: diagnostico.scoreZero,
+                score1a39: diagnostico.score1a39,
+                score40a49: diagnostico.score40a49,
+                score50a59: diagnostico.score50a59
               },
 
               duracaoMs: Math.round(performance.now() - inicioFonte)

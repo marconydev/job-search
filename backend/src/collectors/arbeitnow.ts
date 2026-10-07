@@ -1,6 +1,10 @@
+import { gerarTermosBuscaPortugues, normalizarTexto } from "./collector-utils.js"
+
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
 import type { NewJob } from "../types/job.js"
+
+import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 const URL_ARBEITNOW = "https://www.arbeitnow.com/api/job-board-api"
 
@@ -76,7 +80,12 @@ function normalizarVaga(vaga: ArbeitnowJob): NewJob | null {
   }
 }
 
-export async function collectArbeitnowJobs(limit = 100): Promise<JobCollection> {
+export async function collectArbeitnowJobs(
+  limit = 100,
+  perfil?: PerfilProfissional
+): Promise<JobCollection> {
+  const termos = perfil ? gerarTermosBuscaPortugues(perfil, 10).map(normalizarTexto) : []
+
   const jobs: NewJob[] = []
 
   let proximaUrl: string | null = URL_ARBEITNOW
@@ -107,6 +116,13 @@ export async function collectArbeitnowJobs(limit = 100): Promise<JobCollection> 
 
       if (!normalizada) {
         continue
+      }
+
+      if (termos.length > 0) {
+        const titulo = normalizarTexto(normalizada.title)
+        if (!termos.some(termo => titulo.includes(termo))) {
+          continue
+        }
       }
 
       jobs.push(normalizada)

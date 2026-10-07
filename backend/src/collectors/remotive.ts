@@ -1,6 +1,10 @@
+import { gerarTermosBuscaPortugues } from "./collector-utils.js"
+
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
 import type { NewJob } from "../types/job.js"
+
+import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 const REMOTIVE_API_URL = "https://remotive.com/api/remote-jobs"
 
@@ -38,22 +42,48 @@ function normalizeJob(job: RemotiveJob): NewJob {
   }
 }
 
-export async function collectRemotiveJobs(limit = 100): Promise<JobCollection> {
-  const url = new URL(REMOTIVE_API_URL)
+export async function collectRemotiveJobs(
+  limit = 100,
+  perfil?: PerfilProfissional
+): Promise<JobCollection> {
+  const termos = perfil ? gerarTermosBuscaPortugues(perfil, 8) : []
 
-  url.searchParams.set("limit", String(limit))
+  const vagasPorId = new Map<number, NewJob>()
 
-  const response = await fetch(url)
+  const escopos = termos.length > 0 ? termos : [null]
 
-  if (!response.ok) {
-    throw new Error(`Remotive respondeu com status ${response.status}`)
+  for (const termo of escopos) {
+    const url = new URL(REMOTIVE_API_URL)
+
+    if (termo) {
+      url.searchParams.set("search", termo)
+    } else {
+      url.searchParams.set("limit", String(limit))
+    }
+
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      throw new Error(`Remotive respondeu com status ${response.status}`)
+    }
+
+    const data = (await response.json()) as RemotiveResponse
+
+    for (const job of data.jobs) {
+      if (vagasPorId.size >= limit) {
+        break
+      }
+      if (!vagasPorId.has(job.id)) {
+        vagasPorId.set(job.id, normalizeJob(job))
+      }
+    }
+
+    console.log(`Remotive: termo="${termo ?? "sem filtro"}" ${data.jobs.length} resultado(s).`)
   }
-
-  const data = (await response.json()) as RemotiveResponse
 
   return {
     source: "remotive",
-    jobs: data.jobs.map(normalizeJob)
+    jobs: [...vagasPorId.values()]
   }
 }
 

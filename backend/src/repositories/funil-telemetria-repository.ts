@@ -2,15 +2,25 @@ import { db } from "../database/connection.js"
 
 export type TelemetriaFonte = {
   execucaoId: string
+
   fonte: string
+
   coletadas: number
+
   aposJanela: number
+
   aposElegibilidade: number
+
   aposMatcher: number
+
   importadas: number
+
   duplicadas: number
+
   descartes?: Record<string, number>
+
   erros?: string[]
+
   duracaoMs?: number
 }
 
@@ -46,17 +56,20 @@ export async function listarTelemetriaDaExecucao(execucaoId: string) {
       ORDER BY id ASC`,
     [execucaoId]
   )
+
   return r.rows
 }
 
 export async function listarTelemetriaRecente(limite = 50) {
   const r = await db.query(
-    `SELECT execucao_id, fonte, coletadas, apos_matcher, importadas,
-            duplicadas, duracao_ms, created_at
+    `SELECT execucao_id, fonte, coletadas, apos_janela, apos_elegibilidade,
+            apos_matcher, importadas, duplicadas, descartes, erros,
+            duracao_ms, created_at
        FROM funil_telemetria
       ORDER BY created_at DESC
       LIMIT $1`,
     [Math.max(1, Math.floor(limite))]
   )
+
   return r.rows
 }

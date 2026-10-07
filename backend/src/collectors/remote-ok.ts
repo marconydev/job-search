@@ -1,6 +1,10 @@
+import { gerarTermosBuscaPortugues, normalizarTexto } from "./collector-utils.js"
+
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
 import type { NewJob } from "../types/job.js"
+
+import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 const URL_REMOTE_OK = "https://remoteok.com/api"
 
@@ -94,7 +98,10 @@ function normalizarVaga(vaga: RemoteOkJob): NewJob | null {
   }
 }
 
-export async function collectRemoteOkJobs(limit = 100): Promise<JobCollection> {
+export async function collectRemoteOkJobs(
+  limit = 100,
+  perfil?: PerfilProfissional
+): Promise<JobCollection> {
   const response = await fetch(URL_REMOTE_OK, {
     headers: {
       Accept: "application/json",
@@ -109,9 +116,18 @@ export async function collectRemoteOkJobs(limit = 100): Promise<JobCollection> {
 
   const dados = (await response.json()) as RemoteOkJob[]
 
+  const termos = perfil ? gerarTermosBuscaPortugues(perfil, 10).map(normalizarTexto) : []
+
   const jobs = dados
     .map(normalizarVaga)
     .filter((vaga): vaga is NewJob => vaga !== null)
+    .filter(vaga => {
+      if (termos.length === 0) {
+        return true
+      }
+      const titulo = normalizarTexto(vaga.title)
+      return termos.some(termo => titulo.includes(termo))
+    })
     .slice(0, Math.max(0, limit))
 
   return {

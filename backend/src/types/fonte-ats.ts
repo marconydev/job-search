@@ -38,4 +38,20 @@ export type FonteAts = {
   falhasConsecutivas: number
 
   ultimoErro: string | null
+
+  /**
+   * Quantas vagas aderentes a última coleta entregou.
+   *
+   * Opcional para não quebrar mocks antigos de teste; o repositório
+   * sempre preenche quando vem do banco.
+   */
+  ultimosAderentes?: number
+
+  /**
+   * Coletas seguidas sem nenhuma vaga aderente.
+   *
+   * Usado para empurrar boards improdutivos para o fim da fila sem
+   * removê-los definitivamente.
+   */
+  coletasSemAderentes?: number
 }
