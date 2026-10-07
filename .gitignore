@@ -46,4 +46,6 @@ Thumbs.db
 
 # Editores
 .vscode/
-.idea/
+.idea/.env.neon
+.env.local
+.env.neon

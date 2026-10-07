@@ -14,7 +14,7 @@ Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS 4, Lucide React.
     cd backend && npm ci
     cd ../frontend && npm ci
 
-Configurar `backend/.env` e `frontend/.env` com base nos `.env.example`. Aplicar as migrations de `database/migrations` em ordem.
+Configurar `backend/.env` e `frontend/.env.local` com base nos `.env.example`. Aplicar as migrations de `database/migrations` em ordem.
 
 Backend: `cd backend && npm run dev`.
 Frontend: `cd frontend && npm run dev`.
@@ -29,6 +29,6 @@ Frontend: `cd frontend && npm run dev`.
 - `README_ATUAL.md` — estado atual da aplicação.
 - `PRD.md` — requisitos de produto.
 - `DESIGN.md` — arquitetura, padrões e mapa de arquivos.
-- `HANDOFF.md` — passagem de bastão, pendências e decisões.
+- `HANDOFF.md` — passagem de bastão, pendências e manual de retomada.
 - `CHANGELOG.md` — histórico de mudanças.
 - `CONFIG.md` — variáveis de ambiente, dependências e migrações.

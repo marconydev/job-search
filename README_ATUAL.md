@@ -1,6 +1,6 @@
 # README_ATUAL — Job Search
 
-Snapshot do estado da aplicação após a sessão de outubro/2026.
+Snapshot do estado da aplicação após a sessão de 06-07/10/2026.
 
 ## Funcionalidades ativas
 
@@ -10,31 +10,26 @@ Snapshot do estado da aplicação após a sessão de outubro/2026.
 - Cache de buscas web em PostgreSQL com TTL de 7 dias.
 - Elegibilidade geográfica Brasil com regras para remoto global, LATAM e listas de cidades.
 - Matching determinístico local, score 0–100, corte 60.
+- Trava geográfica em 3 estados (remote | hybrid | on-site | unknown).
 - Perfil profissional singleton em JSONB.
 - Importação de currículo PDF, DOCX e TXT.
 - Sincronização assíncrona com trava, heartbeat e detecção de interrupção.
-- Telemetria de funil por execução/fonte em `funil_telemetria` (M1).
-- Hash de conteúdo das vagas para evitar reanálise redundante (C11).
-- Dashboard com status de nova, vista, aplicada e ignorada.
+- Telemetria de funil por execução/fonte em `funil_telemetria`.
+- Hash de conteúdo das vagas para evitar reanálise redundante.
+- Fila de ATS prioriza boards produtivos por `coletas_sem_aderentes`.
 
-## Perfil profissional padrão
+## Sessão de outubro/2026 — o que mudou
 
-Foco em Analista de Suporte, Sistemas, Infraestrutura, Implantação, Processos e Dados. Aliases em inglês como "Technical Support" e "Application Support" entram nas buscas nativas por decisão explícita do produto (M2).
+- Endpoints Gupy e Sólides corrigidos. Sync subiu de 0 para ~250 vagas/sync.
+- Migrations 007 a 015 aplicadas no Neon.
+- M1 (telemetria 8 baldes), M2 (cargos do perfil como termos), M3 (trava em 3 estados), M4, M9, M11, C11.
+- Trava geográfica: presencial fora de João Pessoa/PB vetado; híbrida e remota livres no Brasil.
+- `titulosExcluidos` expandido: estágio, aprendiz, C-level executivo.
+- `elegibilidade-localizacao`: adicionadas variações de EUA (us, u.s., eua, estados unidos).
+- Re-análise em massa no Neon (1197 análises).
 
-## O que mudou em outubro/2026
+## Pendências
 
-- Corte centralizado em `MIN_SCORE_RELEVANT` (M9).
-- `MATCHER_VERSION` passou para 3.
-- Cargos do perfil passaram a virar termos de busca nativa (M2).
-- Trava fixa de João Pessoa/PB removida (M3).
-- Título fora do foco em português desconta 15 pontos em vez de vetar (M4).
-- `localizacoesAceitas` do perfil passa a ser consultado pelo matcher (M11).
-- Coluna `content_hash` em `jobs` (C11).
-- Endpoint `GET /jobs/telemetria` e repositório de telemetria (M1).
-- Suíte de testes passou de 169 para 175 casos.
-
-## Pendências críticas
-
-- Wave B (frontend) não iniciado.
-- Conversão dos ATS abaixo do esperado: vários boards retornam 100-150 vagas e entregam 0 aderentes.
-- Fontes remotas (`remotive`, `remote-ok`, `arbeitnow`) trazem poucos resultados aderentes.
+- Fase 1A: expansão de vocabulário em `search-queries.ts` (7 famílias).
+- Fase 1B: observabilidade agregada (`GET /jobs/telemetria/resumo` + componente no painel).
+- Fase 2 (futura): botão "segunda opinião por IA" on-demand.

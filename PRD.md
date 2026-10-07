@@ -6,7 +6,7 @@ Aplicação pessoal de descoberta, análise e acompanhamento de vagas que use o 
 
 ## 2. Público-alvo
 
-Uso pessoal, um único perfil persistido. Não há arquitetura multiusuário.
+Uso pessoal, um único perfil persistido. Sem arquitetura multiusuário.
 
 ## 3. Escopo dentro
 
@@ -40,8 +40,10 @@ Uso pessoal, um único perfil persistido. Não há arquitetura multiusuário.
 - RF10 Deduplicar por `source + external_id`.
 - RF11 Acompanhar status manual.
 - RF12 Sincronizar em background com estado persistido.
-- RF13 Registrar contadores de funil por execução/fonte (M1).
-- RF14 Considerar `localizacoesAceitas` no matcher (M11).
+- RF13 Registrar contadores de funil por execução/fonte.
+- RF14 Considerar `localizacoesAceitas` no matcher.
+- RF15 Distinguir modalidade (remote | hybrid | on-site | unknown).
+- RF16 Vetar presencial fora de João Pessoa/PB, aceitar híbrida e remota em todo o Brasil.
 
 ## 6. Requisitos não funcionais
 
@@ -63,36 +65,40 @@ Uso pessoal, um único perfil persistido. Não há arquitetura multiusuário.
 8. Busca web e coleta direta são camadas diferentes.
 9. Candidatura não é automatizada.
 10. Elegibilidade territorial antes do score final.
-11. Modalidade remota prefere dado estruturado.
-12. Título fora do foco em português desconta; não veta (M4).
-13. `localizacoesAceitas` amplia aceitação explícita (M11).
+11. Modalidade estruturada da fonte sempre vence.
+12. Título fora do foco em português desconta 15 pontos; não veta.
+13. `localizacoesAceitas` amplia aceitação explícita; exclusão explícita vence.
+14. Presencial só João Pessoa/PB (inclui Campina Grande e Paraíba).
+15. Híbrida e remota aceitas em qualquer lugar do Brasil.
 
 ## 8. Critérios de aceite
 
 - Perfil salvo persiste após reinício.
 - Coletores diretos rodam sem Brave.
-- Brave pode ser habilitada separadamente.
 - Vagas de fontes diferentes coexistem sem duplicação.
-- Vaga aderente recebe score compatível.
-- Vaga incompatível sai com score 0.
+- Vaga com localização incompatível sai com score 0.
+- Presencial fora de JP/PB sai com score 0.
+- Híbrida e remota passam mesmo fora de JP/PB.
 - Título excluído é rejeitado.
 - Sync retorna rápido e executa em background.
 - Tentativa simultânea não cria duas execuções.
-- Execução interrompida é detectada por heartbeat expirado.
 
 ## 9. Riscos
 
-Mudança de HTML/endpoint das fontes, rate limit, falsos negativos, falsos positivos, ambiguidade de localização, dependência opcional da Brave, limites do ambiente gratuito.
+- Mudança de HTML/endpoint das fontes.
+- Rate limit ou bloqueio anti-bot.
+- Falsos positivos em vagas remotas internacionais.
+- Dependência opcional da Brave.
 
 ## 10. Roadmap
 
-- P0: consolidar abstração de portais agregadores.
-- P1: testes de regressão de cobertura.
-- P2: revisar falsos negativos via telemetria.
-- P3: manter sincronização, cache, orçamento e lifecycle estáveis.
+- P0: concluído — endpoints, migrations, M1-M11, C11, trava 3 estados.
+- P1: expansão de vocabulário (7 famílias em `search-queries.ts`).
+- P1: observabilidade agregada.
+- P2: revisar falsos positivos residuais.
+- P2 (futura): botão IA on-demand por vaga.
 
 ## 11. Pontos a definir
 
-- Estratégia de paginação por portal: A DEFINIR.
+- Estratégia de paginação por ATS: A DEFINIR.
 - Lista final de consultas Brave a remover: A DEFINIR.
-- Limite ideal por portal em sincronização: A DEFINIR.
