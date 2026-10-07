@@ -20,10 +20,10 @@ Suíte: 186 testes verdes.
 - `titulosExcluidos` expandido.
 - Variações de EUA em `localizacoesEstrangeiras`.
 - Re-análise em massa no Neon (1197 análises).
+- Fase 1A: vocabulário de `search-queries.ts` expandido nas 7 famílias; `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5`.
 
 ## 3. Pendências
 
-- Fase 1A: expansão de vocabulário em `search-queries.ts` (7 famílias).
 - Fase 1B: observabilidade agregada.
 - Fase 2 (futura): botão "segunda opinião por IA" on-demand.
 
@@ -118,10 +118,9 @@ Estado atual (07/10/2026): 186 testes verdes. Últimos commits:
 - dceb9e2 feat(engine): trava geográfica em 3 estados
 - 2f98be3 feat: correção de endpoints, M1-M11, telemetria e priorização de ATS
 
-Concluído: endpoints Gupy e Sólides corrigidos; migrations 007-015 no Neon; M1 telemetria; M2 termos; M4 desconto; M9; M11; C11; trava geográfica 3 estados (presencial fora de JP/PB vetado, híbrida e remota livres no Brasil); ATS priorizados.
+Concluído: endpoints Gupy e Sólides corrigidos; migrations 007-015 no Neon; M1 telemetria; M2 termos; M4 desconto; M9; M11; C11; trava geográfica 3 estados (presencial fora de JP/PB vetado, híbrida e remota livres no Brasil); ATS priorizados; Fase 1A (vocabulário expandido em search-queries.ts, LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5).
 
 Pendências:
-- Fase 1A: expansão de vocabulário em search-queries.ts (7 famílias: suporte, sistemas, infraestrutura, implantacao, processos, dados, geral) com sinônimos em PT/EN.
 - Fase 1B: observabilidade agregada (GET /jobs/telemetria/resumo + componente).
 - Fase 2 (futura): botão "segunda opinião por IA" on-demand.
 

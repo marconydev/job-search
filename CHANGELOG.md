@@ -2,6 +2,18 @@
 
 Consolidado a partir do histórico de commits de `main` e das mudanças da sessão de outubro/2026.
 
+## [2026-10-07 — Fase 1A] — vocabulário das 7 famílias
+
+### Added
+
+- Vocabulário de `search-queries.ts` expandido nas 6 famílias específicas (`suporte`, `sistemas`, `infraestrutura`, `implantacao`, `processos`, `dados`) com sinônimos PT/EN, variações N1/N2/N3 e níveis Sênior/Pleno/Júnior.
+- Constante `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5`, aplicada em `gerarTermosBuscaNativaGupy`.
+
+### Changed
+
+- `PALAVRAS_FAMILIA` ampliado com termos adicionais (ex.: `sysadmin`, `virtualization`, `rollout`, `analytics`, `tableau`, `looker`, `information security`).
+- `gerarTermosBuscaNativaGupy` passa a limitar os títulos relacionados a 5 por família antes do `slice(0, 30)`, garantindo que todas as famílias ativas do perfil apareçam.
+
 ## [2026-10-07] — veto geográfico e re-análise
 
 ### Fixed

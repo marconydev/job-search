@@ -91,7 +91,20 @@ Lista de `localizacoesEstrangeiras` inclui: `us`, `u.s.`, `usa`, `eua`, `estados
 
 `fontes_ats.coletas_sem_aderentes` incrementa a cada coleta sem vaga aderente, zera quando dá resultado. Fila ordena por `LEAST(coletas_sem_aderentes, 10) ASC`.
 
-## 12. Mapa de arquivos
+## 12. Vocabulário de busca
+
+`search-queries.ts` centraliza o vocabulário de títulos e palavras-chave consumido por:
+
+- coleta nativa (Gupy, Sólides);
+- descoberta Brave (plataformas complementares, grupos de empresas, regiões).
+
+Famílias: `suporte`, `sistemas`, `infraestrutura`, `implantacao`, `processos`, `dados`, `geral`. Cada família específica tem `tituloPrincipal` e `titulosRelacionados` em `ESTRATEGIAS_FAMILIAS_PORTAIS`, além de palavras-chave classificatórias em `PALAVRAS_FAMILIA`.
+
+Ordem final dos termos da coleta nativa: cargos do perfil (M2) → títulos principais por família → títulos relacionados. `geral` permanece sem termos para não gerar consulta genérica.
+
+A coleta nativa da Gupy limita os relacionados a `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5` por família, garantindo que todas as famílias ativas do perfil apareçam antes do corte final de 30 termos. A Sólides reaproveita a mesma lista, cortada em 20.
+
+## 13. Mapa de arquivos
 
 backend/src/collectors/: index.ts, gupy.ts, solides.ts, vagas-com.ts, geekhunter.ts, getonboard.ts, remotive.ts, remote-ok.ts, jobicy.ts, arbeitnow.ts, ats.ts, collector-utils.ts
 

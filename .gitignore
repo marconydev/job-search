@@ -49,3 +49,6 @@ Thumbs.db
 .idea/.env.neon
 .env.local
 .env.neon
+
+# Backups de trabalho (HANDOFF)
+*.bak

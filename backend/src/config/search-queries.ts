@@ -67,6 +67,14 @@ const ORDEM_FAMILIAS: NomeFamilia[] = [
 ]
 
 /**
+ * A coleta nativa da Gupy limita a 30 termos por execucao.
+ * Cada familia contribui com no maximo este numero de titulos
+ * relacionados, garantindo que todas as familias ativas aparecam
+ * antes do corte do slice(0, 30).
+ */
+const LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5
+
+/**
  * Títulos utilizados tanto pela busca web complementar quanto
  * pela coleta nativa da Gupy.
  *
@@ -79,10 +87,23 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
 
     titulosRelacionados: [
       "Analista de Suporte Técnico",
+      "Analista de Suporte N1",
+      "Analista de Suporte N2",
+      "Analista de Suporte N3",
       "Suporte Técnico",
+      "Suporte ao Usuário",
+      "Suporte Remoto",
       "Técnico de Suporte",
+      "Técnico em Informática",
       "Analista de Service Desk",
-      "Analista de Help Desk"
+      "Analista de Help Desk",
+      "Technical Support Analyst",
+      "Support Analyst",
+      "IT Support Analyst",
+      "IT Support Specialist",
+      "Help Desk Analyst",
+      "Service Desk Analyst",
+      "Desktop Support Analyst"
     ],
 
     paginasPrincipais: 2
@@ -94,9 +115,21 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
     titulosRelacionados: [
       "Analista de Sustentação",
       "Analista de Aplicações",
+      "Analista de Sistemas ERP",
+      "Analista de Sistemas Web",
+      "Analista de Sistemas Sênior",
+      "Analista de Sistemas Pleno",
+      "Analista de Sistemas Júnior",
+      "Analista de Suporte a Sistemas",
       "Suporte de Sistemas",
       "Suporte de Aplicação",
-      "Analista Funcional"
+      "Suporte a Aplicações",
+      "Analista Funcional",
+      "Systems Analyst",
+      "Application Support Analyst",
+      "Application Analyst",
+      "Production Support Analyst",
+      "AMS Analyst"
     ],
 
     paginasPrincipais: 2
@@ -106,11 +139,25 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
     tituloPrincipal: "Analista de Infraestrutura",
 
     titulosRelacionados: [
+      "Analista de Infraestrutura de TI",
       "Analista de Redes",
+      "Analista de Redes e Infraestrutura",
       "Analista NOC",
       "Analista de Monitoramento",
+      "Analista de Cloud",
+      "Analista de Virtualização",
+      "Analista de Backup",
       "Administrador de Sistemas",
-      "Analista de Operações de TI"
+      "Administrador de Redes",
+      "Analista de Operações de TI",
+      "Analista de Segurança da Informação",
+      "Infrastructure Analyst",
+      "Network Analyst",
+      "NOC Analyst",
+      "Monitoring Analyst",
+      "Cloud Analyst",
+      "System Administrator",
+      "IT Operations Analyst"
     ],
 
     paginasPrincipais: 2
@@ -120,10 +167,19 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
     tituloPrincipal: "Analista de Implantação",
 
     titulosRelacionados: [
+      "Analista de Implantação de Software",
+      "Analista de Implantação de Sistemas",
       "Consultor de Implantação",
+      "Consultor de Implantação de Sistemas",
       "Especialista de Implantação",
       "Analista de Implementação",
-      "Analista de Onboarding"
+      "Analista de Onboarding",
+      "Implantador de Sistemas",
+      "Implementation Analyst",
+      "Implementation Specialist",
+      "Software Implementation Analyst",
+      "Onboarding Specialist",
+      "Customer Success Analyst"
     ],
 
     paginasPrincipais: 1
@@ -133,10 +189,18 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
     tituloPrincipal: "Analista de Processos",
 
     titulosRelacionados: [
-      "Analista de Negócios",
-      "Analista BPM",
       "Analista de Processos de Negócio",
-      "Analista de Melhoria Contínua"
+      "Analista de Processos e Qualidade",
+      "Analista de Negócios",
+      "Analista de Negócios de TI",
+      "Analista BPM",
+      "Analista de Melhoria Contínua",
+      "Analista de Governança",
+      "Business Analyst",
+      "Business Process Analyst",
+      "Process Analyst",
+      "BPM Analyst",
+      "Continuous Improvement Analyst"
     ],
 
     paginasPrincipais: 1
@@ -146,9 +210,21 @@ const ESTRATEGIAS_FAMILIAS_PORTAIS: Record<NomeFamilia, EstrategiaFamiliaPortal>
     tituloPrincipal: "Analista de Dados",
 
     titulosRelacionados: [
+      "Analista de Dados Sênior",
+      "Analista de Dados Pleno",
+      "Analista de Dados Júnior",
       "Analista de BI",
+      "Analista de Business Intelligence",
       "Analista de Inteligência de Negócios",
-      "Analista de Power BI"
+      "Analista de Power BI",
+      "Analista de Analytics",
+      "Analista de Relatórios",
+      "Data Analyst",
+      "BI Analyst",
+      "Business Intelligence Analyst",
+      "Power BI Analyst",
+      "Analytics Analyst",
+      "Reporting Analyst"
     ],
 
     paginasPrincipais: 1
@@ -367,22 +443,37 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
     "helpdesk",
     "service desk",
     "desktop support",
+    "deskside",
     "field service",
     "support engineer",
     "support specialist",
     "support technician",
-    "technical service"
+    "technical service",
+    "technical support",
+    "it support",
+    "customer support",
+    "suporte tecnico",
+    "suporte remoto"
   ],
 
   sistemas: [
     "sistema",
+    "sistemas",
     "systems",
     "application",
+    "applications",
     "aplicacao",
     "aplicacoes",
     "sustentacao",
     "production support",
-    "ams analyst"
+    "ams analyst",
+    "application support",
+    "systems analyst",
+    "erp",
+    "functional analyst",
+    "analista funcional",
+    "suporte de sistemas",
+    "suporte de aplicacao"
   ],
 
   infraestrutura: [
@@ -394,10 +485,34 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
     "observabilidade",
     "observability",
     "it operations",
-    "technical operations"
+    "technical operations",
+    "network",
+    "networking",
+    "redes",
+    "cloud",
+    "virtualizacao",
+    "virtualization",
+    "backup",
+    "system administrator",
+    "sysadmin",
+    "administrador de sistemas",
+    "seguranca da informacao",
+    "information security"
   ],
 
-  implantacao: ["implantacao", "implementation", "onboarding", "customer success"],
+  implantacao: [
+    "implantacao",
+    "implementacao",
+    "implementation",
+    "onboarding",
+    "customer success",
+    "implementation analyst",
+    "implementation specialist",
+    "onboarding specialist",
+    "implantador",
+    "go live",
+    "rollout"
+  ],
 
   processos: [
     "analista de processos",
@@ -406,7 +521,10 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
     "bpm",
     "analista de negocios",
     "business analyst",
-    "melhoria continua"
+    "melhoria continua",
+    "continuous improvement",
+    "governanca",
+    "governance"
   ],
 
   dados: [
@@ -414,7 +532,13 @@ const PALAVRAS_FAMILIA: Record<Exclude<NomeFamilia, "geral">, string[]> = {
     "analista de dados",
     "analista de bi",
     "bi analyst",
-    "business intelligence"
+    "business intelligence",
+    "analytics",
+    "data analytics",
+    "power bi",
+    "powerbi",
+    "tableau",
+    "looker"
   ]
 }
 
@@ -556,7 +680,9 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
       principais.push(estrategia.tituloPrincipal)
     }
 
-    relacionados.push(...estrategia.titulosRelacionados)
+    relacionados.push(
+      ...estrategia.titulosRelacionados.slice(0, LIMITE_RELACIONADOS_POR_FAMILIA_GUPY)
+    )
   }
 
   // M2: o usuário é soberano. Cargos que ele cadastrou explicitamente
