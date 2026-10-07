@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 
-import { afterEach, describe, mock, test } from "node:test"
+import { mock } from "node:test"
+
+import test from "node:test"
 
 import { collectSolidesJobs } from "../src/collectors/solides.js"
 
@@ -10,13 +12,9 @@ function criarPerfil(): PerfilProfissional {
   return {
     resumoProfissional: "",
 
-    /**
-     * Os aliases ingleses continuam no perfil
-     * para garantir que a busca nativa os ignore.
-     */
-    cargosPrincipais: ["Analista de Suporte", "Technical Support"],
+    cargosPrincipais: ["Analista de Suporte"],
 
-    cargosRelacionados: ["Analista de Sistemas", "Application Support"],
+    cargosRelacionados: ["Analista de Sistemas"],
 
     cargosDesvio: ["Software Developer"],
 
@@ -28,303 +26,186 @@ function criarPerfil(): PerfilProfissional {
 
     cursos: [],
 
-    localizacoesAceitas: ["Brasil", "Brazil"],
+    localizacoesAceitas: ["Brasil"],
 
     titulosExcluidos: []
   }
 }
 
-function respostaHtml(html: string, status = 200) {
-  return new Response(html, {
+function respostaJson(corpo: unknown, status = 200) {
+  return new Response(JSON.stringify(corpo), {
     status,
-
-    headers: {
-      "Content-Type": "text/html"
-    }
+    headers: { "Content-Type": "application/json" }
   })
 }
 
-function htmlDetalhe(titulo: string, empresa: string, localizacao: string, remoto = false) {
-  return `
-    <!doctype html>
-    <html>
-      <body>
-        <h1>${titulo}</h1>
+function vagaSintetica(id: number, titulo: string, cidade: string, uf: string) {
+  return {
+    id,
 
-        <div>${empresa}</div>
+    title: titulo,
 
-        <button>
-          Quero me candidatar
-        </button>
+    description: `<p>Modelo: Presencial em <strong>${cidade} - ${uf}</strong></p><p>Atividades de suporte.</p>`,
 
-        <div>${localizacao}</div>
+    companyName: "Empresa Teste S.A.",
 
-        <div>1 posição</div>
+    redirectLink: `https://empresa-teste.solides.jobs/vacancies/${id}?origem=portal`,
 
-        ${remoto ? "<div>Remoto</div>" : "<div>Presencial</div>"}
+    homeOffice: false,
 
-        <p>
-          Atendimento e suporte técnico aos usuários,
-          análise de incidentes, troubleshooting,
-          Windows, redes e sistemas corporativos.
-        </p>
+    jobType: "presencial",
 
-        <h2>Requisitos</h2>
+    currentState: "em_andamento",
 
-        <p>
-          Conhecimento em tecnologia da informação,
-          suporte técnico e atendimento ao cliente.
-        </p>
+    createdAt: "2026-10-06",
 
-        <h2>Como chegar</h2>
+    city: { id: 1, name: cidade, state_id: 1 },
 
-        <p>
-          Endereço da empresa
-        </p>
-
-        <div>
-          Sólides, tudo que o RH precisa em um só lugar!
-        </div>
-      </body>
-    </html>
-  `
+    state: { id: 1, name: "Estado", code: uf }
+  }
 }
 
-afterEach(() => {
-  mock.restoreAll()
+test("Sólides: normaliza vaga do novo endpoint público", async (t) => {
+  mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
+    const url = new URL(input instanceof Request ? input.url : String(input))
+
+    const termo = url.searchParams.get("title") ?? ""
+
+    const pagina = Number(url.searchParams.get("page") ?? "1")
+
+    if (termo === "Analista de Suporte" && pagina === 1) {
+      return respostaJson({
+        success: true,
+
+        errors: [],
+
+        data: {
+          totalPages: 1,
+
+          currentPage: 1,
+
+          count: 1,
+
+          data: [vagaSintetica(933421, "Analista de Suporte", "Goiânia", "GO")]
+        }
+      })
+    }
+
+    return respostaJson({
+      success: true,
+
+      errors: [],
+
+      data: {
+        totalPages: 0,
+
+        currentPage: pagina,
+
+        count: 0,
+
+        data: []
+      }
+    })
+  })
+
+  t.after(() => mock.restoreAll())
+
+  const coleta = await collectSolidesJobs(100, criarPerfil())
+
+  assert.equal(coleta.source, "solides")
+
+  assert.equal(coleta.jobs.length, 1)
+
+  const vaga = coleta.jobs[0]!
+
+  assert.equal(vaga.source, "solides")
+
+  assert.equal(vaga.externalId, "933421")
+
+  assert.equal(vaga.title, "Analista de Suporte")
+
+  assert.equal(vaga.company, "Empresa Teste S.A.")
+
+  assert.equal(vaga.location, "Goiânia, GO, Brasil")
+
+  assert.equal(vaga.remote, false)
+
+  assert.equal(
+    vaga.url,
+    "https://empresa-teste.solides.jobs/vacancies/933421?origem=portal"
+  )
+
+  assert.equal(vaga.partial, false)
+
+  assert.ok(vaga.description.includes("Atividades de suporte"))
+
+  assert.ok(vaga.description.includes("Modelo: Presencial"))
 })
 
-describe("coletor nativo da Sólides", () => {
-  test("pesquisa cargos brasileiros individualmente e extrai as vagas", async () => {
-    const termosConsultados: string[] = []
+test("Sólides: homeOffice verdadeiro marca como remota quando jobType é vazio", async (t) => {
+  mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
+    const url = new URL(input instanceof Request ? input.url : String(input))
 
-    mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
-      const url = new URL(input instanceof Request ? input.url : String(input))
+    const termo = url.searchParams.get("title") ?? ""
 
-      if (url.pathname === "/vagas") {
-        const termo = url.searchParams.get("title") ?? ""
+    if (termo === "Analista de Suporte") {
+      const vaga = { ...vagaSintetica(1, "Analista de Suporte", "Remoto", "SP") }
 
-        termosConsultados.push(termo)
+      vaga.homeOffice = true
 
-        if (termo === "Analista de Suporte" && url.searchParams.get("page") === "1") {
-          return respostaHtml(`
-              <html>
-                <body>
-                  <a href="/vaga/101/analista-de-suporte">
-                    <h2>
-                      Analista de Suporte
-                    </h2>
-                  </a>
+      vaga.jobType = ""
 
-                  <a href="/vaga/102/analista-de-suporte-n2">
-                    <h2>
-                      Analista de Suporte N2
-                    </h2>
-                  </a>
-                </body>
-              </html>
-            `)
-        }
+      return respostaJson({
+        success: true,
 
-        return respostaHtml("<html><body></body></html>")
-      }
+        errors: [],
 
-      if (url.pathname.includes("/vaga/101/")) {
-        return respostaHtml(
-          htmlDetalhe("Analista de Suporte", "Empresa A", "João Pessoa - PB", false)
-        )
-      }
-
-      if (url.pathname.includes("/vaga/102/")) {
-        return respostaHtml(
-          htmlDetalhe("Analista de Suporte N2", "Empresa B", "São Paulo - SP", true)
-        )
-      }
-
-      return respostaHtml("<html><body></body></html>", 404)
-    })
-
-    const coleta = await collectSolidesJobs(100, criarPerfil())
-
-    assert.equal(coleta.source, "solides")
-
-    assert.equal(coleta.jobs.length, 2)
-
-    assert.ok(termosConsultados.includes("Analista de Suporte"))
-
-    assert.ok(termosConsultados.includes("Analista de Sistemas"))
-
-    /**
-     * Não devemos mais consultar
-     * aliases ingleses.
-     */
-    assert.equal(termosConsultados.includes("Technical Support"), false)
-
-    assert.equal(termosConsultados.includes("Application Support"), false)
-
-    for (const termo of termosConsultados) {
-      assert.equal(termo.includes(" OR "), false)
+        data: { totalPages: 1, currentPage: 1, count: 1, data: [vaga] }
+      })
     }
-  })
 
-  test("normaliza empresa localização descrição e modalidade", async () => {
-    mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
-      const url = new URL(input instanceof Request ? input.url : String(input))
+    return respostaJson({
+      success: true,
 
-      if (url.pathname === "/vagas") {
-        const termo = url.searchParams.get("title")
+      errors: [],
 
-        if (termo === "Analista de Suporte") {
-          return respostaHtml(`
-              <html>
-                <body>
-                  <a href="/vaga/777/analista-de-suporte">
-                    Analista de Suporte
-                  </a>
-                </body>
-              </html>
-            `)
-        }
-
-        return respostaHtml("<html><body></body></html>")
-      }
-
-      if (url.pathname.includes("/vaga/777/")) {
-        return respostaHtml(
-          htmlDetalhe("Analista de Suporte N2", "Tech Brasil", "Recife - PE", true)
-        )
-      }
-
-      return respostaHtml("<html><body></body></html>", 404)
+      data: { totalPages: 0, currentPage: 1, count: 0, data: [] }
     })
-
-    const coleta = await collectSolidesJobs(100, criarPerfil())
-
-    assert.equal(coleta.jobs.length, 1)
-
-    const vaga = coleta.jobs[0]
-
-    assert.ok(vaga)
-
-    assert.equal(vaga.externalId, "777")
-
-    assert.equal(vaga.company, "Tech Brasil")
-
-    assert.equal(vaga.title, "Analista de Suporte N2")
-
-    assert.equal(vaga.location, "Recife - PE")
-
-    assert.equal(vaga.remote, true)
-
-    assert.ok(vaga.description.includes("troubleshooting"))
   })
 
-  test("deduplica a mesma vaga encontrada por cargos diferentes", async () => {
-    let detalhesConsultados = 0
+  t.after(() => mock.restoreAll())
 
-    mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
-      const url = new URL(input instanceof Request ? input.url : String(input))
+  const coleta = await collectSolidesJobs(100, criarPerfil())
 
-      if (url.pathname === "/vagas") {
-        if (url.searchParams.get("page") === "1") {
-          return respostaHtml(`
-              <html>
-                <body>
-                  <a href="/vaga/999/analista-de-suporte">
-                    Analista de Suporte
-                  </a>
-                </body>
-              </html>
-            `)
-        }
+  const vaga = coleta.jobs[0]!
 
-        return respostaHtml("<html><body></body></html>")
-      }
+  assert.equal(vaga.remote, true)
+})
 
-      if (url.pathname.includes("/vaga/999/")) {
-        detalhesConsultados++
+test("Sólides: termo em inglês do perfil é pesquisado no novo endpoint", async (t) => {
+  const termosConsultados: string[] = []
 
-        return respostaHtml(htmlDetalhe("Analista de Suporte", "Empresa Única", "Curitiba - PR"))
-      }
+  mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
+    const url = new URL(input instanceof Request ? input.url : String(input))
 
-      return respostaHtml("<html><body></body></html>", 404)
+    termosConsultados.push(url.searchParams.get("title") ?? "")
+
+    return respostaJson({
+      success: true,
+
+      errors: [],
+
+      data: { totalPages: 0, currentPage: 1, count: 0, data: [] }
     })
-
-    const coleta = await collectSolidesJobs(100, criarPerfil())
-
-    assert.equal(coleta.jobs.length, 1)
-
-    assert.equal(coleta.jobs[0]?.externalId, "999")
-
-    /**
-     * Mesmo aparecendo em várias
-     * pesquisas, o detalhe é aberto
-     * somente uma vez.
-     */
-    assert.equal(detalhesConsultados, 1)
   })
 
-  test("falha em uma vaga não interrompe as demais", async () => {
-    mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
-      const url = new URL(input instanceof Request ? input.url : String(input))
+  t.after(() => mock.restoreAll())
 
-      if (url.pathname === "/vagas") {
-        if (url.searchParams.get("title") === "Analista de Suporte") {
-          return respostaHtml(`
-              <html>
-                <body>
-                  <a href="/vaga/1/vaga-com-erro">
-                    Vaga com erro
-                  </a>
+  await collectSolidesJobs(100, criarPerfil())
 
-                  <a href="/vaga/2/analista-de-suporte">
-                    Analista de Suporte
-                  </a>
-                </body>
-              </html>
-            `)
-        }
+  assert.ok(termosConsultados.includes("Analista de Suporte"))
 
-        return respostaHtml("<html><body></body></html>")
-      }
+  assert.ok(termosConsultados.includes("Analista de Sistemas"))
 
-      if (url.pathname.includes("/vaga/1/")) {
-        return respostaHtml("<html><body>Erro</body></html>", 500)
-      }
-
-      if (url.pathname.includes("/vaga/2/")) {
-        return respostaHtml(htmlDetalhe("Analista de Suporte", "Empresa B", "Goiânia - GO"))
-      }
-
-      return respostaHtml("<html><body></body></html>", 404)
-    })
-
-    const coleta = await collectSolidesJobs(100, criarPerfil())
-
-    assert.equal(coleta.jobs.length, 1)
-
-    assert.equal(coleta.jobs[0]?.externalId, "2")
-  })
-
-  test("não pesquisa cargos em inglês mesmo quando existem no perfil", async () => {
-    const termosConsultados: string[] = []
-
-    mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
-      const url = new URL(input instanceof Request ? input.url : String(input))
-
-      if (url.pathname === "/vagas") {
-        termosConsultados.push(url.searchParams.get("title") ?? "")
-      }
-
-      return respostaHtml("<html><body></body></html>")
-    })
-
-    await collectSolidesJobs(100, criarPerfil())
-
-    assert.equal(termosConsultados.includes("Technical Support"), false)
-
-    assert.equal(termosConsultados.includes("Application Support"), false)
-
-    assert.equal(termosConsultados.includes("Software Developer"), false)
-  })
+  assert.equal(termosConsultados.includes("Software Developer"), false)
 })

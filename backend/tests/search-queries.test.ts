@@ -69,16 +69,9 @@ describe("gerador de consultas de vagas", () => {
 
     assert.ok(termos.includes("Analista de Dados"))
 
-    assert.equal(termos.includes("Technical Support"), false)
-
-    assert.equal(termos.includes("Application Support"), false)
-
-    assert.equal(termos.includes("NOC Analyst"), false)
-
-    assert.equal(termos.includes("Customer Onboarding"), false)
-
-    assert.equal(termos.includes("BI Analyst"), false)
-
+    // M2: os cargos do perfil passam a ser termos diretos.
+    // Se o usuário cadastrou em inglês, o termo é emitido em inglês.
+    // Cargos de desvio continuam proibidos.
     assert.equal(termos.includes("Software Developer"), false)
 
     assert.ok(termos.length <= 30)
@@ -99,15 +92,7 @@ describe("gerador de consultas de vagas", () => {
 
     assert.ok(termos.includes("Analista de Dados"))
 
-    assert.equal(termos.includes("Technical Support"), false)
-
-    assert.equal(termos.includes("Application Support"), false)
-
-    assert.equal(termos.includes("NOC Analyst"), false)
-
-    assert.equal(termos.includes("Customer Onboarding"), false)
-
-    assert.equal(termos.includes("BI Analyst"), false)
+    assert.equal(termos.includes("Software Developer"), false)
 
     assert.ok(termos.length <= 20)
   })
@@ -167,24 +152,8 @@ describe("gerador de consultas de vagas", () => {
 
     const texto = consultas.map(consulta => consulta.texto.toLowerCase()).join("\n")
 
-    const termosInglesProibidos = [
-      "technical support",
-      "application support",
-      "noc analyst",
-      "customer onboarding",
-      "onboarding specialist",
-      "business process analyst",
-      "bpm analyst",
-      "data analyst",
-      "bi analyst",
-      "business intelligence analyst",
-      "power bi analyst",
-      "software developer"
-    ]
-
-    for (const termo of termosInglesProibidos) {
-      assert.equal(texto.includes(termo), false, `Cargo inglês presente na busca: ${termo}`)
-    }
+    // M2: apenas cargos de desvio continuam proibidos na busca.
+    assert.equal(texto.includes("software developer"), false)
   })
 
   test("usa Brasil como contexto de localização das pesquisas globais", () => {

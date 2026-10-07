@@ -1,70 +1,34 @@
 # Job Search
 
-Aplicação para descoberta, análise e acompanhamento de oportunidades profissionais com base em um perfil configurável.
-
-O sistema reúne vagas de fontes diretas e páginas encontradas na web, aplica regras locais de compatibilidade e apresenta as oportunidades em um dashboard para revisão manual.
-
-A candidatura continua sendo realizada pelo usuário no site original da vaga.
+Aplicação pessoal para descoberta, análise e acompanhamento de vagas com base em um perfil profissional configurável. Reúne vagas de fontes diretas e da web, aplica regras locais de compatibilidade e apresenta as oportunidades em um dashboard para revisão manual. A candidatura é sempre no site original.
 
 ## Tecnologias
 
-### Backend
+Backend: Node.js, TypeScript, Express 5, PostgreSQL (`pg`, sem ORM), Cheerio, Multer, Mammoth, pdf-parse.
 
-- Node.js
-- TypeScript
-- Express
-- PostgreSQL
-- Cheerio
-- Multer
-- Mammoth
-- pdf-parse
+Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS 4, Lucide React.
 
-### Frontend
+## Como rodar
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Lucide React
+    npm ci
+    cd backend && npm ci
+    cd ../frontend && npm ci
 
-## Estrutura
+Configurar `backend/.env` e `frontend/.env` com base nos `.env.example`. Aplicar as migrations de `database/migrations` em ordem.
 
-```text
-job-search/
-├── backend/
-│   └── src/
-│       ├── collectors/
-│       ├── config/
-│       ├── database/
-│       ├── discovery/
-│       ├── extractors/
-│       ├── repositories/
-│       ├── routes/
-│       ├── scripts/
-│       ├── services/
-│       └── types/
-│
-├── database/
-│   └── migrations/
-│
-└── frontend/
-    └── src/
-        ├── app/
-        ├── components/
-        ├── lib/
-        └── types/
+Backend: `cd backend && npm run dev`.
+Frontend: `cd frontend && npm run dev`.
 
+## Validação
 
-Funcionalidades atuais
-coleta de vagas por fontes diretas;
-descoberta complementar de oportunidades na web;
-integração opcional com Brave Search;
-cache para reduzir buscas desnecessárias;
-análise e scoring local das vagas;
-consideração de cargos, competências, experiência, formação e cursos;
-filtros de localização;
-dashboard de oportunidades;
-acompanhamento do status das vagas;
-perfil profissional editável;
-importação e análise de currículos PDF, DOCX e TXT.
-```
+    cd backend && npm run test && npm run test:typecheck && npm run build
+    cd ../frontend && npm run lint && npm run build
+
+## Documentos
+
+- `README_ATUAL.md` — estado atual da aplicação.
+- `PRD.md` — requisitos de produto.
+- `DESIGN.md` — arquitetura, padrões e mapa de arquivos.
+- `HANDOFF.md` — passagem de bastão, pendências e decisões.
+- `CHANGELOG.md` — histórico de mudanças.
+- `CONFIG.md` — variáveis de ambiente, dependências e migrações.

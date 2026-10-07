@@ -141,7 +141,7 @@ test("aceita no funil vaga remota Worldwide compatível com o cargo principal", 
   )
 })
 
-test("não usa Worldwide para liberar vaga não remota fora de João Pessoa", async () => {
+test("M3: vaga não remota fora de JP agora é aceita quando título e local são compatíveis", async () => {
   const vaga = criarVaga({
     externalId: "global-nao-remota",
 
@@ -202,7 +202,7 @@ test("diagnostico observa o filtro original sem alterar as vagas aderentes", asy
 
   assert.deepEqual(
     aderentes.map(vaga => vaga.externalId),
-    ["aderente"]
+    ["presencial-fora", "aderente"]
   )
 
   const diagnostico = await diagnosticarFunilVagasComYield(
@@ -220,15 +220,14 @@ test("diagnostico observa o filtro original sem alterar as vagas aderentes", asy
 
   assert.equal(diagnostico.localizacaoIncompativel, 1)
 
-  assert.equal(diagnostico.tituloForaFoco, 1)
+  assert.equal(diagnostico.tituloForaFoco, 0)
 
-  assert.equal(diagnostico.naoRemotaForaJoaoPessoa, 1)
 
-  assert.equal(diagnostico.matcherAbaixoDoMinimo, 1)
+  assert.equal(diagnostico.matcherAbaixoDoMinimo, 2)
 
   assert.equal(diagnostico.score50a59, 1)
 
-  assert.equal(diagnostico.aderentes, 1)
+  assert.equal(diagnostico.aderentes, 2)
 
   assert.equal(diagnostico.divergencias, 0)
 
@@ -240,7 +239,6 @@ test("diagnostico observa o filtro original sem alterar as vagas aderentes", asy
     diagnostico.foraDaJanela +
     diagnostico.localizacaoIncompativel +
     diagnostico.tituloForaFoco +
-    diagnostico.naoRemotaForaJoaoPessoa +
     diagnostico.matcherAbaixoDoMinimo +
     diagnostico.aderentes +
     diagnostico.divergencias

@@ -2,6 +2,8 @@ import { collectors } from "../collectors/index.js"
 
 import { refreshExistingJobs } from "../repositories/job-repository.js"
 
+import { registrarTelemetriaFonte } from "../repositories/funil-telemetria-repository.js"
+
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
 import { analyzePendingJobs } from "./job-analysis.js"
@@ -30,6 +32,14 @@ type OpcoesSincronizacao = {
   usarBrave?: boolean
 
   limiteChamadasBrave?: number
+
+  /**
+   * Identificador da execucao em segundo plano.
+   *
+   * Quando presente, cada fonte registra contadores em funil_telemetria.
+   * Quando ausente, a telemetria e pulada sem afetar o fluxo.
+   */
+  execucaoId?: string
 
   aoAtualizarEtapa?: (etapa: EtapaSincronizacao) => Promise<void> | void
 }
@@ -71,7 +81,6 @@ function registrarDiagnosticoFonte(fonte: string, diagnostico: DiagnosticoFunilV
       `fora_janela=${diagnostico.foraDaJanela}`,
       `localizacao=${diagnostico.localizacaoIncompativel}`,
       `titulo_fora_foco=${diagnostico.tituloForaFoco}`,
-      `nao_remota_fora_jp=${diagnostico.naoRemotaForaJoaoPessoa}`,
       `matcher=${diagnostico.matcherAbaixoDoMinimo}`,
       `score_0=${diagnostico.scoreZero}`,
       `score_1_39=${diagnostico.score1a39}`,
@@ -92,7 +101,8 @@ function registrarDiagnosticoFonte(fonte: string, diagnostico: DiagnosticoFunilV
 
 async function coletarFontesDiretas(
   perfil: PerfilProfissional,
-  limite: number
+  limite: number,
+  execucaoId?: string
 ): Promise<ResultadoFonte[]> {
   const resultados: ResultadoFonte[] = []
 
@@ -165,6 +175,46 @@ async function coletarFontesDiretas(
         )
 
         registrarDiagnosticoFonte(coleta.source, diagnostico)
+
+        if (execucaoId) {
+          try {
+            await registrarTelemetriaFonte({
+              execucaoId,
+
+              fonte: coleta.source,
+
+              coletadas: diagnostico.recebidas,
+
+              aposJanela: diagnostico.recebidas - diagnostico.foraDaJanela,
+
+              aposElegibilidade:
+                diagnostico.recebidas -
+                diagnostico.foraDaJanela -
+                diagnostico.localizacaoIncompativel,
+
+              aposMatcher: diagnostico.aderentes,
+
+              importadas: importacao.inserted,
+
+              duplicadas: importacao.duplicates,
+
+              descartes: {
+                foraDaJanela: diagnostico.foraDaJanela,
+
+                localizacaoIncompativel: diagnostico.localizacaoIncompativel,
+
+                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo
+              },
+
+              duracaoMs: Math.round(performance.now() - inicioFonte)
+            })
+          } catch (erroTelemetria) {
+            console.warn(
+              "Telemetria da fonte " + coleta.source + " nao registrada:",
+              erroTelemetria
+            )
+          }
+        }
       } catch (erroDiagnostico) {
         const mensagem =
           erroDiagnostico instanceof Error ? erroDiagnostico.message : "Erro desconhecido"
@@ -229,7 +279,7 @@ export async function syncJobs(
 
   const inicioFontes = agoraMs()
 
-  const fontesDiretas = await coletarFontesDiretas(perfil, limite)
+  const fontesDiretas = await coletarFontesDiretas(perfil, limite, opcoes.execucaoId)
 
   console.log(`Tempo fontes diretas: ${formatarDuracao(inicioFontes)}s`)
 
@@ -264,7 +314,8 @@ export async function syncJobs(
   const fontesAts = await coletarFontesAtsAprendidas(
     perfil,
     LIMITE_FONTES_ATS_POR_EXECUCAO,
-    LIMITE_VAGAS_POR_FONTE_ATS
+    LIMITE_VAGAS_POR_FONTE_ATS,
+    opcoes.execucaoId
   )
 
   console.log(`Tempo ATS: ${formatarDuracao(inicioAts)}s`)

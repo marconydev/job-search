@@ -1,8 +1,8 @@
-import * as cheerio from "cheerio"
-
 import { gerarTermosBuscaNativaSolides } from "../config/search-queries.js"
 
-import { extrairVagaSolides } from "../extractors/solides.js"
+import { limparHtml } from "./collector-utils.js"
+
+import { interpretarModalidadeEstruturada } from "../services/modalidade-vaga.js"
 
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
@@ -10,22 +10,67 @@ import type { NewJob } from "../types/job.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
-const URL_BUSCA_SOLIDES = "https://vagas.solides.com.br/vagas"
+/**
+ * Endpoint público usado pelo próprio front do portal Sólides.
+ *
+ * Descoberto decodificando o bundle JS do site. Não exige token.
+ *
+ * Devolve JSON com a vaga completa na própria listagem, portanto não
+ * precisamos mais abrir a página individual de cada vaga.
+ */
+const URL_BUSCA_SOLIDES = "https://apigw.solides.com.br/jobs/v3/portal-vacancies"
 
 const TEMPO_LIMITE_REQUISICAO_MS = 15000
-
-const VAGAS_ESTIMADAS_POR_PAGINA = 12
 
 const LIMITE_MAXIMO_POR_TERMO = 100
 
 const LIMITE_MAXIMO_GLOBAL = 500
 
-const CONCORRENCIA_DETALHES = 5
+const LIMITE_MAXIMO_PAGINAS_POR_TERMO = 30
 
-type LinkVagaSolides = {
-  id: string
+type SolidesJob = {
+  id?: number | string
 
-  url: string
+  title?: string
+
+  description?: string
+
+  companyName?: string
+
+  redirectLink?: string
+
+  homeOffice?: boolean
+
+  jobType?: string
+
+  currentState?: string
+
+  createdAt?: string
+
+  city?: {
+    id?: number
+    name?: string
+    state_id?: number
+  } | null
+
+  state?: {
+    id?: number
+    name?: string
+    code?: string
+  } | null
+}
+
+type SolidesResponse = {
+  success?: boolean
+
+  errors?: unknown[]
+
+  data?: {
+    totalPages?: number
+    currentPage?: number
+    count?: number
+    data?: SolidesJob[]
+  }
 }
 
 function normalizarLimite(valor: number | undefined) {
@@ -36,111 +81,7 @@ function normalizarLimite(valor: number | undefined) {
   return Math.min(Math.max(Math.floor(valor), 1), LIMITE_MAXIMO_POR_TERMO)
 }
 
-function ehDominioSolides(hostname: string) {
-  const normalizado = hostname.toLowerCase()
-
-  return normalizado === "vagas.solides.com.br" || normalizado.endsWith(".vagas.solides.com.br")
-}
-
-function extrairIdVaga(url: string) {
-  try {
-    const analisada = new URL(url)
-
-    const partes = analisada.pathname.split("/").filter(Boolean)
-
-    const indiceVaga = partes.findIndex(parte => parte.toLowerCase() === "vaga")
-
-    return partes[indiceVaga + 1] ?? null
-  } catch {
-    return null
-  }
-}
-
-async function buscarHtml(url: URL | string) {
-  const controlador = new AbortController()
-
-  const temporizador = setTimeout(() => controlador.abort(), TEMPO_LIMITE_REQUISICAO_MS)
-
-  try {
-    const resposta = await fetch(url, {
-      redirect: "follow",
-
-      signal: controlador.signal,
-
-      headers: {
-        Accept: "text/html,application/xhtml+xml",
-
-        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-
-        "User-Agent": "Mozilla/5.0 job-search/1.0"
-      }
-    })
-
-    if (!resposta.ok) {
-      throw new Error(`Sólides respondeu com status ${resposta.status}`)
-    }
-
-    return {
-      html: await resposta.text(),
-
-      urlFinal: resposta.url || (typeof url === "string" ? url : url.toString())
-    }
-  } finally {
-    clearTimeout(temporizador)
-  }
-}
-
-function extrairLinksVagas(html: string, urlBase: string): LinkVagaSolides[] {
-  const $ = cheerio.load(html)
-
-  const links = new Map<string, LinkVagaSolides>()
-
-  $("a[href]").each((_indice, elemento) => {
-    const href = $(elemento).attr("href")
-
-    if (!href) {
-      return
-    }
-
-    try {
-      const url = new URL(href, urlBase)
-
-      if (!ehDominioSolides(url.hostname)) {
-        return
-      }
-
-      const id = extrairIdVaga(url.toString())
-
-      if (!id) {
-        return
-      }
-
-      if (!links.has(id)) {
-        links.set(id, {
-          id,
-
-          url: url.toString()
-        })
-      }
-    } catch {
-      return
-    }
-  })
-
-  return [...links.values()]
-}
-
-function criarUrlBusca(termo: string, pagina: number) {
-  const url = new URL(URL_BUSCA_SOLIDES)
-
-  url.searchParams.set("title", termo)
-
-  url.searchParams.set("page", String(pagina))
-
-  return url
-}
-
-function normalizarData(valor: string | null) {
+function normalizarData(valor: string | undefined) {
   if (!valor) {
     return null
   }
@@ -150,85 +91,147 @@ function normalizarData(valor: string | null) {
   return Number.isNaN(data.getTime()) ? null : data.toISOString()
 }
 
-async function extrairDetalhe(link: LinkVagaSolides): Promise<NewJob | null> {
-  try {
-    const pagina = await buscarHtml(link.url)
+/**
+ * A modalidade prefere o campo estruturado `jobType` quando informado.
+ *
+ * `homeOffice` é usado apenas como fallback quando `jobType` está ausente
+ * ou traz um valor que não reconhecemos.
+ */
+function vagaSolidesEhRemota(job: SolidesJob) {
+  const modalidade = interpretarModalidadeEstruturada(job.jobType)
 
-    const vaga = extrairVagaSolides(pagina.html, pagina.urlFinal)
+  if (modalidade === "remote") {
+    return true
+  }
 
-    if (!vaga || !vaga.titulo || !vaga.descricao) {
-      return null
-    }
+  if (modalidade === "hybrid" || modalidade === "on-site") {
+    return false
+  }
 
-    return {
-      source: "solides",
+  return job.homeOffice === true
+}
 
-      externalId: link.id,
+function localizacaoSolides(job: SolidesJob): string | null {
+  const cidade = job.city?.name?.trim()
 
-      company: vaga.empresa?.trim() || "Empresa não identificada",
+  const uf = job.state?.code?.trim()
 
-      title: vaga.titulo.trim(),
+  if (cidade && uf) {
+    return `${cidade}, ${uf}, Brasil`
+  }
 
-      description: vaga.descricao.trim(),
+  if (cidade) {
+    return cidade
+  }
 
-      location: vaga.localizacao,
+  if (uf) {
+    return uf
+  }
 
-      remote: vaga.remoto,
+  return null
+}
 
-      url: vaga.urlCandidatura?.trim() || pagina.urlFinal,
+function normalizarVaga(job: SolidesJob): NewJob | null {
+  const idBruto = job.id
 
-      publishedAt: normalizarData(vaga.dataPublicacao),
+  const id = idBruto === undefined || idBruto === null ? "" : String(idBruto).trim()
 
-      partial: false
-    }
-  } catch (erro) {
-    const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
+  const titulo = job.title?.trim()
 
-    console.warn(`Sólides: falha ao abrir ${link.url}: ${mensagem}`)
+  const url = job.redirectLink?.trim()
 
+  if (!id || !titulo || !url) {
     return null
+  }
+
+  const descricaoLimpa = limparHtml(job.description ?? "")
+
+  const descricao = descricaoLimpa || titulo
+
+  const empresa = job.companyName?.trim() || "Empresa não identificada"
+
+  const localizacao = localizacaoSolides(job)
+
+  const remoto = vagaSolidesEhRemota(job)
+
+  return {
+    source: "solides",
+
+    externalId: id,
+
+    company: empresa,
+
+    title: titulo,
+
+    description: descricao,
+
+    location: localizacao,
+
+    remote: remoto,
+
+    url,
+
+    publishedAt: normalizarData(job.createdAt),
+
+    partial: !descricaoLimpa
   }
 }
 
-async function mapearComConcorrencia<T, R>(
-  itens: T[],
-  concorrencia: number,
-  executar: (item: T) => Promise<R>
-) {
-  const resultados = new Array<R>(itens.length)
+async function buscarPagina(
+  termo: string,
+  pagina: number
+): Promise<{ jobs: SolidesJob[]; totalPages: number | null }> {
+  const url = new URL(URL_BUSCA_SOLIDES)
 
-  let proximoIndice = 0
+  url.searchParams.set("title", termo)
 
-  async function trabalhador() {
-    while (true) {
-      const indice = proximoIndice
+  url.searchParams.set("page", String(pagina))
 
-      proximoIndice++
+  const controlador = new AbortController()
 
-      if (indice >= itens.length) {
-        return
+  const temporizador = setTimeout(() => controlador.abort(), TEMPO_LIMITE_REQUISICAO_MS)
+
+  try {
+    const resposta = await fetch(url, {
+      signal: controlador.signal,
+
+      headers: {
+        Accept: "application/json",
+
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
       }
+    })
 
-      resultados[indice] = await executar(itens[indice])
+    if (!resposta.ok) {
+      throw new Error(`Sólides respondeu com status ${resposta.status}`)
     }
+
+    const dados = (await resposta.json()) as SolidesResponse
+
+    const jobs = Array.isArray(dados.data?.data) ? dados.data.data : []
+
+    const totalPages =
+      typeof dados.data?.totalPages === "number" && Number.isFinite(dados.data.totalPages)
+        ? Math.max(1, Math.floor(dados.data.totalPages))
+        : null
+
+    return { jobs, totalPages }
+  } finally {
+    clearTimeout(temporizador)
   }
-
-  const quantidadeTrabalhadores = Math.min(Math.max(concorrencia, 1), Math.max(itens.length, 1))
-
-  await Promise.all(Array.from({ length: quantidadeTrabalhadores }, () => trabalhador()))
-
-  return resultados
 }
 
 /**
- * Pesquisa diretamente o portal público da Sólides.
+ * A coleta usa o mesmo contrato público do portal:
  *
- * Cada termo é enviado individualmente, exatamente como uma pesquisa
- * normal no campo de cargo do portal.
- *
- * Primeiro coleto e deduplico os links das listagens.
- * Só depois abro as páginas individuais, evitando baixar a mesma vaga
- * várias vezes quando ela aparece em cargos relacionados.
+ * - cada cargo do perfil vira um termo pesquisado individualmente;
+ * - a paginação para quando `totalPages` é atingido ou a página vem vazia;
+ * - vagas são deduplicadas pelo id da própria Sólides;
+ * - uma falha em um termo não interrompe os demais.
  */
 export async function collectSolidesJobs(
   limit = 100,
@@ -254,72 +257,75 @@ export async function collectSolidesJobs(
 
   const limitePorTermo = normalizarLimite(limit)
 
-  /**
-   * O coletor pode encontrar vagas repetidas em vários termos.
-   *
-   * Com limite padrão 100, permito até 500 vagas únicas antes da
-   * etapa de detalhes. Isso mantém cobertura alta sem deixar uma
-   * sincronização crescer indefinidamente.
-   */
   const limiteGlobal = Math.min(Math.max(limitePorTermo * 5, 200), LIMITE_MAXIMO_GLOBAL)
 
-  const linksGlobais = new Map<string, LinkVagaSolides>()
+  const vagasPorId = new Map<string, NewJob>()
 
   for (const termo of termos) {
-    if (linksGlobais.size >= limiteGlobal) {
+    if (vagasPorId.size >= limiteGlobal) {
       break
     }
 
-    const idsTermo = new Set<string>()
+    const idsVistosNesteTermo = new Set<string>()
 
-    const paginasMaximas = Math.min(Math.ceil(limitePorTermo / VAGAS_ESTIMADAS_POR_PAGINA), 10)
+    let totalPages: number | null = null
 
-    for (let pagina = 1; pagina <= paginasMaximas; pagina++) {
-      if (idsTermo.size >= limitePorTermo || linksGlobais.size >= limiteGlobal) {
+    for (let pagina = 1; pagina <= LIMITE_MAXIMO_PAGINAS_POR_TERMO; pagina++) {
+      if (vagasPorId.size >= limiteGlobal) {
         break
       }
 
-      let linksPagina: LinkVagaSolides[]
+      if (idsVistosNesteTermo.size >= limitePorTermo) {
+        break
+      }
+
+      let resultado: { jobs: SolidesJob[]; totalPages: number | null }
 
       try {
-        const url = criarUrlBusca(termo, pagina)
-
-        const resultado = await buscarHtml(url)
-
-        linksPagina = extrairLinksVagas(resultado.html, resultado.urlFinal)
+        resultado = await buscarPagina(termo, pagina)
       } catch (erro) {
         const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
 
-        console.warn(`Sólides: falha ao pesquisar "${termo}" na página ${pagina}: ${mensagem}`)
+        console.warn(`Sólides: falha em "${termo}" página ${pagina}: ${mensagem}`)
 
         break
       }
 
-      if (linksPagina.length === 0) {
+      if (resultado.totalPages !== null) {
+        totalPages = resultado.totalPages
+      }
+
+      if (resultado.jobs.length === 0) {
         break
       }
 
       let novosNestaPagina = 0
 
-      for (const link of linksPagina) {
-        if (idsTermo.size >= limitePorTermo) {
-          break
-        }
+      for (const bruto of resultado.jobs) {
+        const idBruto = bruto.id
 
-        if (linksGlobais.size >= limiteGlobal) {
-          break
-        }
+        const id = idBruto === undefined || idBruto === null ? "" : String(idBruto).trim()
 
-        if (idsTermo.has(link.id)) {
+        if (!id || idsVistosNesteTermo.has(id)) {
           continue
         }
 
-        idsTermo.add(link.id)
+        idsVistosNesteTermo.add(id)
 
         novosNestaPagina++
 
-        if (!linksGlobais.has(link.id)) {
-          linksGlobais.set(link.id, link)
+        const vaga = normalizarVaga(bruto)
+
+        if (!vaga) {
+          continue
+        }
+
+        if (!vagasPorId.has(vaga.externalId)) {
+          vagasPorId.set(vaga.externalId, vaga)
+        }
+
+        if (vagasPorId.size >= limiteGlobal) {
+          break
         }
       }
 
@@ -327,30 +333,21 @@ export async function collectSolidesJobs(
         break
       }
 
-      if (linksPagina.length < VAGAS_ESTIMADAS_POR_PAGINA) {
+      if (totalPages !== null && pagina >= totalPages) {
         break
       }
     }
 
     console.log(
-      `Sólides: "${termo}" consultado. ` +
-        `${idsTermo.size} resultado(s) encontrado(s) para o termo.`
+      `Sólides: "${termo}" consultado. ${idsVistosNesteTermo.size} resultado(s) para o termo.`
     )
   }
 
-  const links = [...linksGlobais.values()]
+  const jobs = [...vagasPorId.values()]
 
   console.log(
-    `Sólides: ${termos.length} termo(s) disponível(is), ` +
-      `${links.length} vaga(s) única(s) localizada(s). ` +
-      "Iniciando leitura dos detalhes."
+    `Sólides: ${termos.length} termo(s) pesquisado(s), ${jobs.length} vaga(s) única(s) coletada(s).`
   )
-
-  const detalhes = await mapearComConcorrencia(links, CONCORRENCIA_DETALHES, extrairDetalhe)
-
-  const jobs = detalhes.filter((vaga): vaga is NewJob => vaga !== null)
-
-  console.log(`Sólides: ${jobs.length} vaga(s) válida(s) coletada(s).`)
 
   return {
     source: "solides",

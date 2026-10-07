@@ -337,7 +337,8 @@ export function avaliarElegibilidadeBrasil(
   localizacao: string | null,
   descricao: string | null = null,
   titulo: string | null = null,
-  remota = false
+  remota = false,
+  localizacoesAceitas: string[] = []
 ): ResultadoElegibilidadeLocalizacao {
   const textoLocalizacao = normalizarTexto(localizacao ?? "")
 
@@ -362,6 +363,22 @@ export function avaliarElegibilidadeBrasil(
       situacao: "incompativel",
 
       motivo: "A descrição exige residência ou autorização de trabalho em outro país."
+    }
+  }
+
+  // M11: se o perfil declara localizações aceitas, damos compatibilidade
+  // explícita quando o texto da vaga casa com alguma delas.
+  if (localizacoesAceitas.length > 0 && localizacao) {
+    const alvo = normalizarTexto(localizacao)
+    const bate = localizacoesAceitas.some(item => {
+      const termo = normalizarTexto(item)
+      return termo.length > 0 && alvo.includes(termo)
+    })
+    if (bate) {
+      return {
+        situacao: "compativel",
+        motivo: "Localização consta nas localizações aceitas do perfil."
+      }
     }
   }
 

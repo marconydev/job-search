@@ -84,6 +84,8 @@ async function executarSincronizacao(
 
       limiteChamadasBrave: opcoes.limiteChamadasBrave,
 
+      execucaoId,
+
       aoAtualizarEtapa: etapa => atualizarEtapa(execucaoId, etapa)
     })
 

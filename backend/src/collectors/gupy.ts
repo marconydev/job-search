@@ -15,7 +15,7 @@ import type { PerfilProfissional } from "../types/perfil-profissional.js"
  *
  * Não é a API corporativa autenticada disponível em api.gupy.io.
  */
-const URL_GUPY = "https://employability-portal.gupy.io/api/v1/jobs"
+const URL_GUPY = "https://portal.gupy.io/api/job-search/jobs"
 
 const LIMITE_MAXIMO_PAGINA = 100
 

@@ -27,6 +27,8 @@ import {
   type DiagnosticoFunilVagas
 } from "./filtragem-vagas.js"
 
+import { registrarTelemetriaFonte } from "../repositories/funil-telemetria-repository.js"
+
 import { importJobs, type JobImportResult } from "./job-import.js"
 
 export type ResultadoFonteAts = JobImportResult & {
@@ -342,7 +344,6 @@ function registrarDiagnosticoFonteAts(fonte: string, diagnostico: DiagnosticoFun
       `fora_janela=${diagnostico.foraDaJanela}`,
       `localizacao=${diagnostico.localizacaoIncompativel}`,
       `titulo_fora_foco=${diagnostico.tituloForaFoco}`,
-      `nao_remota_fora_jp=${diagnostico.naoRemotaForaJoaoPessoa}`,
       `matcher=${diagnostico.matcherAbaixoDoMinimo}`,
       `score_0=${diagnostico.scoreZero}`,
       `score_1_39=${diagnostico.score1a39}`,
@@ -374,7 +375,8 @@ function registrarDiagnosticoFonteAts(fonte: string, diagnostico: DiagnosticoFun
 export async function coletarFontesAtsAprendidas(
   perfil: PerfilProfissional,
   limiteFontes = 40,
-  limiteVagasPorFonte = 500
+  limiteVagasPorFonte = 500,
+  execucaoId?: string
 ): Promise<ResultadoFonteAts[]> {
   const fontes = await listarFontesAtsParaColeta(limiteFontes)
 
@@ -468,6 +470,44 @@ export async function coletarFontesAtsAprendidas(
         )
 
         registrarDiagnosticoFonteAts(nomeFonte, diagnostico)
+
+        if (execucaoId) {
+          try {
+            await registrarTelemetriaFonte({
+              execucaoId,
+
+              fonte: nomeFonte,
+
+              coletadas: diagnostico.recebidas,
+
+              aposJanela: diagnostico.recebidas - diagnostico.foraDaJanela,
+
+              aposElegibilidade:
+                diagnostico.recebidas -
+                diagnostico.foraDaJanela -
+                diagnostico.localizacaoIncompativel,
+
+              aposMatcher: diagnostico.aderentes,
+
+              importadas: importacao.inserted,
+
+              duplicadas: importacao.duplicates,
+
+              descartes: {
+                foraDaJanela: diagnostico.foraDaJanela,
+
+                localizacaoIncompativel: diagnostico.localizacaoIncompativel,
+
+                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo
+              }
+            })
+          } catch (erroTelemetria) {
+            console.warn(
+              "Telemetria da fonte " + nomeFonte + " nao registrada:",
+              erroTelemetria
+            )
+          }
+        }
       } catch (erroDiagnostico) {
         const mensagem =
           erroDiagnostico instanceof Error ? erroDiagnostico.message : "Erro desconhecido"

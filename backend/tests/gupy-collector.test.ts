@@ -51,75 +51,47 @@ afterEach(() => {
 })
 
 describe("coletor nativo da Gupy", () => {
-  test("pesquisa cargos brasileiros individualmente no portal", async () => {
-    const termosConsultados: string[] = []
+  test("pesquisa cargos do perfil individualmente no portal (M2)", async () => {
+  const termosConsultados: string[] = []
 
-    mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
-      const url = new URL(input instanceof Request ? input.url : String(input))
+  mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
+    const url = new URL(input instanceof Request ? input.url : String(input))
+    const termo = url.searchParams.get("jobName") ?? ""
+    termosConsultados.push(termo)
 
-      const termo = url.searchParams.get("jobName") ?? ""
-
-      termosConsultados.push(termo)
-
-      if (termo === "Analista de Suporte") {
-        return respostaJson({
-          data: [
-            {
-              id: 1001,
-
-              name: "Analista de Suporte Júnior",
-
-              careerPageName: "Empresa Teste",
-
-              description: "<p>Suporte técnico a usuários e sistemas.</p>",
-
-              city: "São Paulo",
-
-              state: "São Paulo",
-
-              country: "Brasil",
-
-              workplaceType: "hybrid",
-
-              jobUrl: "https://empresa-teste.gupy.io/jobs/1001",
-
-              publishedDate: "2026-08-19T10:00:00.000Z"
-            }
-          ]
-        })
-      }
-
+    if (termo === "Analista de Suporte") {
       return respostaJson({
-        data: []
+        data: [{
+          id: 1001,
+          name: "Analista de Suporte Júnior",
+          careerPageName: "Empresa Teste",
+          description: "<p>Suporte técnico a usuários e sistemas.</p>",
+          city: "São Paulo",
+          state: "São Paulo",
+          country: "Brasil",
+          workplaceType: "hybrid",
+          jobUrl: "https://empresa-teste.gupy.io/jobs/1001",
+          publishedDate: "2026-08-19T10:00:00.000Z"
+        }]
       })
-    })
-
-    const coleta = await collectGupyJobs(100, criarPerfil())
-
-    assert.equal(coleta.source, "gupy")
-
-    assert.equal(coleta.jobs.length, 1)
-
-    assert.ok(termosConsultados.includes("Analista de Suporte"))
-
-    assert.ok(termosConsultados.includes("Analista de Sistemas"))
-
-    /**
-     * Os cargos ingleses podem existir no perfil,
-     * mas não devem mais virar consultas.
-     */
-    assert.equal(termosConsultados.includes("Technical Support"), false)
-
-    assert.equal(termosConsultados.includes("Application Support"), false)
-
-    /**
-     * Cada cargo precisa ir no parâmetro
-     * jobName separadamente.
-     */
-    for (const termo of termosConsultados) {
-      assert.equal(termo.includes(" OR "), false)
     }
+
+    return respostaJson({ data: [] })
   })
+
+  const coleta = await collectGupyJobs(100, criarPerfil())
+
+  assert.equal(coleta.source, "gupy")
+  assert.equal(coleta.jobs.length, 1)
+  assert.ok(termosConsultados.includes("Analista de Suporte"))
+  assert.ok(termosConsultados.includes("Analista de Sistemas"))
+  assert.ok(termosConsultados.includes("Technical Support"))
+  assert.ok(termosConsultados.includes("Application Support"))
+
+  for (const termo of termosConsultados) {
+    assert.equal(termo.includes(" OR "), false)
+  }
+})
 
   test("normaliza os principais campos retornados pela Gupy", async () => {
     mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
@@ -268,76 +240,43 @@ describe("coletor nativo da Gupy", () => {
   })
 
   test("falha de um termo não impede a coleta dos demais", async () => {
-    const termosConsultados: string[] = []
+  const termosConsultados: string[] = []
 
-    mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
-      const url = new URL(input instanceof Request ? input.url : String(input))
+  mock.method(globalThis, "fetch", async (input: Parameters<typeof fetch>[0]) => {
+    const url = new URL(input instanceof Request ? input.url : String(input))
+    const termo = url.searchParams.get("jobName") ?? ""
+    termosConsultados.push(termo)
 
-      const termo = url.searchParams.get("jobName") ?? ""
+    if (termo === "Analista de Suporte") {
+      return respostaJson({ erro: "indisponível" }, 500)
+    }
 
-      termosConsultados.push(termo)
-
-      /**
-       * O primeiro cargo falha.
-       */
-      if (termo === "Analista de Suporte") {
-        return respostaJson(
-          {
-            erro: "indisponível"
-          },
-          500
-        )
-      }
-
-      /**
-       * O próximo cargo brasileiro
-       * continua sendo consultado.
-       */
-      if (termo === "Analista de Sistemas") {
-        return respostaJson({
-          data: [
-            {
-              id: 9001,
-
-              name: "Analista de Sistemas",
-
-              careerPageName: "Empresa B",
-
-              description: "Atuação com suporte de sistemas, SQL e atendimento a usuários.",
-
-              city: "João Pessoa",
-
-              state: "Paraíba",
-
-              country: "Brasil",
-
-              workplaceType: "remote",
-
-              jobUrl: "https://empresa-b.gupy.io/jobs/9001",
-
-              publishedDate: "2026-08-19"
-            }
-          ]
-        })
-      }
-
+    if (termo === "Analista de Sistemas") {
       return respostaJson({
-        data: []
+        data: [{
+          id: 9001,
+          name: "Analista de Sistemas",
+          careerPageName: "Empresa B",
+          description: "Atuação com suporte de sistemas, SQL e atendimento a usuários.",
+          city: "João Pessoa",
+          state: "Paraíba",
+          country: "Brasil",
+          workplaceType: "remote",
+          jobUrl: "https://empresa-b.gupy.io/jobs/9001",
+          publishedDate: "2026-08-19"
+        }]
       })
-    })
+    }
 
-    const coleta = await collectGupyJobs(100, criarPerfil())
-
-    assert.ok(termosConsultados.includes("Analista de Suporte"))
-
-    assert.ok(termosConsultados.includes("Analista de Sistemas"))
-
-    assert.equal(termosConsultados.includes("Technical Support"), false)
-
-    assert.equal(coleta.jobs.length, 1)
-
-    assert.equal(coleta.jobs[0]?.externalId, "9001")
-
-    assert.equal(coleta.jobs[0]?.title, "Analista de Sistemas")
+    return respostaJson({ data: [] })
   })
+
+  const coleta = await collectGupyJobs(100, criarPerfil())
+
+  assert.ok(termosConsultados.includes("Analista de Suporte"))
+  assert.ok(termosConsultados.includes("Analista de Sistemas"))
+  assert.equal(coleta.jobs.length, 1)
+  assert.equal(coleta.jobs[0]?.externalId, "9001")
+  assert.equal(coleta.jobs[0]?.title, "Analista de Sistemas")
+})
 })

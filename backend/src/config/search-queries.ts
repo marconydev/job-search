@@ -559,7 +559,16 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
     relacionados.push(...estrategia.titulosRelacionados)
   }
 
-  const termos = deduplicarTermos([...principais, ...relacionados])
+  // M2: o usuário é soberano. Cargos que ele cadastrou explicitamente
+  // entram como termos diretos, inclusive quando estão em inglês.
+  // Eles vão à frente porque descrevem o que o usuário realmente busca.
+  const cargosDoPerfil = deduplicarCargos(perfil)
+
+  const termos = deduplicarTermos([
+    ...cargosDoPerfil,
+    ...principais,
+    ...relacionados
+  ])
 
   return termos.slice(0, 30)
 }

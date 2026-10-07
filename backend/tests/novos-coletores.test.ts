@@ -48,24 +48,16 @@ function criarPerfilComAliasesIngles(): PerfilProfissional {
   }
 }
 
-test("gera termos em português mesmo quando o perfil possui aliases em inglês", () => {
+test("gera termos com cargos do perfil, inclusive aliases em inglês (M2)", () => {
   const termos = gerarTermosBuscaPortugues(criarPerfilComAliasesIngles(), 10)
 
-  const texto = termos.join(" | ").toLowerCase()
-
   assert.ok(termos.includes("Analista de Suporte"))
-
   assert.ok(termos.includes("Analista de Sistemas"))
-
-  assert.equal(texto.includes("technical support"), false)
-
-  assert.equal(texto.includes("support analyst"), false)
-
-  assert.equal(texto.includes("application support"), false)
-
-  assert.equal(texto.includes("noc analyst"), false)
-
-  assert.equal(texto.includes("bi analyst"), false)
+  assert.ok(termos.includes("Technical Support"))
+  assert.ok(termos.includes("Application Support"))
+  assert.ok(termos.includes("Support Analyst"))
+  assert.ok(termos.includes("NOC Analyst"))
+  assert.ok(termos.includes("BI Analyst"))
 })
 
 test("monta a busca do GetOnBoard com parâmetros compatíveis e termo em português", () => {

@@ -14,6 +14,11 @@ import {
 
 import { obterEstadoSincronizacao } from "../repositories/estado-sincronizacao-repository.js"
 
+import {
+  listarTelemetriaDaExecucao,
+  listarTelemetriaRecente
+} from "../repositories/funil-telemetria-repository.js"
+
 import { analyzePendingJobs } from "../services/job-analysis.js"
 
 import { importJobs } from "../services/job-import.js"
@@ -371,6 +376,47 @@ jobsRouter.post("/", async (request, response) => {
 
     return response.status(500).json({
       message: "Não foi possível cadastrar a vaga"
+    })
+  }
+})
+
+/**
+ * Endpoint de leitura da telemetria do funil.
+ *
+ * Sem querystring, devolve as últimas N linhas (default 50, máximo 500).
+ * Com ?execucaoId=<uuid>, devolve apenas as linhas daquela execução.
+ *
+ * Nunca dispara coleta nem consome Brave.
+ */
+jobsRouter.get("/telemetria", async (request, response) => {
+  const execucaoId =
+    typeof request.query.execucaoId === "string" && request.query.execucaoId.trim() !== ""
+      ? request.query.execucaoId.trim()
+      : null
+
+  const limiteSolicitado = Number(request.query.limite)
+
+  const limite = Number.isFinite(limiteSolicitado)
+    ? Math.max(1, Math.min(500, Math.floor(limiteSolicitado)))
+    : 50
+
+  try {
+    const dados = execucaoId
+      ? await listarTelemetriaDaExecucao(execucaoId)
+      : await listarTelemetriaRecente(limite)
+
+    return response.json({
+      execucaoId,
+
+      total: dados.length,
+
+      dados
+    })
+  } catch (error) {
+    console.error("Erro ao consultar telemetria do funil:", error)
+
+    return response.status(500).json({
+      message: "Não foi possível consultar a telemetria do funil"
     })
   }
 })

@@ -1,5 +1,7 @@
 import { db } from "../database/connection.js"
 
+import { calcularContentHash } from "../services/content-hash.js"
+
 import type { NewJob, StoredJob } from "../types/job.js"
 
 const TAMANHO_LOTE_ATUALIZACAO = 100
@@ -48,7 +50,9 @@ function prepararLote(jobs: NewJob[], sourceKey?: string) {
 
     partial: job.partial ?? false,
 
-    source_key: sourceKey ?? null
+    source_key: sourceKey ?? null,
+
+    content_hash: calcularContentHash(job)
   }))
 }
 
@@ -81,7 +85,8 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) 
           url TEXT,
           published_at TIMESTAMPTZ,
           partial BOOLEAN,
-          source_key TEXT
+          source_key TEXT,
+          content_hash TEXT
         )
       ),
 
@@ -131,7 +136,9 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) 
           COALESCE(
             i.source_key,
             j.source_key
-          ) AS source_key
+          ) AS source_key,
+
+          i.content_hash AS content_hash
 
         FROM jobs j
 
@@ -144,18 +151,9 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) 
         SELECT
           p.*,
 
-          ROW(
-            j.title,
-            j.description,
-            j.location,
-            j.remote
-          )
-          IS DISTINCT FROM
-          ROW(
-            p.title,
-            p.description,
-            p.location,
-            p.remote
+          (
+            j.content_hash IS DISTINCT FROM
+            p.content_hash
           ) AS affects_match,
 
           ROW(
@@ -215,6 +213,8 @@ async function atualizarLoteVagasExistentes(jobs: NewJob[], sourceKey?: string) 
           partial = c.partial,
 
           source_key = c.source_key,
+
+          content_hash = c.content_hash,
 
           last_seen_at = NOW(),
 
@@ -531,7 +531,8 @@ export async function createJob(job: NewJob, sourceKey?: string): Promise<Stored
           url,
           published_at,
           partial,
-          source_key
+          source_key,
+          content_hash
         )
 
         VALUES (
@@ -545,7 +546,8 @@ export async function createJob(job: NewJob, sourceKey?: string): Promise<Stored
           $8,
           $9,
           $10,
-          $11
+          $11,
+          $12
         )
 
         RETURNING *
@@ -571,7 +573,9 @@ export async function createJob(job: NewJob, sourceKey?: string): Promise<Stored
 
       job.partial ?? false,
 
-      sourceKey ?? null
+      sourceKey ?? null,
+
+      calcularContentHash(job)
     ]
   )
 

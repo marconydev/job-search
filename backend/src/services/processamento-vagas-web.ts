@@ -1,3 +1,4 @@
+import { MIN_SCORE_RELEVANT } from "../config/matcher.js"
 import { createHash } from "node:crypto"
 
 import { inspecionarPaginaVaga } from "../discovery/page-inspector.js"
@@ -114,7 +115,13 @@ function avaliarPaginaDescoberta(
     return null
   }
 
-  const elegibilidadeBrasil = avaliarElegibilidadeBrasil(null, pagina.descricao, pagina.titulo)
+  const elegibilidadeBrasil = avaliarElegibilidadeBrasil(
+    null,
+    pagina.descricao,
+    pagina.titulo,
+    false,
+    perfil.localizacoesAceitas
+  )
 
   if (elegibilidadeBrasil.situacao === "incompativel") {
     return null
@@ -145,7 +152,7 @@ function avaliarPaginaDescoberta(
 
   const correspondencia = avaliarVaga(vagaTemporaria, perfil)
 
-  if (correspondencia.score < 60) {
+  if (correspondencia.score < MIN_SCORE_RELEVANT) {
     return null
   }
 

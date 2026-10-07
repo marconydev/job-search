@@ -1,9 +1,22 @@
+import { PENALIDADE_TITULO_FORA_FOCO } from "../config/matcher.js"
+
 type DadosVaga = {
   title: string
-
   location: string | null
-
   remote: boolean
+}
+
+export type ResultadoPoliticaVaga = {
+  permitida: boolean
+  motivo: string | null
+  /**
+   * Pontos a descontar no score final.
+   *
+   * A política não veta mais por região geográfica (M3).
+   * A única penalidade restante é o título fora do foco em português,
+   * que agora desconta em vez de bloquear (M4).
+   */
+  desconto: number
 }
 
 function normalizarTexto(valor: string) {
@@ -18,22 +31,11 @@ function normalizarTexto(valor: string) {
 
 function contemExpressao(texto: string, termo: string) {
   const normalizado = ` ${normalizarTexto(texto)} `
-
   const termoNormalizado = normalizarTexto(termo)
-
+  if (!termoNormalizado) return false
   return normalizado.includes(` ${termoNormalizado} `)
 }
 
-/**
- * O projeto prioriza títulos apresentados em português.
- *
- * Termos técnicos em inglês continuam permitidos quando fazem parte
- * de um título brasileiro, por exemplo:
- *
- * Analista de Service Desk
- * Analista NOC
- * Analista de Power BI
- */
 const MARCADORES_TITULO_BRASIL = [
   "analista",
   "suporte",
@@ -66,61 +68,19 @@ export function tituloEstaNoFocoBrasil(titulo: string) {
 }
 
 /**
- * Para oportunidades que não são remotas, João Pessoa é a única
- * localização aceita nesta fase do projeto.
+ * Regra geográfica atual (M3):
  *
- * Utilizo somente o campo estruturado de localização da vaga.
- *
- * Não procuro "João Pessoa" na descrição porque uma descrição pode
- * mencionar filiais, clientes, viagens ou outras localidades sem que
- * aquele seja o local real da vaga.
+ * - A trava de João Pessoa/PB foi removida.
+ * - Presenciais e híbridas em qualquer lugar do Brasil passam a ser permitidas
+ *   pelo filtro geográfico. A adequação fina é feita pelo matcher/perfil.
+ * - Títulos fora do foco em português não bloqueiam mais; apenas descontam.
  */
-export function vagaEstaEmJoaoPessoa(vaga: Pick<DadosVaga, "location">) {
-  return contemExpressao(vaga.location ?? "", "joao pessoa")
-}
-
-/**
- * Regra geográfica atual:
- *
- * REMOTA:
- * pode seguir desde que a camada anterior tenha considerado a vaga
- * compatível ou potencialmente compatível com o Brasil.
- *
- * NÃO REMOTA:
- * presencial, híbrida ou modalidade não confirmada somente pode seguir
- * quando a localização indicar João Pessoa.
- *
- * Brasil x exterior continua sendo validado pela camada específica de
- * elegibilidade geográfica.
- */
-export function avaliarPoliticaVagaBrasil(vaga: DadosVaga) {
-  if (!tituloEstaNoFocoBrasil(vaga.title)) {
-    return {
-      permitida: false,
-
-      motivo: "Título da vaga fora do foco brasileiro em português."
-    }
-  }
-
-  if (vaga.remote) {
-    return {
-      permitida: true,
-
-      motivo: null
-    }
-  }
-
-  if (!vagaEstaEmJoaoPessoa(vaga)) {
-    return {
-      permitida: false,
-
-      motivo: "Vaga presencial, híbrida ou sem modalidade remota confirmada fora de João Pessoa/PB."
-    }
-  }
+export function avaliarPoliticaVagaBrasil(vaga: DadosVaga): ResultadoPoliticaVaga {
+  const noFoco = tituloEstaNoFocoBrasil(vaga.title)
 
   return {
     permitida: true,
-
-    motivo: null
+    motivo: null,
+    desconto: noFoco ? 0 : PENALIDADE_TITULO_FORA_FOCO
   }
 }
