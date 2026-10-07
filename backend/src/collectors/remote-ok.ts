@@ -100,7 +100,7 @@ function normalizarVaga(vaga: RemoteOkJob): NewJob | null {
   }
 }
 
-export async function collectRemoteOkJobs(
+async function collectRemoteOkJobs(
   limit = 100,
   perfil?: PerfilProfissional
 ): Promise<JobCollection> {

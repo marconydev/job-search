@@ -1,6 +1,6 @@
 import { db } from "../database/connection.js"
 
-export type SituacaoSincronizacao =
+type SituacaoSincronizacao =
   "ociosa" | "executando" | "concluida" | "falhou" | "interrompida"
 
 export type ModoExecucaoSincronizacao = "economico" | "brave"

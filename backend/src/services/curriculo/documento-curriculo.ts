@@ -1,4 +1,4 @@
-export type TipoSecao = "resumo" | "competencias" | "experiencias" | "formacoes" | "cursos"
+type TipoSecao = "resumo" | "competencias" | "experiencias" | "formacoes" | "cursos"
 
 export type LinhaDocumento = {
   ordem: number
@@ -8,7 +8,7 @@ export type LinhaDocumento = {
   secao: TipoSecao | null
 }
 
-export type SecoesDocumento = Record<TipoSecao, LinhaDocumento[]>
+type SecoesDocumento = Record<TipoSecao, LinhaDocumento[]>
 
 export type DocumentoCurriculo = {
   linhas: LinhaDocumento[]

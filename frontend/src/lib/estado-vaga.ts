@@ -6,7 +6,7 @@ export function vagaEstaEmAberto(vaga: VagaPainel) {
   return vaga.status === "relevant"
 }
 
-export function vagaFoiVista(vaga: VagaPainel) {
+function vagaFoiVista(vaga: VagaPainel) {
   return vaga.viewed_at !== null
 }
 

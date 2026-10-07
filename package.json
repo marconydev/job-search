@@ -3,9 +3,11 @@
   "private": true,
   "scripts": {
     "format": "prettier . --write --ignore-unknown",
-    "format:check": "prettier . --check --ignore-unknown"
+    "format:check": "prettier . --check --ignore-unknown",
+    "audit": "knip"
   },
   "devDependencies": {
+    "knip": "^6.40.0",
     "prettier": "3.9.6"
   }
 }

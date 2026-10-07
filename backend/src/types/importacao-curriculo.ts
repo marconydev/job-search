@@ -5,7 +5,7 @@ import type {
   FormacaoProfissional
 } from "./perfil-profissional.js"
 
-export type SugestoesCurriculo = {
+type SugestoesCurriculo = {
   resumoProfissional: string
 
   competencias: CompetenciaPerfil[]

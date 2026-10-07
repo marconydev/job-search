@@ -149,7 +149,7 @@ function normalizarCursos(valor: unknown): CursoProfissional[] {
     .filter((item): item is CursoProfissional => item !== null)
 }
 
-export function normalizarPerfilProfissional(valor: unknown): PerfilProfissional {
+function normalizarPerfilProfissional(valor: unknown): PerfilProfissional {
   if (!valor || typeof valor !== "object") {
     throw new Error("Perfil profissional inválido")
   }

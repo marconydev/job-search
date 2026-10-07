@@ -281,7 +281,7 @@ async function pesquisarPagina(
   }
 }
 
-export async function collectGetOnBoardJobs(
+async function collectGetOnBoardJobs(
   limit = LIMITE_MAXIMO_POR_TERMO,
   perfil?: PerfilProfissional
 ): Promise<JobCollection> {

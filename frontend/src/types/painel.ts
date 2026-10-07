@@ -79,13 +79,13 @@ export type FiltroModalidade = "todas" | "remota" | "nao-remota"
 
 export type OrdenacaoVagas = "compatibilidade" | "recentes"
 
-export type ModoSincronizacao = {
+type ModoSincronizacao = {
   braveAutorizada: boolean
 
   limiteBrave: number
 }
 
-export type ResultadoFonteSincronizacao = {
+type ResultadoFonteSincronizacao = {
   source: string
 
   /**
@@ -105,7 +105,7 @@ export type ResultadoFonteSincronizacao = {
   error?: string
 }
 
-export type ResultadoPersistenciaDescoberta = {
+type ResultadoPersistenciaDescoberta = {
   novas: number
 
   atualizadas: number
@@ -113,7 +113,7 @@ export type ResultadoPersistenciaDescoberta = {
   falhas: number
 }
 
-export type ResultadoFonteWeb = {
+type ResultadoFonteWeb = {
   provedor: string
 
   encontradas: number
@@ -137,7 +137,7 @@ export type ResultadoFonteWeb = {
   ignoradas: number
 }
 
-export type PaginaSomenteDescoberta = {
+type PaginaSomenteDescoberta = {
   provedor: string
 
   titulo: string
@@ -149,7 +149,7 @@ export type PaginaSomenteDescoberta = {
   consulta: string
 }
 
-export type ResultadoWebSincronizacao = {
+type ResultadoWebSincronizacao = {
   paginasDescobertas: number
 
   descartadasPorTitulo: number
@@ -183,7 +183,7 @@ export type ResultadoWebSincronizacao = {
   somenteDescoberta: PaginaSomenteDescoberta[]
 }
 
-export type ResultadoAnaliseSincronizacao = {
+type ResultadoAnaliseSincronizacao = {
   analisadas: number
 
   relevantes: number
@@ -201,7 +201,7 @@ export type ResultadoSincronizacao = {
   analise: ResultadoAnaliseSincronizacao
 }
 
-export type SituacaoExecucaoSincronizacao =
+type SituacaoExecucaoSincronizacao =
   "ociosa" | "executando" | "concluida" | "falhou" | "interrompida"
 
 export type ModoExecucaoSincronizacao = "economico" | "brave"

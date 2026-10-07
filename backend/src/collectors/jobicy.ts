@@ -102,7 +102,7 @@ export function montarUrlBuscaJobicy(limit = 100) {
   return url
 }
 
-export async function collectJobicyJobs(limit = 100): Promise<JobCollection> {
+async function collectJobicyJobs(limit = 100): Promise<JobCollection> {
   const limite = normalizarLimite(limit)
 
   const url = montarUrlBuscaJobicy(limite)

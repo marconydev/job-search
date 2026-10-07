@@ -12,7 +12,7 @@ import type { ResumoTelemetria } from "@/types/telemetria"
  * Desta forma o navegador não precisa conhecer diretamente o endereço
  * da API Express e eu continuo sem depender de CORS no frontend.
  */
-export function obterUrlBackend() {
+function obterUrlBackend() {
   const endereco = process.env.API_BACKEND_URL ?? "http://localhost:3333"
 
   return endereco.replace(/\/+$/, "")

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
-import { analisarCurriculo } from "../src/services/analisador-curriculo.js"
+import { analisarCurriculo } from "../src/services/curriculo/analisador-curriculo.js"
 
 import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
 

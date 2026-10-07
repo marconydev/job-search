@@ -88,19 +88,19 @@ export type FonteResumo = FunilResumo & {
   duracaoMs: number | null
 }
 
-export type PontoSerieDiaria = {
+type PontoSerieDiaria = {
   dia: string
   coletadas: number
   importadas: number
   syncs: number
 }
 
-export type MotivoDescarte = {
+type MotivoDescarte = {
   motivo: string
   total: number
 }
 
-export type UltimaExecucaoResumo = {
+type UltimaExecucaoResumo = {
   execucaoId: string
   finalizadaEm: string
   funil: FunilResumo

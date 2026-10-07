@@ -4,7 +4,7 @@ import multer from "multer"
 
 import { reanalisarTodasAsVagas } from "../services/job-analysis.js"
 
-import { analisarCurriculo } from "../services/analisador-curriculo.js"
+import { analisarCurriculo } from "../services/curriculo/analisador-curriculo.js"
 
 import { arquivoCurriculoEhPermitido, extrairTextoCurriculo } from "../services/leitor-curriculo.js"
 

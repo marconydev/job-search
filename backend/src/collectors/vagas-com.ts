@@ -230,7 +230,7 @@ async function pesquisarVagasCom(termo: string, limitePorTermo: number) {
   return [...vagasPorId.values()]
 }
 
-export async function collectVagasComJobs(
+async function collectVagasComJobs(
   limit = LIMITE_MAXIMO_POR_TERMO,
   perfil?: PerfilProfissional
 ): Promise<JobCollection> {

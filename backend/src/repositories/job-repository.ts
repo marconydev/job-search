@@ -445,43 +445,6 @@ export async function listJobsPendingAnalysis(matcherVersion: number): Promise<S
 }
 
 /**
- * Mantido para compatibilidade com rotinas que precisem consultar
- * estritamente vagas sem nenhuma análise.
- */
-export async function listUnmatchedJobs(): Promise<StoredJob[]> {
-  const result = await db.query(`
-      SELECT
-        j.id,
-        j.source,
-        j.external_id,
-        j.company,
-        j.title,
-        j.description,
-        j.location,
-        j.remote,
-        j.url,
-        j.published_at,
-        j.partial,
-        j.created_at
-
-      FROM jobs j
-
-      LEFT JOIN job_matches jm
-        ON jm.job_id = j.id
-
-      WHERE
-        jm.id IS NULL
-        AND j.unavailable_at IS NULL
-
-      ORDER BY
-        j.published_at DESC NULLS LAST,
-        j.created_at DESC
-    `)
-
-  return result.rows
-}
-
-/**
  * Procuro uma oportunidade pela chave utilizada na deduplicação.
  */
 export async function findJobBySourceExternalId(

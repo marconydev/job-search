@@ -106,7 +106,7 @@ function localizacaoPareceCidadeEspecifica(location: string | null): boolean {
   return false
 }
 
-export function vagaEstaEmJoaoPessoa(vaga: Pick<DadosVaga, "location">) {
+function vagaEstaEmJoaoPessoa(vaga: Pick<DadosVaga, "location">) {
   const local = vaga.location ?? ""
   return (
     contemExpressao(local, "joao pessoa") ||

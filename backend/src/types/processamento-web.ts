@@ -1,6 +1,6 @@
 import type { ProvedorPagina } from "./discovery.js"
 
-export type TipoPendenciaProcessamentoWeb = "acesso" | "extracao" | "localizacao" | "indisponivel"
+type TipoPendenciaProcessamentoWeb = "acesso" | "extracao" | "localizacao" | "indisponivel"
 
 export type PendenciaProcessamentoWeb = {
   tipo: TipoPendenciaProcessamentoWeb

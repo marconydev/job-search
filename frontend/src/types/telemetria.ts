@@ -1,4 +1,4 @@
-export type FunilResumo = {
+type FunilResumo = {
   coletadas: number
   aposJanela: number
   aposElegibilidade: number
@@ -7,7 +7,7 @@ export type FunilResumo = {
   duplicadas: number
 }
 
-export type FonteResumo = FunilResumo & {
+type FonteResumo = FunilResumo & {
   fonte: string
   duracaoMs: number | null
 }
@@ -24,7 +24,7 @@ export type MotivoDescarte = {
   total: number
 }
 
-export type UltimaExecucaoResumo = {
+type UltimaExecucaoResumo = {
   execucaoId: string
   finalizadaEm: string
   funil: FunilResumo

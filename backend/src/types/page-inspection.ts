@@ -26,7 +26,7 @@ export type VagaExtraida = {
  * Quando encontro uma vaga, já devolvo também a análise geográfica
  * para não precisar recalcular essa regra em outras partes do sistema.
  */
-export type InspecaoPagina = {
+type InspecaoPagina = {
   pagina: PaginaClassificada
   urlFinal: string
   provedor: ProvedorPagina
@@ -39,7 +39,7 @@ export type InspecaoPagina = {
 /**
  * Uso este formato quando não consigo acessar ou analisar uma página.
  */
-export type FalhaInspecaoPagina = {
+type FalhaInspecaoPagina = {
   pagina: PaginaClassificada
   erro: string
 }

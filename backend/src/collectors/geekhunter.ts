@@ -335,7 +335,7 @@ async function buscarPagina(pagina: number, termo?: string) {
   return resposta.text()
 }
 
-export async function collectGeekHunterJobs(
+async function collectGeekHunterJobs(
   limit = LIMITE_PADRAO,
   perfil?: PerfilProfissional
 ): Promise<JobCollection> {

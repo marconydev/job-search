@@ -62,7 +62,7 @@ export type PerfilProfissionalComMetadados = {
   atualizadoEm: string | null
 }
 
-export type SugestoesCurriculo = {
+type SugestoesCurriculo = {
   resumoProfissional: string
 
   competencias: CompetenciaPerfil[]

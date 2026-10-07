@@ -1,6 +1,6 @@
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
-export type RecorrenciaConsultaBusca = "diaria" | "rotativa"
+type RecorrenciaConsultaBusca = "diaria" | "rotativa"
 
 export type ConsultaBuscaVaga = {
   texto: string

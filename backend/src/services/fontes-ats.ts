@@ -1,7 +1,5 @@
 import { coletarFonteAts } from "../collectors/ats.js"
 
-import { classificarPagina } from "../discovery/page-classifier.js"
-
 import {
   listarFontesAtsParaColeta,
   registrarFalhaColetaFonteAts,
@@ -10,7 +8,6 @@ import {
 } from "../repositories/fonte-ats-repository.js"
 
 import {
-  listJobs,
   reconcileCompleteSourceAvailability,
   refreshExistingJobs
 } from "../repositories/job-repository.js"
@@ -297,36 +294,6 @@ export async function registrarFontesAtsDescobertas(paginas: PaginaClassificada[
 
   if (quantidade > 0) {
     console.log(`ATS: ${quantidade} fonte(s) reconhecida(s) na descoberta web/cache.`)
-  }
-
-  return quantidade
-}
-
-export async function registrarFontesAtsDosJobsExistentes() {
-  const vagas = await listJobs()
-
-  if (vagas.length === 0) {
-    return 0
-  }
-
-  const paginas = vagas.map(vaga =>
-    classificarPagina({
-      origem: "banco",
-
-      consulta: "historico",
-
-      titulo: vaga.title,
-
-      url: vaga.url,
-
-      descricao: vaga.description
-    })
-  )
-
-  const quantidade = await persistirFontesAts(paginas)
-
-  if (quantidade > 0) {
-    console.log(`ATS: ${quantidade} fonte(s) reconhecida(s) usando vagas já existentes no banco.`)
   }
 
   return quantidade

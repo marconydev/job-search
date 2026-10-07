@@ -82,7 +82,7 @@ function normalizarVaga(vaga: ArbeitnowJob): NewJob | null {
   }
 }
 
-export async function collectArbeitnowJobs(
+async function collectArbeitnowJobs(
   limit = 100,
   perfil?: PerfilProfissional
 ): Promise<JobCollection> {
