@@ -85,7 +85,16 @@ Lista de `localizacoesEstrangeiras` inclui: `us`, `u.s.`, `usa`, `eua`, `estados
 
 ## 10. Telemetria
 
-`funil_telemetria`: `execucao_id`, `fonte`, `coletadas`, `apos_janela`, `apos_elegibilidade`, `apos_matcher`, `importadas`, `duplicadas`, `descartes` JSONB (8 chaves), `erros` JSONB, `duracao_ms`. Endpoint `GET /jobs/telemetria`.
+`funil_telemetria`: `execucao_id`, `fonte`, `coletadas`, `apos_janela`, `apos_elegibilidade`, `apos_matcher`, `importadas`, `duplicadas`, `descartes` JSONB (8 chaves), `erros` JSONB, `duracao_ms`.
+
+Endpoints:
+
+- `GET /jobs/telemetria` — linhas cruas. Sem querystring devolve as ultimas N (default 50, maximo 500); com `?execucaoId=<uuid>` devolve apenas aquela execucao.
+- `GET /jobs/telemetria/resumo` — resumo agregado. `?dias` (default 7, range 1..30) controla a janela da serie diaria. Devolve `ultimaExecucao` (funil consolidado + `porFonte` + `erros`), `serieDiaria` e `topDescartes` (top 10 por total, desempate alfabetico).
+
+A agregacao acontece em JS sobre as linhas cruas da ultima execucao (`agregarLinhas`); Q1 (ultima execucao) e Q3 (serie diaria) ficam parametrizadas no repositorio. `importadas` representa o topo do funil operacional — sem join com `job_matches`. As faixas de score (`scoreZero`, `score1a39`, `score40a49`, `score50a59`) sao sub-buckets de `matcherAbaixoDoMinimo`; a soma de `topDescartes` nao e uma particao de `coletadas`.
+
+Indice `idx_funil_telemetria_created_at` (migration 016) cobre a serie diaria.
 
 ## 11. Priorização de ATS
 
@@ -126,6 +135,6 @@ backend/src/scripts/: sync-jobs.ts, diagnosticar-vagas-web.ts, test-page-inspect
 
 backend/src/types/: collector.ts, job.ts, perfil-profissional.ts, discovery.ts, page-inspection.ts, elegibilidade.ts, fonte-ats.ts, importacao-curriculo.ts, processamento-web.ts
 
-database/migrations/: 001 a 015.
+database/migrations/: 001 a 016.
 
 frontend/src/: A CONFIRMAR em nova sessão (lido parcialmente).

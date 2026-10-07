@@ -49,7 +49,7 @@ Frontend: `dev`, `build`, `start`, `lint`.
 
 PostgreSQL (Neon em produção, Postgres local em dev).
 
-Migrations `001` a `015`:
+Migrations `001` a `016`:
 
 - `jobs` — oportunidades.
 - `job_matches` — análise local.
