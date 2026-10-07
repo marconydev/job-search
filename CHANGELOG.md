@@ -2,6 +2,29 @@
 
 Consolidado a partir do histórico de commits de `main` e das mudanças da sessão de outubro/2026.
 
+## [2026-10-07 — Auditoria knip] — limpeza de código morto e artefatos
+
+### Removed
+
+- 2 funções mortas no backend (`listUnmatchedJobs`, `registrarFontesAtsDosJobsExistentes`).
+- 34 exports decorativos (20 no backend, 14 no frontend).
+- `backend/src/services/analisador-curriculo.ts` (re-export intermediário).
+- `apps/` vazio e `backups/job-search-local.backup` (dump PostgreSQL antigo).
+- 10 arquivos `.bak` de sessões anteriores.
+
+### Changed
+
+- Import de `analisarCurriculo` em `routes/perfil.ts` e em `tests/analisador-curriculo.test.ts` aponta direto para `services/curriculo/analisador-curriculo.js`.
+
+### Added
+
+- Script `audit` (`knip`) no `package.json` da raiz.
+- `PROTOCOLO.md` consolidando o padrão de trabalho.
+
+### Notes
+
+- 207/207 backend + 54/54 frontend + typecheck + lint + build zerados.
+
 ## [2026-10-07 — Fase 1B-Frontend] — painel de telemetria + testes
 
 ### Added

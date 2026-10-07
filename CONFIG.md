@@ -41,7 +41,7 @@ Node.js: sem `engines` declarado. Ambiente: 24.13.1.
 
 ## 4. Scripts
 
-Raiz: `npm run format`, `npm run format:check`.
+Raiz: `npm run format`, `npm run format:check`, `npm run audit` (`knip`).
 
 Backend: `dev`, `build`, `start`, `test`, `test:watch`, `test:typecheck`, `sync`, `diagnose`.
 
