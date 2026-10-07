@@ -1,5 +1,7 @@
 import { Router } from "express"
 
+import type { Request, Response } from "express"
+
 import { collectRemotiveJobs } from "../collectors/remotive.js"
 
 import { createJob, isDuplicateJobError, listJobs } from "../repositories/job-repository.js"
@@ -16,7 +18,8 @@ import { obterEstadoSincronizacao } from "../repositories/estado-sincronizacao-r
 
 import {
   listarTelemetriaDaExecucao,
-  listarTelemetriaRecente
+  listarTelemetriaRecente,
+  resumirTelemetria
 } from "../repositories/funil-telemetria-repository.js"
 
 import { analyzePendingJobs } from "../services/job-analysis.js"
@@ -388,6 +391,52 @@ jobsRouter.post("/", async (request, response) => {
  *
  * Nunca dispara coleta nem consome Brave.
  */
+/**
+ * Sanitiza o parametro ?dias do resumo de telemetria.
+ *
+ * Regra: inteiro >= 1 e <= 30. Qualquer valor fora disso (NaN,
+ * negativo, zero, float, string vazia, string maliciosa) cai no
+ * default 7.
+ *
+ * Exportada para permitir teste unitario direto do boundary.
+ */
+export function sanitizarDias(value: unknown): number {
+  const bruto = Math.floor(Number(value))
+
+  if (!Number.isFinite(bruto) || bruto <= 0) {
+    return 7
+  }
+
+  return Math.min(bruto, 30)
+}
+
+/**
+ * Resumo agregado da telemetria do funil.
+ *
+ * Devolve a fotografia da ultima execucao, a serie diaria na
+ * janela pedida e os principais motivos de descarte.
+ *
+ * Exportado como named export para permitir teste com mocks de
+ * req/res sem subir o servidor HTTP.
+ */
+export async function getTelemetriaResumo(request: Request, response: Response) {
+  const dias = sanitizarDias(request.query.dias)
+
+  try {
+    const resumo = await resumirTelemetria(dias)
+
+    return response.json(resumo)
+  } catch (error) {
+    console.error("Erro ao consultar resumo da telemetria:", error)
+
+    return response.status(500).json({
+      message: "Nao foi possivel consultar o resumo da telemetria"
+    })
+  }
+}
+
+jobsRouter.get("/telemetria/resumo", getTelemetriaResumo)
+
 jobsRouter.get("/telemetria", async (request, response) => {
   const execucaoId =
     typeof request.query.execucaoId === "string" && request.query.execucaoId.trim() !== ""

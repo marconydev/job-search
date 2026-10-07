@@ -28,8 +28,9 @@ Snapshot do estado da aplicação após a sessão de 06-07/10/2026.
 - `elegibilidade-localizacao`: adicionadas variações de EUA (us, u.s., eua, estados unidos).
 - Re-análise em massa no Neon (1197 análises).
 - Fase 1A: vocabulário de `search-queries.ts` expandido nas 7 famílias (sinônimos PT/EN, variações N1/N2/N3 e níveis Sênior/Pleno/Júnior); `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5`.
+- Fase 1B-Backend: `GET /jobs/telemetria/resumo` (funil da última execução, série diária e top motivos de descarte); `agregarLinhas` + `resumirTelemetria`; migration 016 (índice em `created_at DESC`).
 
 ## Pendências
 
-- Fase 1B: observabilidade agregada (`GET /jobs/telemetria/resumo` + componente no painel).
+- Fase 1B-Frontend: componente no painel consumindo `GET /jobs/telemetria/resumo`.
 - Fase 2 (futura): botão "segunda opinião por IA" on-demand.

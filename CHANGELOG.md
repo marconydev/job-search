@@ -2,6 +2,21 @@
 
 Consolidado a partir do histórico de commits de `main` e das mudanças da sessão de outubro/2026.
 
+## [2026-10-07 — Fase 1B-Backend] — resumo agregado da telemetria
+
+### Added
+
+- Endpoint `GET /jobs/telemetria/resumo` com parâmetro opcional `?dias` (default 7, range 1..30).
+- Função `resumirTelemetria(dias)` no repositório de telemetria.
+- Função pura `agregarLinhas(rows)` — agregação em JS sobre as linhas cruas da última execução.
+- Migration `016_add_idx_funil_telemetria_created_at.sql` (`CREATE INDEX IF NOT EXISTS` em `funil_telemetria (created_at DESC)`).
+- Testes unitários em `backend/tests/funil-telemetria-resumo.test.ts` (agregação, sanitização de `dias`, handler com mocks de req/res).
+
+### Notes
+
+- O payload é plano; as faixas de score (`scoreZero`, `score1a39`, `score40a49`, `score50a59`) são sub-buckets de `matcherAbaixoDoMinimo` — a soma de `topDescartes` não é uma partição de `coletadas`.
+- Sem join com `job_matches`: `importadas` representa o topo do funil operacional da execução.
+
 ## [2026-10-07 — Fase 1A] — vocabulário das 7 famílias
 
 ### Added
