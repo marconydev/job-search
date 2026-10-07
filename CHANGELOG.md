@@ -2,6 +2,24 @@
 
 Consolidado a partir do histórico de commits de `main` e das mudanças da sessão de outubro/2026.
 
+## [2026-10-07 — Fase 1B-Frontend] — painel de telemetria + testes
+
+### Added
+
+- Painel retratil `Telemetria` no dashboard, fechado por padrao, com botoes `[7d | 14d | 30d]` e `Atualizar`.
+- Funil da ultima execucao (6 contadores), serie diaria em barras Tailwind e top motivos de descarte em barras horizontais.
+- Rota-proxy `GET /api/telemetria/resumo` com sanitizacao de `?dias` (default 7, range 1..30) e propagacao de status do backend.
+- Utilitarios puros em `src/lib/telemetria-utils.ts`.
+- Suite Vitest + React Testing Library: 54 testes cobrindo utilitarios (28), rota-proxy (12), componente de telemetria (10) e integracao no painel (4).
+- Configs `vitest.config.mts`, `vitest.setup.ts`, `vitest.server-only-stub.ts`.
+
+### Changed
+
+- `src/app/page.tsx` carrega `obterResumoTelemetria(7)` em paralelo com `obterDadosPainel()`; falha da telemetria nao derruba a pagina.
+- `src/components/painel/painel-vagas.tsx` recebe `resumoTelemetriaInicial` e monta `<Telemetria>` abaixo de `<ControleSincronizacao>`.
+- `src/lib/api-servidor.ts` ganha `obterResumoTelemetria(dias)`.
+- `package.json`: scripts `test`, `test:watch`, `test:ui`; novas dev-deps de teste (`vitest`, `@vitest/ui`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`, `@vitejs/plugin-react`); `@types/node` de `^20` para `^24` (runtime e Node 24.13.1).
+
 ## [2026-10-07 — Fase 1B-Backend] — resumo agregado da telemetria
 
 ### Added

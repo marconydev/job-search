@@ -28,6 +28,8 @@ import { ControleSincronizacao } from "./controle-sincronizacao"
 
 import { DetalheVaga } from "./detalhe-vaga"
 
+import { Telemetria } from "./telemetria"
+
 import { calcularResumoPainel, vagaEstaEmAberto, vagaPertenceAoFiltro } from "@/lib/estado-vaga"
 
 import type {
@@ -39,8 +41,12 @@ import type {
   VagaPainel
 } from "@/types/painel"
 
+import type { ResumoTelemetria } from "@/types/telemetria"
+
 type Propriedades = {
   dadosIniciais: DadosPainel
+
+  resumoTelemetriaInicial: ResumoTelemetria | null
 }
 
 type AlteracaoLocalVaga = Partial<
@@ -82,7 +88,10 @@ function extrairAlteracaoLocal(retorno: RetornoAtualizacaoVaga): AlteracaoLocalV
   return alteracao
 }
 
-export function PainelVagas({ dadosIniciais }: Propriedades) {
+export function PainelVagas({
+  dadosIniciais,
+  resumoTelemetriaInicial
+}: Propriedades) {
   const router = useRouter()
 
   const [atualizandoPagina, iniciarAtualizacao] = useTransition()
@@ -650,8 +659,10 @@ export function PainelVagas({ dadosIniciais }: Propriedades) {
               </div>
             </header>
 
-            <div className="mt-6">
+            <div className="mt-6 space-y-4">
               <ControleSincronizacao />
+
+              <Telemetria resumoInicial={resumoTelemetriaInicial} />
             </div>
 
             <section className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">

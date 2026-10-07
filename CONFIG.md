@@ -35,6 +35,8 @@ Backend dev: TypeScript 7.0.2, tsx 4.23.12.
 
 Frontend: Next.js 16.3.0, React 19.2.8, React DOM 19.2.8, Lucide React 1.31.0, Tailwind CSS 4, ESLint 9, TypeScript 5.
 
+Frontend dev/test: Vitest 5, `@vitest/ui`, `@testing-library/react` 16, `@testing-library/jest-dom`, `@testing-library/user-event`, jsdom, `@vitejs/plugin-react`. `@types/node` atualizado de `^20` para `^24` (runtime Node 24.13.1).
+
 Node.js: sem `engines` declarado. Ambiente: 24.13.1.
 
 ## 4. Scripts
@@ -43,7 +45,7 @@ Raiz: `npm run format`, `npm run format:check`.
 
 Backend: `dev`, `build`, `start`, `test`, `test:watch`, `test:typecheck`, `sync`, `diagnose`.
 
-Frontend: `dev`, `build`, `start`, `lint`.
+Frontend: `dev`, `build`, `start`, `lint`, `test`, `test:watch`, `test:ui`.
 
 ## 5. Banco de dados
 

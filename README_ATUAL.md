@@ -29,8 +29,8 @@ Snapshot do estado da aplicação após a sessão de 06-07/10/2026.
 - Re-análise em massa no Neon (1197 análises).
 - Fase 1A: vocabulário de `search-queries.ts` expandido nas 7 famílias (sinônimos PT/EN, variações N1/N2/N3 e níveis Sênior/Pleno/Júnior); `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5`.
 - Fase 1B-Backend: `GET /jobs/telemetria/resumo` (funil da última execução, série diária e top motivos de descarte); `agregarLinhas` + `resumirTelemetria`; migration 016 (índice em `created_at DESC`).
+- Fase 1B-Frontend: painel retratil `Telemetria` no dashboard (botoes `[7d|14d|30d]` + `Atualizar`), rota-proxy `/api/telemetria/resumo`, utilitarios puros e 54 testes Vitest + RTL (utils 28, rota 12, componente 10, integracao 4).
 
 ## Pendências
 
-- Fase 1B-Frontend: componente no painel consumindo `GET /jobs/telemetria/resumo`.
 - Fase 2 (futura): botão "segunda opinião por IA" on-demand.

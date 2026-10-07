@@ -2,7 +2,9 @@ import { BriefcaseBusiness, ServerOff } from "lucide-react"
 
 import { PainelVagas } from "@/components/painel/painel-vagas"
 
-import { obterDadosPainel } from "@/lib/api-servidor"
+import { obterDadosPainel, obterResumoTelemetria } from "@/lib/api-servidor"
+
+import type { ResumoTelemetria } from "@/types/telemetria"
 
 import type { DadosPainel } from "@/types/painel"
 
@@ -14,6 +16,8 @@ export const dynamic = "force-dynamic"
 
 type ResultadoCarregamento = {
   dados: DadosPainel | null
+
+  resumoTelemetria: ResumoTelemetria | null
 
   erro: unknown
 }
@@ -27,16 +31,23 @@ type ResultadoCarregamento = {
  */
 async function carregarPainel(): Promise<ResultadoCarregamento> {
   try {
-    const dados = await obterDadosPainel()
+    const [dados, resumoTelemetria] = await Promise.all([
+      obterDadosPainel(),
+      obterResumoTelemetria(7).catch(erroTelemetria => {
+        console.error("Falha ao carregar telemetria:", erroTelemetria)
+        return null
+      })
+    ])
 
     return {
       dados,
+      resumoTelemetria,
       erro: null
     }
   } catch (erro) {
     return {
       dados: null,
-
+      resumoTelemetria: null,
       erro
     }
   }
@@ -46,7 +57,12 @@ export default async function PaginaInicial() {
   const resultado = await carregarPainel()
 
   if (resultado.dados) {
-    return <PainelVagas dadosIniciais={resultado.dados} />
+    return (
+      <PainelVagas
+        dadosIniciais={resultado.dados}
+        resumoTelemetriaInicial={resultado.resumoTelemetria}
+      />
+    )
   }
 
   console.error("Erro ao carregar a página inicial:", resultado.erro)

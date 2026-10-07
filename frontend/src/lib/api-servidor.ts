@@ -4,6 +4,8 @@ import type { DadosPainel } from "@/types/painel"
 
 import type { PerfilProfissionalComMetadados } from "@/types/perfil"
 
+import type { ResumoTelemetria } from "@/types/telemetria"
+
 /**
  * Eu mantenho o endereço do backend somente no servidor do Next.
  *
@@ -83,6 +85,23 @@ export async function obterPerfilProfissional(): Promise<PerfilProfissionalComMe
 
   if (!resposta.ok) {
     throw new Error(`Não foi possível carregar o perfil profissional. HTTP ${resposta.status}.`)
+  }
+
+  return resposta.json()
+}
+/**
+ * Carrega o resumo agregado da telemetria pelo servidor Next.
+ * O navegador nunca fala direto com o Express.
+ */
+export async function obterResumoTelemetria(dias = 7): Promise<ResumoTelemetria> {
+  const resposta = await requisitarBackend(`/jobs/telemetria/resumo?dias=${dias}`, {
+    cache: "no-store"
+  })
+
+  if (!resposta.ok) {
+    throw new Error(
+      `Nao foi possivel carregar o resumo da telemetria. HTTP ${resposta.status}.`
+    )
   }
 
   return resposta.json()

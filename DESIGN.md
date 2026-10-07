@@ -113,7 +113,25 @@ Ordem final dos termos da coleta nativa: cargos do perfil (M2) → títulos prin
 
 A coleta nativa da Gupy limita os relacionados a `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5` por família, garantindo que todas as famílias ativas do perfil apareçam antes do corte final de 30 termos. A Sólides reaproveita a mesma lista, cortada em 20.
 
-## 13. Mapa de arquivos
+## 13. Frontend — telemetria no painel
+
+O painel principal (`PainelVagas`) monta o componente `Telemetria` logo abaixo do `ControleSincronizacao`. Fechado por padrao (retratil) e aberto pelo botao "Ver Telemetria".
+
+O componente oferece:
+
+- botoes de janela `[7d | 14d | 30d]` — disparam re-fetch para `/api/telemetria/resumo?dias=N`;
+- botao `Atualizar` — refaz o fetch na janela atual;
+- funil da ultima execucao (6 contadores: coletadas, aposJanela, aposElegibilidade, aposMatcher, importadas, duplicadas);
+- serie diaria em barras Tailwind (altura proporcional, sem dependencia de grafico);
+- top motivos de descarte em barras horizontais com total e percentual.
+
+A rota-proxy `src/app/api/telemetria/resumo/route.ts` segue o padrao de `sincronizacao/status/route.ts`: sanitiza `?dias` (default 7, range 1..30), delega para `requisitarBackend` e propaga `status` do backend. Falha de rede devolve 503.
+
+`src/lib/telemetria-utils.ts` concentra a logica pura (formatacao, calculos, validacao), coberta por Vitest sem render. `src/lib/api-servidor.ts` ganha `obterResumoTelemetria(dias)` para injeção server-side em `page.tsx`.
+
+Suite de testes: `vitest.config.mts` + jsdom; 54 testes distribuidos em 4 arquivos (`src/lib/__tests__/telemetria-utils.test.ts`, `src/app/api/telemetria/resumo/__tests__/route.test.ts`, `src/components/painel/__tests__/telemetria.test.tsx`, `src/components/painel/__tests__/painel-vagas.test.tsx`).
+
+## 14. Mapa de arquivos
 
 backend/src/collectors/: index.ts, gupy.ts, solides.ts, vagas-com.ts, geekhunter.ts, getonboard.ts, remotive.ts, remote-ok.ts, jobicy.ts, arbeitnow.ts, ats.ts, collector-utils.ts
 
