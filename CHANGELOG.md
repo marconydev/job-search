@@ -1,5 +1,87 @@
 # Changelog
 
+## [2026-10-08 — LinkedIn + inferência de modalidade + 7 boards ATS] — expansão de fontes
+
+### Added
+
+- `backend/src/extractors/linkedin.ts` — extractor estático do LinkedIn público. Sem login, sem cookies, sem Playwright. Fonte primária JSON-LD (quando disponível); fallback HTML público (`h1.topcard__title`, `.topcard__org-name-link`, `.topcard__flavor--bullet`, `.description__text`).
+- `backend/tests/extractor-linkedin.test.ts` — 9 cenários: JSON-LD válido, HTML topcard, remoto detectado, HTML incompleto, sem título, vazio, JSON-LD inválido, JSON-LD não-JobPosting, urlCandidatura fallback.
+- `backend/scripts/descobrir-fontes-ats.ts` — testa combinações (empresa × ATS) contra APIs públicas e reporta candidatos. Dry-run por padrão.
+- `backend/scripts/verificar-candidatos-ats.ts` — verificação profunda: parseia JSON, conta vagas com título real, amostra 3 títulos. Elimina falsos positivos de homônimos estrangeiros.
+- `backend/scripts/aplicar-fontes-confirmadas.cjs` — insere as fontes verificadas em `fontes_ats` com backup JSONB.
+
+### Changed
+
+- `page-inspector.ts` — chama `extrairVagaLinkedin` antes do fallback JSON-LD genérico quando o provedor é LinkedIn. Fecha o buraco que descartava vagas do LinkedIn silenciosamente.
+- `conversao-vaga-web.ts` — `workplaceType` passa a ser inferido por texto quando `remoto = false`: `hybrid` se título/descrição mencionam, `on-site` se mencionam presencial, `unknown` caso contrário. Antes, tudo virava `unknown`.
+
+### Aplicado
+
+- **7 boards ATS novos em `fontes_ats`**, todos verificados com vagas reais:
+  - `greenhouse:stone` — 368 vagas
+  - `greenhouse:btgpactual` — 281 vagas
+  - `greenhouse:inter` — 164 vagas
+  - `greenhouse:c6bank` — 161 vagas
+  - `inhire:cielo` — 22 vagas
+  - `inhire:xp` — 19 vagas
+  - `inhire:sicredi` — 4 vagas
+  - **Total bruto: ~1019 vagas** que passam a ser coletadas no próximo sync.
+  - Backup: `backend/scripts/.backups/fontes-ats-aplicadas-2026-10-08T14-24-30.json`.
+
+- **5 boards descartados por homonímia estrangeira** (falso positivo do teste inicial):
+  - `inhire:bradesco` — board de teste ("ANALISTA TESTE INGRID")
+  - `recruitee:accenture` — sample do Recruitee (títulos "Sample")
+  - `recruitee:matera` — Matera francesa de gestão de condomínios
+  - `recruitee:dock` — Dock holandesa de assistência social
+  - `ashby:neon` — Neon americana (dados para museus), não a fintech brasileira
+
+### Notes
+
+- 260/260 testes backend verdes, `tsc` limpo, build limpo.
+- Lição: para ATS que hospedam múltiplas empresas no mesmo domínio (`recruitee`, `workable`), o slug livre tem colisão alta com empresas estrangeiras homônimas. Curadoria manual por verificação profunda é obrigatória.
+
+
+## [2026-10-08 — LinkedIn + inferência de modalidade + 7 boards ATS] — expansão de fontes
+
+### Added
+
+- `backend/src/extractors/linkedin.ts` — extractor estático do LinkedIn público. Sem login, sem cookies, sem Playwright. Fonte primária JSON-LD (quando disponível); fallback HTML público (`h1.topcard__title`, `.topcard__org-name-link`, `.topcard__flavor--bullet`, `.description__text`).
+- `backend/tests/extractor-linkedin.test.ts` — 9 cenários: JSON-LD válido, HTML topcard, remoto detectado, HTML incompleto, sem título, vazio, JSON-LD inválido, JSON-LD não-JobPosting, urlCandidatura fallback.
+- `backend/scripts/descobrir-fontes-ats.ts` — testa combinações (empresa × ATS) contra APIs públicas e reporta candidatos. Dry-run por padrão.
+- `backend/scripts/verificar-candidatos-ats.ts` — verificação profunda: parseia JSON, conta vagas com título real, amostra 3 títulos. Elimina falsos positivos de homônimos estrangeiros.
+- `backend/scripts/aplicar-fontes-confirmadas.cjs` — insere as fontes verificadas em `fontes_ats` com backup JSONB.
+
+### Changed
+
+- `page-inspector.ts` — chama `extrairVagaLinkedin` antes do fallback JSON-LD genérico quando o provedor é LinkedIn. Fecha o buraco que descartava vagas do LinkedIn silenciosamente.
+- `conversao-vaga-web.ts` — `workplaceType` passa a ser inferido por texto quando `remoto = false`: `hybrid` se título/descrição mencionam, `on-site` se mencionam presencial, `unknown` caso contrário. Antes, tudo virava `unknown`.
+
+### Aplicado
+
+- **7 boards ATS novos em `fontes_ats`**, todos verificados com vagas reais:
+  - `greenhouse:stone` — 368 vagas
+  - `greenhouse:btgpactual` — 281 vagas
+  - `greenhouse:inter` — 164 vagas
+  - `greenhouse:c6bank` — 161 vagas
+  - `inhire:cielo` — 22 vagas
+  - `inhire:xp` — 19 vagas
+  - `inhire:sicredi` — 4 vagas
+  - **Total bruto: ~1019 vagas** que passam a ser coletadas no próximo sync.
+  - Backup: `backend/scripts/.backups/fontes-ats-aplicadas-2026-10-08T14-24-30.json`.
+
+- **5 boards descartados por homonímia estrangeira** (falso positivo do teste inicial):
+  - `inhire:bradesco` — board de teste ("ANALISTA TESTE INGRID")
+  - `recruitee:accenture` — sample do Recruitee (títulos "Sample")
+  - `recruitee:matera` — Matera francesa de gestão de condomínios
+  - `recruitee:dock` — Dock holandesa de assistência social
+  - `ashby:neon` — Neon americana (dados para museus), não a fintech brasileira
+
+### Notes
+
+- 260/260 testes backend verdes, `tsc` limpo, build limpo.
+- Lição: para ATS que hospedam múltiplas empresas no mesmo domínio (`recruitee`, `workable`), o slug livre tem colisão alta com empresas estrangeiras homônimas. Curadoria manual por verificação profunda é obrigatória.
+
+
 ## [2026-10-08 — Trava geográfica v3 + saneamento] — diretiva v2
 
 ### Added

@@ -2,6 +2,8 @@ import { identificarProvedorPagina } from "./page-classifier.js"
 
 import { extrairVagaGupy } from "../extractors/gupy.js"
 
+import { extrairVagaLinkedin } from "../extractors/linkedin.js"
+
 import { extrairVagaSolides } from "../extractors/solides.js"
 
 import { extrairVagaLever } from "../extractors/lever.js"
@@ -315,6 +317,11 @@ async function extrairVaga(
   provedor: PaginaClassificada["provedor"],
   urlFinal: string
 ): Promise<VagaExtraida | null> {
+  if (provedor === "linkedin") {
+    const vaga = await extrairVagaLinkedin(urlFinal)
+    if (vaga) return vaga
+  }
+
   if (provedor === "lever") {
     const vaga = await extrairVagaLever(urlFinal)
 

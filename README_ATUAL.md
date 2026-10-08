@@ -18,6 +18,22 @@ Snapshot do estado da aplicação após a sessão de 08/10/2026.
 - Fila de ATS prioriza boards produtivos por `coletas_sem_aderentes`.
 - Scripts de saneamento da base (dry-run + apply + reverter).
 
+## Sessão de outubro/2026 (parte 2) — LinkedIn + expansão de fontes
+
+- Extractor LinkedIn (`extractors/linkedin.ts`) — estático, sem login. JSON-LD + fallback HTML.
+- `conversao-vaga-web.ts` infere modalidade por texto quando não vem estruturada.
+- `page-inspector.ts` integra o extractor LinkedIn antes do fallback JSON-LD.
+- 7 novos boards ATS em `fontes_ats`: stone, btgpactual, inter, c6bank (greenhouse) + cielo, xp, sicredi (inhire).
+- Scripts de descoberta/verificação de ATS: `descobrir-fontes-ats.ts`, `verificar-candidatos-ats.ts`, `aplicar-fontes-confirmadas.cjs`.
+
+## Sessão de outubro/2026 (parte 2) — LinkedIn + expansão de fontes
+
+- Extractor LinkedIn (`extractors/linkedin.ts`) — estático, sem login. JSON-LD + fallback HTML.
+- `conversao-vaga-web.ts` infere modalidade por texto quando não vem estruturada.
+- `page-inspector.ts` integra o extractor LinkedIn antes do fallback JSON-LD.
+- 7 novos boards ATS em `fontes_ats`: stone, btgpactual, inter, c6bank (greenhouse) + cielo, xp, sicredi (inhire).
+- Scripts de descoberta/verificação de ATS: `descobrir-fontes-ats.ts`, `verificar-candidatos-ats.ts`, `aplicar-fontes-confirmadas.cjs`.
+
 ## Sessão de outubro/2026 — o que mudou
 
 - Fase 0.2: `RELATORIO_FASE02.md` (inventário dos 9 coletores + panorama ATS) e `fase02-gerar-relatorio.cjs`.

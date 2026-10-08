@@ -52,3 +52,4 @@ Thumbs.db
 
 # Backups de trabalho (HANDOFF)
 *.bak
+.lixo-sessao/

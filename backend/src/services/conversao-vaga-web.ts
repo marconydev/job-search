@@ -152,6 +152,41 @@ export function converterVagaWebParaNovaVaga(
     return null
   }
 
+  /**
+   * Preservo a modalidade. VagaExtraida só carrega `remoto: boolean`,
+   * então infiro híbrido/presencial por texto quando `remoto` é false.
+   *
+   * Regra:
+   *  - remoto=true                       → "remote"
+   *  - título+descrição mencionam híbrido → "hybrid"
+   *  - título+descrição mencionam presencial → "on-site"
+   *  - caso contrário                     → "unknown"
+   *
+   * Inferência conservadora: só assume se UM dos três sinais aparece
+   * claramente. Sem isso, a trava geográfica fica no fallback textual.
+   */
+  function inferirModalidade(vaga: VagaExtraida): "remote" | "hybrid" | "on-site" | "unknown" {
+    if (vaga.remoto) return "remote"
+
+    const texto = `${vaga.titulo ?? ""} ${vaga.descricao ?? ""}`
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+
+    const remoto = /\b(remote|remoto|remota|home office|work from home)\b/.test(texto)
+    const hibrido = /\b(hybrid|hibrido|hibrida)\b/.test(texto)
+    const presencial = /\b(on[- ]site|onsite|presencial)\b/.test(texto)
+
+    const total = [remoto, hibrido, presencial].filter(Boolean).length
+
+    if (total !== 1) return "unknown"
+    if (remoto) return "remote"
+    if (hibrido) return "hybrid"
+    return "on-site"
+  }
+
+  const workplaceType = inferirModalidade(vaga)
+
   return {
     source: pagina.provedor,
 
@@ -166,6 +201,8 @@ export function converterVagaWebParaNovaVaga(
     location: vaga.localizacao,
 
     remote: vaga.remoto,
+
+    workplaceType,
 
     url,
 

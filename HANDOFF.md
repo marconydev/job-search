@@ -1,5 +1,21 @@
 # HANDOFF — Job Search
 
+## 0. Atualização 08/10/2026 (sessão LinkedIn + fontes)
+
+- Extractor LinkedIn implementado (`backend/src/extractors/linkedin.ts`) — 9 testes, sem login, sem Playwright.
+- `conversao-vaga-web.ts` infere `workplaceType` por texto (hybrid/on-site/unknown) quando `remoto = false`.
+- 7 boards ATS novos em `fontes_ats` (Stone, BTG, Inter, C6, Cielo, XP, Sicredi) — ~1019 vagas brutas no próximo sync.
+- 5 boards descartados por homonímia estrangeira (Bradesco sample, Accenture sample, Matera FR, Dock NL, Neon US).
+- 260/260 testes backend verdes.
+
+## 0. Atualização 08/10/2026 (sessão LinkedIn + fontes)
+
+- Extractor LinkedIn implementado (`backend/src/extractors/linkedin.ts`) — 9 testes, sem login, sem Playwright.
+- `conversao-vaga-web.ts` infere `workplaceType` por texto (hybrid/on-site/unknown) quando `remoto = false`.
+- 7 boards ATS novos em `fontes_ats` (Stone, BTG, Inter, C6, Cielo, XP, Sicredi) — ~1019 vagas brutas no próximo sync.
+- 5 boards descartados por homonímia estrangeira (Bradesco sample, Accenture sample, Matera FR, Dock NL, Neon US).
+- 260/260 testes backend verdes.
+
 ## 1. Estado atual (08/10/2026)
 
 Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (backend) → Neon (banco).
