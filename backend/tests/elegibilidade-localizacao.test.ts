@@ -17,10 +17,10 @@ describe("elegibilidade de localização no Brasil", () => {
     assert.equal(resultado.situacao, "compativel")
   })
 
-  test("aceita cidade e UF brasileiras", () => {
+  test("rejeita cidade brasileira específica fora da RMPJP quando modalidade é desconhecida", () => {
     const resultado = avaliarElegibilidadeBrasil("Blumenau, SC")
 
-    assert.equal(resultado.situacao, "compativel")
+    assert.equal(resultado.situacao, "incompativel")
   })
 
   test("aceita cidade da Paraíba", () => {
@@ -47,7 +47,7 @@ describe("elegibilidade de localização no Brasil", () => {
     assert.equal(resultado.situacao, "compativel")
   })
 
-  test("aceita Worldwide quando a vaga foi confirmada como remota", () => {
+  test("rejeita Worldwide mesmo quando a vaga é remota (sem menção explícita ao Brasil)", () => {
     const resultado = avaliarElegibilidadeBrasil(
       "Worldwide",
       "Atuação totalmente remota.",
@@ -55,16 +55,16 @@ describe("elegibilidade de localização no Brasil", () => {
       true
     )
 
-    assert.equal(resultado.situacao, "compativel")
+    assert.equal(resultado.situacao, "incompativel")
   })
 
-  test("aceita Anywhere quando a vaga foi confirmada como remota", () => {
+  test("rejeita Anywhere mesmo quando a vaga é remota", () => {
     const resultado = avaliarElegibilidadeBrasil("Anywhere", null, "Analista de Sistemas", true)
 
-    assert.equal(resultado.situacao, "compativel")
+    assert.equal(resultado.situacao, "incompativel")
   })
 
-  test("aceita LATAM quando a vaga foi confirmada como remota", () => {
+  test("rejeita LATAM mesmo quando a vaga é remota", () => {
     const resultado = avaliarElegibilidadeBrasil(
       "LATAM - Remote",
       null,
@@ -72,16 +72,16 @@ describe("elegibilidade de localização no Brasil", () => {
       true
     )
 
-    assert.equal(resultado.situacao, "compativel")
+    assert.equal(resultado.situacao, "incompativel")
   })
 
-  test("aceita Latin America, South America e Americas para vaga remota", () => {
+  test("rejeita regiões amplas mesmo quando remotas, sem menção ao Brasil", () => {
     const localizacoes = ["Latin America", "South America", "Americas"]
 
     for (const localizacao of localizacoes) {
       const resultado = avaliarElegibilidadeBrasil(localizacao, null, "Analista de Suporte", true)
 
-      assert.equal(resultado.situacao, "compativel", localizacao)
+      assert.equal(resultado.situacao, "incompativel", localizacao)
     }
   })
 

@@ -24,13 +24,23 @@ test("M11: Joao Pessoa continua aceito pela lista hardcoded", () => {
   assert.equal(r.situacao, "compativel")
 })
 
-test("M11: Recife continua aceito pela lista hardcoded", () => {
+test("M11: Recife com modalidade desconhecida agora e incompativel (RMPJP estrita)", () => {
   const r = avaliarElegibilidadeBrasil("Recife, PE", null, null, false, [])
+  assert.equal(r.situacao, "incompativel")
+})
+
+test("M11: Recife com workplaceType hybrid continua aceito", () => {
+  const r = avaliarElegibilidadeBrasil("Recife, PE", null, null, false, [], "hybrid")
   assert.equal(r.situacao, "compativel")
 })
 
-test("M11: Campina Grande continua aceito pela lista hardcoded", () => {
+test("M11: Campina Grande com modalidade desconhecida agora e incompativel (RMPJP estrita)", () => {
   const r = avaliarElegibilidadeBrasil("Campina Grande, PB", null, null, false, [])
+  assert.equal(r.situacao, "incompativel")
+})
+
+test("M11: Campina Grande com workplaceType hybrid continua aceito", () => {
+  const r = avaliarElegibilidadeBrasil("Campina Grande, PB", null, null, false, [], "hybrid")
   assert.equal(r.situacao, "compativel")
 })
 

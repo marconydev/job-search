@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto"
 
+import { interpretarModalidadeEstruturada } from "../services/modalidade-vaga.js"
+
 import type { JobCollection } from "../types/collector.js"
 
 import type { FonteAts } from "../types/fonte-ats.js"
@@ -303,9 +305,15 @@ async function coletarLever(fonte: FonteAts, limite: number): Promise<JobCollect
 
         location: localizacao,
 
-        remote: modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao),
+        remote:
+          interpretarModalidadeEstruturada(vaga.workplaceType) === "remote" ||
+          localizacaoPareceRemota(localizacao),
 
-        workplaceType: modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao) ? "remote" : "unknown",
+        workplaceType: (() => {
+          const m = interpretarModalidadeEstruturada(vaga.workplaceType)
+          if (m !== "unknown") return m
+          return localizacaoPareceRemota(localizacao) ? "remote" : "unknown"
+        })(),
 
         url: urlVaga,
 
@@ -430,14 +438,16 @@ async function coletarWorkable(fonte: FonteAts, limite: number): Promise<JobColl
         location: localizacao,
 
         remote:
+          interpretarModalidadeEstruturada(vaga.workplace_type) === "remote" ||
           vaga.telecommuting === true ||
-          modalidadeEhRemota(vaga.workplace_type) ||
           localizacaoPareceRemota(localizacao),
 
-        workplaceType:
-          vaga.telecommuting === true || modalidadeEhRemota(vaga.workplace_type) || localizacaoPareceRemota(localizacao)
-            ? "remote"
-            : "unknown",
+        workplaceType: (() => {
+          const m = interpretarModalidadeEstruturada(vaga.workplace_type)
+          if (m !== "unknown") return m
+          if (vaga.telecommuting === true) return "remote"
+          return localizacaoPareceRemota(localizacao) ? "remote" : "unknown"
+        })(),
 
         url: urlVaga,
 
@@ -539,14 +549,16 @@ async function coletarAshby(fonte: FonteAts, limite: number): Promise<JobCollect
         location: localizacao,
 
         remote:
+          interpretarModalidadeEstruturada(vaga.workplaceType) === "remote" ||
           vaga.isRemote === true ||
-          modalidadeEhRemota(vaga.workplaceType) ||
           localizacaoPareceRemota(localizacao),
 
-        workplaceType:
-          vaga.isRemote === true || modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao)
-            ? "remote"
-            : "unknown",
+        workplaceType: (() => {
+          const m = interpretarModalidadeEstruturada(vaga.workplaceType)
+          if (m !== "unknown") return m
+          if (vaga.isRemote === true) return "remote"
+          return localizacaoPareceRemota(localizacao) ? "remote" : "unknown"
+        })(),
 
         url: urlVaga,
 
@@ -671,14 +683,16 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
         location: localizacao,
 
         remote:
+          interpretarModalidadeEstruturada(oferta.workplace_type) === "remote" ||
           oferta.remote === true ||
-          modalidadeEhRemota(oferta.workplace_type) ||
           localizacaoPareceRemota(localizacao),
 
-        workplaceType:
-          oferta.remote === true || modalidadeEhRemota(oferta.workplace_type) || localizacaoPareceRemota(localizacao)
-            ? "remote"
-            : "unknown",
+        workplaceType: (() => {
+          const m = interpretarModalidadeEstruturada(oferta.workplace_type)
+          if (m !== "unknown") return m
+          if (oferta.remote === true) return "remote"
+          return localizacaoPareceRemota(localizacao) ? "remote" : "unknown"
+        })(),
 
         url: urlVaga,
 
@@ -784,12 +798,14 @@ async function coletarInHire(fonte: FonteAts, limite: number): Promise<JobCollec
         location: localizacao,
 
         remote:
-          modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao),
+          interpretarModalidadeEstruturada(vaga.workplaceType) === "remote" ||
+          localizacaoPareceRemota(localizacao),
 
-        workplaceType:
-          modalidadeEhRemota(vaga.workplaceType) || localizacaoPareceRemota(localizacao)
-            ? "remote"
-            : "unknown",
+        workplaceType: (() => {
+          const m = interpretarModalidadeEstruturada(vaga.workplaceType)
+          if (m !== "unknown") return m
+          return localizacaoPareceRemota(localizacao) ? "remote" : "unknown"
+        })(),
 
         url,
 

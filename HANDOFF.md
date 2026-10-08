@@ -1,37 +1,36 @@
 # HANDOFF — Job Search
 
-## 1. Estado atual (07/10/2026)
+## 1. Estado atual (08/10/2026)
 
-Branch `main`. Últimos commits:
-- `7098d68` — fix(engine): veto geográfico por inferência de modalidade
-- `dceb9e2` — feat(engine): trava geográfica em 3 estados
-- `2f98be3` — feat: correção de endpoints, M1-M11, telemetria e priorização de ATS
+Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (backend) → Neon (banco).
 
-Produção: Vercel (frontend) → Render `job-search-api-xap1` (backend) → Neon (banco).
+Suíte: **251 testes verdes** no backend. typecheck + build zerados.
 
-Suíte: 186 testes verdes.
+Estado do banco (Neon, após saneamento de hoje):
+- **741 vagas** relevant + novas (`viewed_at IS NULL`), após descarte de 227.
+- 36 aplicadas, 19 ignoradas, 191+227 = 418 descartadas.
 
 ## 2. Concluído nesta sessão
 
-- Endpoints Gupy e Sólides corrigidos.
-- Migrations 007 a 015 aplicadas no Neon.
-- M1, M2, M3 (trava 3 estados), M4, M9, M11, C11.
-- ATS priorizados por produtividade.
-- `titulosExcluidos` expandido.
-- Variações de EUA em `localizacoesEstrangeiras`.
-- Re-análise em massa no Neon (1197 análises).
-- Fase 1A: vocabulário de `search-queries.ts` expandido nas 7 famílias; `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5`.
-- Fase 1B-Backend: `GET /jobs/telemetria/resumo` + `agregarLinhas` + `resumirTelemetria` + migration 016.
-- Fase 1B-Frontend: painel retratil `Telemetria` + rota-proxy `/api/telemetria/resumo` + 54 testes (Vitest + RTL).
-- Auditoria knip: 2 funções mortas, 34 exports decorativos, 1 intermediário, `apps/`, `backups/` e 10 `.bak` removidos; script `audit` na raiz; `PROTOCOLO.md` criado.
-- Fase 0.1 (baseline): `RELATORIO_FASE0.md` com leitura do Neon (telemetria, status, baldes, descartes).
+- Fase 0.2 (inventário dos coletores) — `RELATORIO_FASE02.md` + `fase02-gerar-relatorio.cjs`.
+- Trava geográfica v3 (diretiva v2) — matriz estrita de 4 pontos:
+  - Presencial só RMPJP.
+  - Híbrido em qualquer ponto do Brasil.
+  - Remoto só com menção explícita ao Brasil.
+  - Fallback conservador.
+- Opção 2: bandeira estrangeira vence `localizacoesAceitas`.
+- ATS Lever/Workable/Ashby/Recruitee/InHire passam a usar `interpretarModalidadeEstruturada`.
+- Fail-fast confirmado no pipeline (`filtragem-vagas.ts` + `job-matcher.ts`).
+- Contador `localizacaoInferida` na telemetria.
+- Saneamento aplicado: 227 vagas `relevant` → `discarded`, com backup JSONB dos IDs.
+- `PLANO_EXPANSAO.md` criado (LinkedIn via Brave dork, sites próprios piloto).
 
 ## 3. Pendências
 
-- Fase 0.2 — inventário dos 9 coletores (enumeração, cobertura, vagas/sync, última execução com sucesso).
-- Fase 1 — saneamento da base (`reprocess:eligibility`, dry-run, `reason_code`).
-- Fase 2 (futura) — botão "segunda opinião por IA" on-demand.
-- Fase 2–4 da diretiva v2 — piloto de sites próprios, queries do perfil, implementação.
+- Fase 2 (futura): botão "segunda opinião por IA" on-demand (fora do pipeline).
+- Expansão de sites próprios (piloto 30–50 empresas) — ver `PLANO_EXPANSAO.md`.
+- Refinamento de queries Brave com base no perfil — idem.
+- Reconciliar `jobs.source` com `funil_telemetria.fonte` (chave `ats:<provedor>:<board>` vs `"greenhouse"`/`"lever"`/…). Sem isso, curadoria de board é inconclusiva.
 
 ## 4. Decisões
 
@@ -40,8 +39,9 @@ Suíte: 186 testes verdes.
 - Candidatura é manual.
 - PostgreSQL é a única fonte de estado.
 - Sincronização é assíncrona (Vercel só encaminha; Render executa).
-- `localizacoesAceitas` do perfil é soberana quando declarada explicitamente.
+- `localizacoesAceitas` do perfil é soberana quando declarada explicitamente — **exceto** quando a localização da vaga contém bandeira estrangeira (Opção 2).
 - Sem IA no pipeline.
+- LinkedIn só via Brave dork, nunca autenticado.
 
 ## 5. Como retomar em nova conversa
 
@@ -58,22 +58,6 @@ Como o usuário executa no Git Bash (Windows):
 
 - Peça 1-3 arquivos por vez. Nunca "o projeto inteiro".
 - Se precisar de vários, gere um script que imprime `===== caminho =====` + conteúdo de cada arquivo, salvando em `.txt` na raiz.
-- Formato:
-    cat > coletar.sh <<'EOF'
-    #!/usr/bin/env bash
-    set -uo pipefail
-    cd /c/Projetos/job-search
-    ARQS=(backend/src/x.ts backend/src/y.ts)
-    OUT="coleta.txt"
-    : > "$OUT"
-    for a in "${ARQS[@]}"; do
-      echo "===== $a =====" >> "$OUT"
-      cat "$a" >> "$OUT" 2>/dev/null || echo "(não encontrado)" >> "$OUT"
-      echo "" >> "$OUT"
-    done
-    wc -c "$OUT"
-    EOF
-    chmod +x coletar.sh && ./coletar.sh
 
 **Devolver scripts.**
 
@@ -108,6 +92,7 @@ Como o usuário executa no Git Bash (Windows):
 - Automatizar candidatura.
 - Commitar segredos.
 - LLM no pipeline de sincronização.
+- LinkedIn autenticado / Playwright no LinkedIn.
 
 ## 9. BLOCO DE RETOMADA
 
@@ -119,19 +104,16 @@ Estou continuando o desenvolvimento do projeto Job Search (C:\Projetos\job-searc
 
 Stack: Node.js, TypeScript, Express 5, PostgreSQL (pg), Next.js 16, React 19. Deploy: Vercel (frontend) → Render (job-search-api-xap1) → Neon.
 
-Estado atual (07/10/2026): 186 testes verdes. Últimos commits:
-- 7098d68 fix(engine): veto geográfico por inferência de modalidade
-- dceb9e2 feat(engine): trava geográfica em 3 estados
-- 2f98be3 feat: correção de endpoints, M1-M11, telemetria e priorização de ATS
+Estado atual (08/10/2026): 251 testes verdes no backend, typecheck + build zerados. Branch main sincronizada. Banco Neon com 741 vagas relevant+new (após saneamento que descartou 227).
 
-Concluído: endpoints Gupy e Sólides corrigidos; migrations 007-015 no Neon; M1 telemetria; M2 termos; M4 desconto; M9; M11; C11; trava geográfica 3 estados (presencial fora de JP/PB vetado, híbrida e remota livres no Brasil); ATS priorizados; Fase 1A (vocabulário expandido em search-queries.ts, LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5); Fase 1B-Backend (telemetria/resumo + agregarLinhas + migration 016); Fase 1B-Frontend (painel retratil + rota-proxy + 54 testes Vitest/RTL). Auditoria knip (limpeza de código morto + script `audit` na raiz + `PROTOCOLO.md`). Fase 0.1 (RELATORIO_FASE0.md com baseline do Neon).
+Concluído nesta sessão: Fase 0.2 (RELATORIO_FASE02.md + fase02-gerar-relatorio.cjs); Trava geográfica v3 (matriz estrita de 4 pontos — presencial só RMPJP, híbrido em todo Brasil, remoto só com Brasil explícito, fallback conservador); Opção 2 (bandeira estrangeira vence localizacoesAceitas); ATS Lever/Workable/Ashby/Recruitee/InHire usando interpretarModalidadeEstruturada; fail-fast confirmado; contador localizacaoInferida na telemetria; saneamento aplicado (227 → discarded, com backup JSONB reversível em backend/scripts/.backups/); PLANO_EXPANSAO.md criado.
 
 Pendências:
-- Fase 0.2 — inventário dos 9 coletores (enumeração, cobertura, vagas/sync, última execução com sucesso).
-- Fase 1 — saneamento da base (reprocess:eligibility, dry-run, reason_code).
-- Fase 2 (futura) — botão "segunda opinião por IA" on-demand.
-- Fase 2–4 da diretiva v2 — piloto de sites próprios, queries do perfil, implementação.
+- Expansão de sites próprios (piloto 30–50 empresas) — ver PLANO_EXPANSAO.md.
+- Refinamento de queries Brave com base no perfil.
+- Reconciliar jobs.source com funil_telemetria.fonte.
+- Fase 2 (futura): botão "segunda opinião por IA" on-demand.
 
-Regras de trabalho: sem LLM no pipeline; scripts em bloco único cat > arquivo.sh <<'SCRIPT_END' ... SCRIPT_END; backup antes de alteração; typecheck + testes antes de considerar pronto; backend local usa Postgres local, para Neon usar .env.neon.
+Regras de trabalho: sem LLM no pipeline; scripts em bloco único; backup antes de alteração; typecheck + testes + lint + build antes de considerar pronto; backend local usa Postgres local, para Neon usar .env.neon; LinkedIn só via Brave dork, nunca autenticado.
 
-Leia HANDOFF.md, README_ATUAL.md e PROTOCOLO.md antes de qualquer coisa. Depois me diga se está pronto para continuar. Próximo passo sugerido: Fase 2 (botão "segunda opinião por IA" on-demand).
+Leia HANDOFF.md, README_ATUAL.md e PROTOCOLO.md antes de qualquer coisa. Depois me diga se está pronto para continuar. Próximo passo sugerido: piloto de sites próprios (30 empresas).

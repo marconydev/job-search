@@ -14,6 +14,7 @@ export type DiagnosticoFunilVagas = {
   recebidas: number
   foraDaJanela: number
   localizacaoIncompativel: number
+  localizacaoInferida: number
   tituloForaFoco: number
   matcherAbaixoDoMinimo: number
   scoreZero: number
@@ -67,7 +68,8 @@ function vagaPodeSeguirParaAnalise(vaga: NewJob, perfil: PerfilProfissional) {
     vaga.description,
     vaga.title,
     vaga.remote,
-    perfil.localizacoesAceitas
+    perfil.localizacoesAceitas,
+    vaga.workplaceType
   )
   return elegibilidade.situacao !== "incompativel"
 }
@@ -113,6 +115,7 @@ function criarDiagnostico(recebidas: number): DiagnosticoFunilVagas {
     recebidas,
     foraDaJanela: 0,
     localizacaoIncompativel: 0,
+    localizacaoInferida: 0,
     tituloForaFoco: 0,
     matcherAbaixoDoMinimo: 0,
     scoreZero: 0,
@@ -175,10 +178,15 @@ export async function diagnosticarFunilVagasComYield(
         vaga.description,
         vaga.title,
         vaga.remote,
-        perfil.localizacoesAceitas
+        perfil.localizacoesAceitas,
+        vaga.workplaceType
       )
       if (elegibilidade.situacao === "incompativel") {
-        d.localizacaoIncompativel++
+        if (elegibilidade.inferida) {
+          d.localizacaoInferida++
+        } else {
+          d.localizacaoIncompativel++
+        }
       } else {
         const resultado = matchJob(criarVagaTemporaria(vaga), perfil)
         if (resultado.score < pontuacaoMinima) {

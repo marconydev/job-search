@@ -192,7 +192,8 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
     vaga.description,
     vaga.title,
     vaga.remote,
-    perfil.localizacoesAceitas
+    perfil.localizacoesAceitas,
+    ((vaga as VagaArmazenada).workplace_type ?? undefined)
   )
 
   if (elegibilidade.situacao === "incompativel") {

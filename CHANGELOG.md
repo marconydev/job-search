@@ -1,5 +1,45 @@
 # Changelog
 
+## [2026-10-08 — Trava geográfica v3 + saneamento] — diretiva v2
+
+### Added
+
+- `RELATORIO_FASE02.md` — inventário dos 9 coletores + panorama dos 6 ATS, com três colunas de sucesso por fonte, breakdown de descartes por chave e amostra de sobreviventes.
+- `fase02-gerar-relatorio.cjs` — gerador read-only do relatório anterior.
+- `backend/scripts/saneamento-dryrun.ts` e `backend/scripts/saneamento-apply.ts` — reprocessam a base sob a trava nova. Dry-run por padrão, apply com `APPLY=1`, backup JSONB dos IDs em `backend/scripts/.backups/`.
+- `backend/scripts/saneamento-reverter.cjs` — reverte o apply a partir do backup.
+- `backend/tests/trava-geografica.test.ts` — matriz de 4 pontos da diretiva + cenários mínimos (ajuste 6) + Opção 2 (bandeira estrangeira vence `localizacoesAceitas`).
+- Teste `fail-fast: vaga geo-bloqueada retorna score 0 sem chegar ao matcher` em `job-matcher.test.ts`.
+- Contador `localizacaoInferida` no diagnóstico do funil.
+
+### Changed
+
+- `elegibilidade-localizacao.ts` — reescrito com a matriz estrita:
+  - Regra 1 (presencial): só RMPJP (João Pessoa + região metropolitana oficial). Removidos `paraiba` e `pb` sozinhos para que Campina Grande e Patos sejam bloqueados.
+  - Regra 2 (híbrido): qualquer ponto do Brasil.
+  - Regra 3 (remoto): só com menção explícita ao Brasil. `Worldwide`, `Global`, `LATAM`, `EMEA`, `Anywhere` deixam de ser passe livre.
+  - Regra 4 (unknown): fallback conservador.
+  - Opção 2: bandeira estrangeira vence `localizacoesAceitas` — um perfil com `"global"` não libera mais `"Serbia | Global"`.
+  - Heurística `cidade brasileira específica → on-site` corrigida: UF brasileira marca localização física mesmo quando a cidade é também o nome do estado.
+- `modalidade-vaga.ts` — `interpretarModalidadeEstruturada` cobre `remote_local` e `remote_global` (emitidos por GetOnBoard).
+- `collectors/ats.ts` — os 5 coletores com campo estruturado (Lever, Workable, Ashby, Recruitee, InHire) passam a usar `interpretarModalidadeEstruturada`. Antes, `hybrid` e `on-site` colapsavam em `unknown`.
+- `filtragem-vagas.ts` — diagnóstico separa `localizacaoIncompativel` de `localizacaoInferida`.
+- `job-matcher.ts` — fail-fast confirmado: score 0 antes de qualquer pontuação em vaga geo-bloqueada.
+
+### Aplicado
+
+- Saneamento no Neon: **227 registros** passaram de `relevant` para `discarded` (968 → 741 relevant+new).
+  - `gupy` 214 (27,0%), `jobicy` 3 (75,0%), `agregador` 2, `greenhouse` 2, `desconhecido` 2, `indeed` 1, `lever` 1, `infojobs` 1, `remotive` 1.
+  - Backup de IDs: `backend/scripts/.backups/saneamento-2026-10-08T13-40-48.json` (reversível via `saneamento-reverter.cjs`).
+  - Vagas vistas (`viewed_at IS NOT NULL`) e aplicadas **não** foram tocadas.
+
+### Notes
+
+- 251/251 testes backend verdes, `tsc` limpo, build limpo (era 230 antes).
+- Docs `HANDOFF.md` e `README_ATUAL.md` atualizados.
+- `PLANO_EXPANSAO.md` criado (LinkedIn via Brave dork, sites próprios piloto 30–50 empresas, sem LLM no pipeline, sem burlar bloqueio).
+
+
 Consolidado a partir do histórico de commits de `main` e das mudanças da sessão de outubro/2026.
 
 ## [2026-10-07 — Fase 0.1] — baseline e inventário

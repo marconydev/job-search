@@ -182,7 +182,7 @@ describe("job matcher", () => {
     )
   })
 
-  test("aceita vaga presencial fora de João Pessoa (M3)", () => {
+  test("rejeita vaga presencial fora de João Pessoa (RMPJP estrita)", () => {
   const perfil = criarPerfil()
 
   const resultado = matchJob(
@@ -193,8 +193,8 @@ describe("job matcher", () => {
     perfil
   )
 
-  assert.ok(resultado.score >= 60)
-  assert.ok(!resultado.reasons.some(motivo => motivo.includes("fora de João Pessoa")))
+  assert.equal(resultado.score, 0)
+  assert.ok(resultado.reasons[0]?.includes("região metropolitana de João Pessoa"))
 })
 
   test("aceita presencial em Governador Valadares com cargo compatível (M3)", () => {
@@ -548,4 +548,18 @@ describe("job matcher", () => {
 
     assert.ok(resultadoDesenvolvimento.score <= 55)
   })
+})
+
+
+test("fail-fast: vaga geo-bloqueada retorna score 0 sem chegar ao matcher", () => {
+  const perfil = criarPerfil()
+  const vaga = criarVaga({
+    title: "Analista de Suporte Senior",
+    location: "Sao Paulo, SP",
+    remote: false,
+    description: "Suporte tecnico, redes, Windows Server, Linux, SQL."
+  })
+  const r = matchJob(vaga, perfil)
+  assert.equal(r.score, 0)
+  assert.ok(r.reasons[0]?.includes("região metropolitana de João Pessoa"))
 })

@@ -124,7 +124,7 @@ test("nao descarta vaga por uma data invalida fornecida pela origem", () => {
   )
 })
 
-test("aceita no funil vaga remota Worldwide compatível com o cargo principal", async () => {
+test("rejeita no funil vaga remota Worldwide sem menção explícita ao Brasil", async () => {
   const vaga = criarVaga({
     externalId: "remota-global",
 
@@ -137,11 +137,30 @@ test("aceita no funil vaga remota Worldwide compatível com o cargo principal", 
 
   assert.deepEqual(
     aderentes.map(item => item.externalId),
-    ["remota-global"]
+    []
   )
 })
 
-test("M3: vaga não remota fora de JP agora é aceita quando título e local são compatíveis", async () => {
+test("aceita no funil vaga remota Worldwide com descrição indicando Brasil", async () => {
+  const vaga = criarVaga({
+    externalId: "remota-global-brasil",
+
+    location: "Worldwide",
+
+    description: "Work location: Brazil - Remote. Atendimento técnico e suporte a usuários.",
+
+    remote: true
+  })
+
+  const aderentes = await filtrarVagasAderentesComYield([vaga], criarPerfil())
+
+  assert.deepEqual(
+    aderentes.map(item => item.externalId),
+    ["remota-global-brasil"]
+  )
+})
+
+test("rejeita Worldwide sem sinal de Brasil mesmo quando título é aderente", async () => {
   const vaga = criarVaga({
     externalId: "global-nao-remota",
 
@@ -202,7 +221,7 @@ test("diagnostico observa o filtro original sem alterar as vagas aderentes", asy
 
   assert.deepEqual(
     aderentes.map(vaga => vaga.externalId),
-    ["presencial-fora", "aderente"]
+    ["aderente"]
   )
 
   const diagnostico = await diagnosticarFunilVagasComYield(
@@ -220,6 +239,8 @@ test("diagnostico observa o filtro original sem alterar as vagas aderentes", asy
 
   assert.equal(diagnostico.localizacaoIncompativel, 1)
 
+  assert.equal(diagnostico.localizacaoInferida, 1)
+
   assert.equal(diagnostico.tituloForaFoco, 0)
 
 
@@ -227,7 +248,7 @@ test("diagnostico observa o filtro original sem alterar as vagas aderentes", asy
 
   assert.equal(diagnostico.score50a59, 1)
 
-  assert.equal(diagnostico.aderentes, 2)
+  assert.equal(diagnostico.aderentes, 1)
 
   assert.equal(diagnostico.divergencias, 0)
 
@@ -238,6 +259,7 @@ test("diagnostico observa o filtro original sem alterar as vagas aderentes", asy
   const totalDiagnosticado =
     diagnostico.foraDaJanela +
     diagnostico.localizacaoIncompativel +
+    diagnostico.localizacaoInferida +
     diagnostico.tituloForaFoco +
     diagnostico.matcherAbaixoDoMinimo +
     diagnostico.aderentes +
