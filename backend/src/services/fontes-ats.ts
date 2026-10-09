@@ -1,4 +1,4 @@
-import { coletarFonteAts } from "../collectors/ats.js"
+import { coletarFonteAts, ErroColetaAts } from "../collectors/ats.js"
 
 import {
   listarFontesAtsParaColeta,
@@ -488,7 +488,15 @@ export async function coletarFontesAtsAprendidas(
       const mensagem =
         erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta ATS"
 
-      await registrarFalhaColetaFonteAts(fonte.id, mensagem)
+      /**
+       * Classificacao: apenas ErroColetaAts carrega a distincao
+       * permanente/transitoria. Qualquer outro erro (rede caiu,
+       * fetch abortado, JSON invalido) e tratado como transitorio
+       * para nunca desativar um board por falha temporaria.
+       */
+      const permanente = erro instanceof ErroColetaAts ? erro.permanente : false
+
+      await registrarFalhaColetaFonteAts(fonte.id, mensagem, permanente)
 
       resultados.push({
         source: nomeFonte,

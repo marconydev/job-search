@@ -1,5 +1,30 @@
 import { createHash } from "node:crypto"
 
+/**
+ * Erro tipado da coleta de ATS.
+ *
+ * Classifica a falha em permanente (404, 410 — board inexistente) ou
+ * transitoria (timeout, 5xx, 429 — falha temporaria). A camada de
+ * persistencia usa essa distincao para decidir se incrementa
+ * falhas_consecutivas e se desativa o board apos N falhas permanentes.
+ *
+ * Qualquer erro que NAO seja ErroColetaAts e tratado como transitorio.
+ */
+export class ErroColetaAts extends Error {
+  readonly permanente: boolean
+  readonly status: number | null
+  constructor(mensagem: string, permanente: boolean, status: number | null = null) {
+    super(mensagem)
+    this.name = "ErroColetaAts"
+    this.permanente = permanente
+    this.status = status
+  }
+}
+
+export function statusEhPermanente(status: number): boolean {
+  return status === 404 || status === 410
+}
+
 import { interpretarModalidadeEstruturada } from "../services/modalidade-vaga.js"
 
 import type { JobCollection } from "../types/collector.js"
@@ -152,7 +177,7 @@ async function coletarGreenhouse(fonte: FonteAts, limite: number): Promise<JobCo
   ])
 
   if (!respostaJobs.ok) {
-    throw new Error(`Greenhouse ${fonte.identificador} respondeu com status ${respostaJobs.status}`)
+    throw new ErroColetaAts(`Greenhouse ${fonte.identificador} respondeu com status ${respostaJobs.status}`, statusEhPermanente(respostaJobs.status), respostaJobs.status)
   }
 
   let empresa = fonte.identificador
@@ -266,7 +291,7 @@ async function coletarLever(fonte: FonteAts, limite: number): Promise<JobCollect
     })
 
     if (!resposta.ok) {
-      throw new Error(`Lever ${fonte.identificador} respondeu com status ${resposta.status}`)
+      throw new ErroColetaAts(`Lever ${fonte.identificador} respondeu com status ${resposta.status}`, statusEhPermanente(resposta.status), resposta.status)
     }
 
     const pagina = (await resposta.json()) as LeverJob[]
@@ -400,7 +425,7 @@ async function coletarWorkable(fonte: FonteAts, limite: number): Promise<JobColl
   })
 
   if (!resposta.ok) {
-    throw new Error(`Workable ${fonte.identificador} respondeu com status ${resposta.status}`)
+    throw new ErroColetaAts(`Workable ${fonte.identificador} respondeu com status ${resposta.status}`, statusEhPermanente(resposta.status), resposta.status)
   }
 
   const dados = (await resposta.json()) as WorkableResponse
@@ -503,7 +528,7 @@ async function coletarAshby(fonte: FonteAts, limite: number): Promise<JobCollect
   })
 
   if (!resposta.ok) {
-    throw new Error(`Ashby ${fonte.identificador} respondeu com status ${resposta.status}`)
+    throw new ErroColetaAts(`Ashby ${fonte.identificador} respondeu com status ${resposta.status}`, statusEhPermanente(resposta.status), resposta.status)
   }
 
   const dados = (await resposta.json()) as AshbyResponse
@@ -641,7 +666,7 @@ async function coletarRecruitee(fonte: FonteAts, limite: number): Promise<JobCol
   })
 
   if (!resposta.ok) {
-    throw new Error(`Recruitee ${fonte.identificador} respondeu com status ${resposta.status}`)
+    throw new ErroColetaAts(`Recruitee ${fonte.identificador} respondeu com status ${resposta.status}`, statusEhPermanente(resposta.status), resposta.status)
   }
 
   const dados = (await resposta.json()) as RecruiteeResponse
@@ -747,7 +772,7 @@ async function coletarInHire(fonte: FonteAts, limite: number): Promise<JobCollec
   })
 
   if (!resposta.ok) {
-    throw new Error(`InHire ${fonte.identificador} respondeu com status ${resposta.status}`)
+    throw new ErroColetaAts(`InHire ${fonte.identificador} respondeu com status ${resposta.status}`, statusEhPermanente(resposta.status), resposta.status)
   }
 
   const dados = (await resposta.json()) as InHireResponse | unknown[]
@@ -758,7 +783,7 @@ async function coletarInHire(fonte: FonteAts, limite: number): Promise<JobCollec
    * poderia encerrar vagas existentes indevidamente.
    */
   if (Array.isArray(dados)) {
-    throw new Error(`InHire ${fonte.identificador} não retornou um tenant válido`)
+    throw new ErroColetaAts(`InHire ${fonte.identificador} não retornou um tenant válido`, true, 200)
   }
 
   const empresa = dados.tenantName?.trim() || fonte.identificador

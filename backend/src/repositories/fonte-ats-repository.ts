@@ -106,18 +106,25 @@ export async function registrarFonteAts(fonte: NovaFonteAts): Promise<FonteAts> 
 }
 
 /**
- * Ordem de prioridade da fila de coleta:
+ * Ordem de prioridade da fila de coleta (backoff por tempo).
  *
- * 1. boards com menos coletas improdutivas seguidas;
- * 2. empate desfeito pelo board que está há mais tempo sem coleta
- *    (board nunca coletado vai primeiro);
- * 3. empate final pela última descoberta.
+ * 1. boards com menos falhas tecnicas consecutivas
+ *    (falhas_consecutivas so incrementa em erro PERMANENTE — 404/410);
+ * 2. board que esta ha mais tempo elegivel para nova coleta:
+ *      next_at = COALESCE(ultima_coleta_em, descoberta_em)
+ *              + (1 + LEAST(coletas_sem_aderentes, 3)) * intervalo_base
+ * 3. empate final pela ultima descoberta.
  *
- * O cap em LEAST(coletas_sem_aderentes, 10) garante que um board que
- * ficou muito tempo sem entregar nada não fique permanentemente fora da
- * fila: quando ele empata com outros no topo do cap, a rotação por
- * tempo volta a dar chance a ele.
+ * Resolve a inanicao do modelo anterior. Com ORDER BY LEAST(sem,10) ASC,
+ * quando o numero de boards em bucket 0 era >= limite da fila, todos os
+ * boards nos buckets inferiores ficavam permanentemente fora da coleta.
+ *
+ * Com backoff temporal, um board improdutivo nao e preterido: e visitado
+ * com menos frequencia (2x, 3x, ate 4x o intervalo base). Produtivos
+ * seguem a cada intervalo base.
  */
+const INTERVALO_BASE_FILA_ATS_MS = 30 * 60 * 1000
+
 export async function listarFontesAtsParaColeta(limite = 40): Promise<FonteAts[]> {
   const resultado = await db.query<LinhaFonteAts>(
     `
@@ -127,16 +134,18 @@ export async function listarFontesAtsParaColeta(limite = 40): Promise<FonteAts[]
         WHERE ativa = TRUE
 
         ORDER BY
-          LEAST(coletas_sem_aderentes, 10) ASC,
+          falhas_consecutivas ASC,
 
-          ultima_coleta_em
-            ASC NULLS FIRST,
+          COALESCE(ultima_coleta_em, descoberta_em)
+            + ((1 + LEAST(coletas_sem_aderentes, 3))
+               * ($2::int * interval '1 millisecond'))
+            ASC,
 
           ultima_vista_em DESC
 
         LIMIT $1
       `,
-    [Math.max(1, Math.floor(limite))]
+    [Math.max(1, Math.floor(limite)), INTERVALO_BASE_FILA_ATS_MS]
   )
 
   return resultado.rows.map(mapearFonte)
@@ -173,7 +182,27 @@ export async function registrarSucessoColetaFonteAts(id: string, aderentes = 0) 
   )
 }
 
-export async function registrarFalhaColetaFonteAts(id: string, erro: string) {
+/**
+ * Registra uma falha de coleta.
+ *
+ * Diferencia falha PERMANENTE (404, 410) de TRANSITORIA (timeout, 5xx,
+ * 429, rede). Apenas falhas permanentes incrementam falhas_consecutivas
+ * e podem desativar o board. Falhas transitorias so atualizam
+ * ultima_coleta_em e ultimo_erro, para nao punir rede instavel.
+ *
+ * Apos 5 falhas permanentes consecutivas, o board e desativado:
+ *   - ativa = FALSE
+ *   - desativada_em = NOW()
+ *   - motivo_desativacao = ultimo erro
+ *
+ * A linha NUNCA e removida. Reativacao ocorre via registrarFonteAts
+ * (nova descoberta web) ou manualmente.
+ */
+export async function registrarFalhaColetaFonteAts(
+  id: string,
+  erro: string,
+  permanente: boolean = false
+) {
   await db.query(
     `
       UPDATE fontes_ats
@@ -181,13 +210,32 @@ export async function registrarFalhaColetaFonteAts(id: string, erro: string) {
         ultima_coleta_em = NOW(),
 
         falhas_consecutivas =
-          falhas_consecutivas + 1,
+          CASE WHEN $3 THEN falhas_consecutivas + 1
+               ELSE falhas_consecutivas END,
 
         ultimo_erro =
-          LEFT($2, 1000)
+          LEFT($2, 1000),
+
+        ativa =
+          CASE
+            WHEN $3 AND falhas_consecutivas + 1 >= 5 THEN FALSE
+            ELSE ativa
+          END,
+
+        desativada_em =
+          CASE
+            WHEN $3 AND falhas_consecutivas + 1 >= 5 THEN NOW()
+            ELSE desativada_em
+          END,
+
+        motivo_desativacao =
+          CASE
+            WHEN $3 AND falhas_consecutivas + 1 >= 5 THEN LEFT($2, 1000)
+            ELSE motivo_desativacao
+          END
 
       WHERE id = $1
     `,
-    [id, erro]
+    [id, erro, permanente]
   )
 }
