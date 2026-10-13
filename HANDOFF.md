@@ -27,6 +27,7 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 - Fila de ATS: `ORDER BY` trocado por backoff temporal (`falhas_consecutivas ASC` + `COALESCE(ultima_coleta_em, descoberta_em) + (1 + LEAST(coletas_sem_aderentes, 3)) * 30min`).
 - Erro tipado `ErroColetaAts` distingue falha permanente (404/410) de transitória (timeout, 5xx, 429).
 - Migration `017_add_fontes_ats_desativacao.sql` — `desativada_em`, `motivo_desativacao`, índice `(ativa, falhas_consecutivas)`.
+- `backend/scripts/resync-recuperacao.ts` — reanálise cirúrgica de `job_matches` descartados. 4 baldes (A recuperar, B score baixo, C geo incompat, D título excluído). Suporta `ONLY_IDS=1,2,3` para subconjunto e `REVERT=1 BACKUP=<path>` para desfazer.
 
 ## 3. Auditoria em andamento (12/10/2026)
 
@@ -45,7 +46,7 @@ Syncs `2dd8743c` (23:58:09Z de 08/10) e `79d97668` (00:13:04Z de 09/10), ambos r
 
 ### 3.2 Falso positivo em Curitiba — RESOLVIDO em 13/10
 
-Causa: `descricaoRestringeParaOutroPais` aceitava indicador de restrição (`must reside in`) e bandeira estrangeira (`u.s.`, `global`, `north america`) em qualquer parte da descrição, sem exigir relação entre eles. Vagas `3514` (INSIDE SALES SUPPORT ANALYST) e `3523` (SERVICE DESK ANALYST II) tinham "U.S.-based company" na abertura corporativa + "Must reside in Curitiba, PR" nas informações adicionais. Corrigido: co-ocorrência obrigatória na mesma janela de 100 chars. Vagas existentes com `discarded` pelo motivo antigo **não são reavaliadas automaticamente** — pendente de re-análise.
+Causa: `descricaoRestringeParaOutroPais` aceitava indicador de restrição (`must reside in`) e bandeira estrangeira (`u.s.`, `global`, `north america`) em qualquer parte da descrição, sem exigir relação entre eles. Vagas `3514` (INSIDE SALES SUPPORT ANALYST) e `3523` (SERVICE DESK ANALYST II) tinham "U.S.-based company" na abertura corporativa + "Must reside in Curitiba, PR" nas informações adicionais. Corrigido: co-ocorrência obrigatória na mesma janela de 100 chars. Vagas existentes com `discarded` pelo motivo antigo **não são reavaliadas automaticamente**. Em 13/10, `backend/scripts/resync-recuperacao.ts` recuperou os `match_id` 6530 e 6716 (INSIDE SALES SUPPORT ANALYST e SERVICE DESK ANALYST II, ambas Curitiba/PR, hybrid, scores 69 e 100). Backup reversível: `backend/scripts/.backups/resync-recuperacao-2026-10-13T13-27-29.json`. 4 candidatos "US Weekends" (match_id 1683/1684/1686/1689) mantidos em discarded por decisão explícita.
 
 ### 3.3 E1 — estabilidade da API da Gupy
 

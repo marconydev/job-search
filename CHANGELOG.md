@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-10-13 — Resync cirúrgico: recuperação de Curitiba]
+
+### Added
+
+- `backend/scripts/resync-recuperacao.ts` — reanálise de `job_matches` em `discarded` com `avaliarElegibilidadeBrasil` + `matchJob` atuais. Baldes: A (geo OK + titulo OK + score >= 60, recuperar), B (score abaixo do corte), C (geo incompativel), D (titulo excluido). Suporta `ONLY_IDS=1,2,3` (aplicar apenas subconjunto) e `REVERT=1 BACKUP=<path>` (desfazer). Dry-run por padrao; `APPLY=1` grava backup em `scripts/.backups/`.
+
+### Applied
+
+- Recuperadas via `ONLY_IDS=6530,6716 APPLY=1`: `INSIDE SALES SUPPORT ANALYST` (Curitiba/PR, hybrid, score 69) e `SERVICE DESK ANALYST II` (Curitiba/PR, hybrid, score 100). Backup: `backend/scripts/.backups/resync-recuperacao-2026-10-13T13-27-29.json`.
+- 4 candidatos `Technical Support Engineer * US Weekends` (`match_id` 1683, 1684, 1686, 1689) mantidos em `discarded` por decisao explicita (foco EUA).
+
+### Notes
+
+- Os 227 IDs do saneamento de 08/10 foram checados separadamente: 1 recuperavel, 224 ainda incompativeis (presencial fora da RMPJP — corretamente descartados).
+- Balde C (70 vagas) — Peru, Mexico, EUA, Worldwide — trava geografica confirmada atuando corretamente.
+
 ## [2026-10-13 — Fix: falso positivo em descricaoRestringeParaOutroPais]
 
 ### Fixed
