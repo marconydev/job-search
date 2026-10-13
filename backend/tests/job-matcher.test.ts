@@ -197,21 +197,38 @@ describe("job matcher", () => {
   assert.ok(resultado.reasons[0]?.includes("região metropolitana de João Pessoa"))
 })
 
-  test("aceita presencial em Governador Valadares com cargo compatível (M3)", () => {
-  const perfil = criarPerfil()
+  test("rejeita presencial em Governador Valadares mesmo com 'Brasil' na location (RMPJP estrita)", () => {
+    const perfil = criarPerfil()
 
-  const resultado = matchJob(
-    criarVaga({
-      title: "Analista de Suporte TI Junior",
-      location: "Governador Valadares, Minas Gerais, Brasil",
-      remote: false,
-      description: "Atendimento remoto e presencial, suporte técnico e redes."
-    }),
-    perfil
-  )
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte TI Junior",
+        location: "Governador Valadares, Minas Gerais, Brasil",
+        remote: false,
+        description: "Atendimento remoto e presencial, suporte técnico e redes."
+      }),
+      perfil
+    )
 
-  assert.ok(resultado.score >= 60)
-})
+    assert.equal(resultado.score, 0)
+    assert.ok(resultado.reasons[0]?.includes("região metropolitana de João Pessoa"))
+  })
+
+  test("aceita presencial em Joao Pessoa com cargo compatível (RMPJP)", () => {
+    const perfil = criarPerfil()
+
+    const resultado = matchJob(
+      criarVaga({
+        title: "Analista de Suporte TI Junior",
+        location: "João Pessoa, PB",
+        remote: false,
+        description: "Atendimento presencial, suporte técnico e redes."
+      }),
+      perfil
+    )
+
+    assert.ok(resultado.score >= 60)
+  })
 
   test("aceita vagas remotas em outras localidades brasileiras", () => {
     const perfil = criarPerfil()

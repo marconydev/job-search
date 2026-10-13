@@ -1,5 +1,26 @@
 # Changelog
 
+## [2026-10-13 — Saneamento on-site + Opção 2 reordenada]
+
+### Fixed
+
+- `backend/src/services/elegibilidade-localizacao.ts` — a Opção 2 (`localizacoesAceitas`) era avaliada ANTES de `modalidadeEfetiva`. Isso fazia com que `localizacoesAceitas=["brasil"]` liberasse vagas presenciais fora da RMPJP. Bug descoberto ao investigar "vagas presenciais" que apareciam no painel. Agora `modalidadeEfetiva` roda primeiro; a Opção 2 só libera quando `modalidade !== "on-site"`.
+- Mesma função — troca `alvo.includes(termo)` por `contemTermo` (word boundary). `"Brasília, Distrito Federal"` não casa mais com `"brasil"` como substring.
+- Guard adicional: termos GENÉRICOS em `localizacoesAceitas` (`brasil`, `brazil`, `worldwide`, `global`, `latam`, `americas`, etc.) não liberam vagas `on-site`. Apenas cidades específicas continuam liberando.
+
+### Added
+
+- `backend/scripts/saneamento-onsite.ts` — reavalia `job_matches` `relevant` com `workplace_type IN ('on-site','presencial','onsite')`. Move para `discarded` os que a função atual considera incompatíveis. Suporta `APPLY=1` e `REVERT=1 BACKUP=<path>`.
+- 4 testes em `tests/elegibilidade-m11.test.ts`; 1 teste reescrito + 1 novo em `tests/job-matcher.test.ts`.
+
+### Applied
+
+- Saneamento on-site no Neon: **43 registros** `relevant` → `discarded` (São Paulo, Rio, Brasília, Curitiba, Fortaleza, Florianópolis, Barueri, etc.). Permanecem `relevant` apenas `6475` e `8806` (ambas João Pessoa/RMPJP). Backup: `backend/scripts/.backups/saneamento-onsite-2026-10-13T16-32-28.json`.
+
+### Notes
+
+- 270/270 backend verdes. typecheck + build zerados.
+
 ## [2026-10-13 — Resync cirúrgico: recuperação de Curitiba]
 
 ### Added

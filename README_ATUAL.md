@@ -18,6 +18,7 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - Fila de ATS com backoff temporal + classificação permanente/transitória de falha.
 - Auto-desativação de ATS após 5 falhas permanentes consecutivas.
 - Extractor LinkedIn (JSON-LD + fallback HTML topcard, sem login).
+- Saneamento on-site (`backend/scripts/saneamento-onsite.ts`): move para discarded vagas relevant com `workplace_type` presencial que violam a RMPJP estrita.
 - Scripts de saneamento da base (dry-run + apply + reverter).
 
 ## Sessão de outubro/2026 — o que mudou
@@ -34,6 +35,13 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 13/10
+
+- Fix `descricaoRestringeParaOutroPais` (co-ocorrência obrigatória).
+- Resync cirúrgico: `resync-recuperacao.ts` + 2 Curitiba recuperadas.
+- Fix Opção 2 (`localizacoesAceitas` avaliava antes da modalidade).
+- Saneamento on-site: 43 vagas presencial fora RMPJP → discarded.
+
 ### Sessão 11–12/10 (auditoria em andamento)
 
 - Auditoria read-only de 3 anomalias.
@@ -44,7 +52,7 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 
 ## Pendências
 
-- Fechar auditoria das 3 anomalias (queda 23→256, falso positivo Curitiba, E1).
+- Fechar auditoria das 3 anomalias (queda 23→256, E1).
 - Implementar Fase 1 em branch.
 - Débitos técnicos D2–D8 (ver HANDOFF §4).
 - Piloto de sites próprios (30 empresas).

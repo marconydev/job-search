@@ -337,9 +337,24 @@ export function avaliarElegibilidadeBrasil(
     }
   }
 
+  const { modalidade, inferida } = modalidadeEfetiva(
+    remota,
+    workplaceType,
+    localizacao,
+    descricao,
+    titulo
+  )
+
   // Opção 2 (diretiva): bandeira estrangeira vence localizacoesAceitas.
   // Sem isso, um perfil com "global"/"latam"/"worldwide" libera vagas
   // remotas de Sérvia, Lituânia, etc. antes da Regra 3 avaliar.
+  //
+  // Guarda adicional (13/10): termos GENÉRICOS em localizacoesAceitas
+  // ("brasil", "worldwide", "global", "latam", etc.) NÃO liberam vagas
+  // presenciais. Para on-site vale apenas a Regra 1 (RMPJP) OU um item
+  // de localizacoesAceitas que seja cidade específica. Também troca
+  // `includes` por `contemTermo` (word boundary) para evitar que
+  // "Brasília" case com "brasil" como substring.
   if (
     localizacoesAceitas.length > 0 &&
     localizacao &&
@@ -348,7 +363,10 @@ export function avaliarElegibilidadeBrasil(
     const alvo = normalizarTexto(localizacao)
     const bate = localizacoesAceitas.some(item => {
       const termo = normalizarTexto(item)
-      return termo.length > 0 && alvo.includes(termo)
+      if (termo.length === 0) return false
+      if (!contemTermo(alvo, termo)) return false
+      if (modalidade === "on-site" && contemAlgumTermo(termo, localizacoesGenericas)) return false
+      return true
     })
     if (bate) {
       return {
@@ -357,14 +375,6 @@ export function avaliarElegibilidadeBrasil(
       }
     }
   }
-
-  const { modalidade, inferida } = modalidadeEfetiva(
-    remota,
-    workplaceType,
-    localizacao,
-    descricao,
-    titulo
-  )
 
   if (modalidade === "on-site") {
     if (localizacaoNaRegiaoJoaoPessoa(localizacao)) {

@@ -28,6 +28,8 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 - Erro tipado `ErroColetaAts` distingue falha permanente (404/410) de transitória (timeout, 5xx, 429).
 - Migration `017_add_fontes_ats_desativacao.sql` — `desativada_em`, `motivo_desativacao`, índice `(ativa, falhas_consecutivas)`.
 - `backend/scripts/resync-recuperacao.ts` — reanálise cirúrgica de `job_matches` descartados. 4 baldes (A recuperar, B score baixo, C geo incompat, D título excluído). Suporta `ONLY_IDS=1,2,3` para subconjunto e `REVERT=1 BACKUP=<path>` para desfazer.
+- `backend/scripts/saneamento-onsite.ts` — move para `discarded` vagas `relevant` com `workplace_type` presencial (`on-site`/`presencial`/`onsite`) que a função atual rejeita (RMPJP estrita). Suporta `REVERT=1 BACKUP=<path>`.
+- Opção 2 (`localizacoesAceitas`) reordenada: roda após `modalidadeEfetiva`. Termos genéricos (`brasil`, `worldwide`, `global`, `latam`, etc.) não liberam `on-site`. `includes` → `contemTermo` (word boundary).
 
 ## 3. Auditoria em andamento (12/10/2026)
 
@@ -51,6 +53,14 @@ Causa: `descricaoRestringeParaOutroPais` aceitava indicador de restrição (`mus
 ### 3.3 E1 — estabilidade da API da Gupy
 
 Script `C:/Projetos/job-search-diag/e1-gupy.cjs` parcialmente executado. Fase A (3 fetches de `"analista de suporte"` espaçados 125s) + Fase B (`offset=100/200`). Payloads salvos em `C:/Projetos/job-search-diag/e1-payloads/`.
+
+### 3.4 Opção 2 bypassava regra de presencial — RESOLVIDO em 13/10
+
+Causa: `avaliarElegibilidadeBrasil` avaliava `localizacoesAceitas` (Opção 2) **antes** de calcular a modalidade efetiva. Com perfil `localizacoesAceitas=["brasil"]`, qualquer vaga com "Brasil" na location virava `compativel` — incluindo presencial fora da RMPJP. 43 vagas `on-site` em São Paulo, Rio, Brasília, Curitiba, Fortaleza, Florianópolis, Barueri etc. ficaram `relevant` violando a Regra 1. Bug agravado por `alvo.includes("brasil")` casar "Brasília" como substring.
+
+Correção: `modalidadeEfetiva` roda primeiro; a Opção 2 só libera quando `modalidade !== "on-site"`. Termos genéricos em `localizacoesAceitas` não liberam presencial. `includes` → `contemTermo` (word boundary).
+
+Aplicado: 43 registros movidos para `discarded`. Backup: `backend/scripts/.backups/saneamento-onsite-2026-10-13T16-32-28.json`.
 
 ## 4. Débitos técnicos confirmados
 
