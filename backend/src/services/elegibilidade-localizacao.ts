@@ -162,8 +162,18 @@ function tituloTemUfBrasileira(titulo: string) {
 }
 
 function descricaoRestringeParaOutroPais(descricao: string) {
-  if (!contemAlgumTermo(descricao, indicadoresRestricao)) return false
-  return contemAlgumTermo(descricao, bandeirasEstrangeirasRemoto)
+  // Exige co-ocorrencia: o indicador de restricao e a bandeira estrangeira
+  // precisam estar na MESMA janela de ate 100 chars. Sem isso, uma descricao
+  // de multinacional ("U.S.-based company") + "Must reside in <cidade BR>"
+  // dispara falso positivo (caso Curitiba, ids 3514/3523).
+  for (const ind of indicadoresRestricao) {
+    const re = new RegExp(escaparRegex(ind) + "[^.!?\\n]{0,100}", "gi")
+    let m: RegExpExecArray | null
+    while ((m = re.exec(descricao)) !== null) {
+      if (contemAlgumTermo(m[0], bandeirasEstrangeirasRemoto)) return true
+    }
+  }
+  return false
 }
 
 function descricaoIndicaLocalizacaoBrasil(descricao: string) {

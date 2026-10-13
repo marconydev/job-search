@@ -43,9 +43,9 @@ Syncs `2dd8743c` (23:58:09Z de 08/10) e `79d97668` (00:13:04Z de 09/10), ambos r
 
 **Em aberto:** hipótese `F1` (input da API da Gupy mudou) ou falso positivo de `descricaoRestringeParaOutroPais`.
 
-### 3.2 Falso positivo suspeito em Curitiba
+### 3.2 Falso positivo em Curitiba — RESOLVIDO em 13/10
 
-2 vagas `hybrid` em Curitiba/PR descartadas com razão "A descrição exige residência ou autorização de trabalho em outro país" (`SERVICE DESK ANALYST II`, `INSIDE SALES SUPPORT ANALYST`). Curitiba é Brasil e híbrido deveria passar. **Aguardando inspeção da descrição bruta.**
+Causa: `descricaoRestringeParaOutroPais` aceitava indicador de restrição (`must reside in`) e bandeira estrangeira (`u.s.`, `global`, `north america`) em qualquer parte da descrição, sem exigir relação entre eles. Vagas `3514` (INSIDE SALES SUPPORT ANALYST) e `3523` (SERVICE DESK ANALYST II) tinham "U.S.-based company" na abertura corporativa + "Must reside in Curitiba, PR" nas informações adicionais. Corrigido: co-ocorrência obrigatória na mesma janela de 100 chars. Vagas existentes com `discarded` pelo motivo antigo **não são reavaliadas automaticamente** — pendente de re-análise.
 
 ### 3.3 E1 — estabilidade da API da Gupy
 

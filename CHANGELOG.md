@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-10-13 — Fix: falso positivo em descricaoRestringeParaOutroPais]
+
+### Fixed
+
+- `backend/src/services/elegibilidade-localizacao.ts` — `descricaoRestringeParaOutroPais` exigia apenas co-existencia (em qualquer parte da descricao) de um indicador de restricao e uma bandeira estrangeira. Isso descartava vagas hybrid/presencial no Brasil de multinacionais americanas ("U.S.-based company" + "Must reside in Curitiba"). Passa a exigir co-ocorrencia na mesma janela de ate 100 chars (mesma frase, sem `.` `!` `?` ou quebra de linha no meio).
+- Casos reproduzidos e corrigidos: vagas `3514` (INSIDE SALES SUPPORT ANALYST) e `3523` (SERVICE DESK ANALYST II), ambas `hybrid` em Curitiba/PR, source `gupy`.
+
+### Notes
+
+- Validacao empirica: Curitiba hybrid -> compativel; "must be based in Serbia" -> incompativel; "must reside in Portugal" -> incompativel.
+- 265/265 backend verdes. typecheck + build zerados.
+- Vagas existentes com status `discarded` por esse motivo NAO sao reavaliadas automaticamente — precisam de re-analise.
+
 ## [2026-10-13 — Correção de duplicação no CHANGELOG]
 
 ### Fixed
