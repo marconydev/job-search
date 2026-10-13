@@ -121,7 +121,7 @@ const indicadoresLocalizacaoBrasil = [
 const bandeirasEstrangeirasRemoto = [
   "united states","united states of america","usa","us","u.s.","u s","eua",
   "estados unidos","estados unidos da america","north america","america do norte",
-  "canada","united kingdom","ireland","portugal","lisbon","lisboa",
+  "canada","united kingdom","uk","gb","great britain","england","scotland","wales","u.k.","ireland","portugal","lisbon","lisboa",
   "spain","france","italy","germany","netherlands","poland","sweden","norway",
   "lithuania","lituania","serbia","servia","romania","hungary","croatia",
   "czech republic","czechia","estonia","latvia","south africa",
@@ -304,6 +304,28 @@ function modalidadeEfetiva(
  *  - Remoto: passa só com menção explícita ao Brasil.
  *  - Unknown: fallback conservador.
  */
+/**
+ * Fallback textual quando location e null.
+ *
+ * Usa o texto CRU (nao normalizado) para checar UF, porque
+ * localizacaoTemUfBrasileira procura UF maiuscula (DF, SP, RJ...).
+ * Usa texto normalizado apenas para "brasil"/"brazil".
+ *
+ * Nao usa a lista localizacoesBrasil aqui: ela contem "para" (estado Para),
+ * que casaria em frases genericas ("vaga para analista").
+ */
+function descricaoIndicaLocalizacaoBrasilFallback(
+  descricaoRaw: string,
+  tituloRaw: string | null
+): boolean {
+  if (!descricaoRaw && !tituloRaw) return false
+  if (localizacaoTemUfBrasileira(descricaoRaw)) return true
+  if (tituloRaw && localizacaoTemUfBrasileira(tituloRaw)) return true
+  const texto = normalizarTexto(`${descricaoRaw} ${tituloRaw ?? ""}`)
+  if (contemAlgumTermo(texto, ["brasil", "brazil"])) return true
+  return false
+}
+
 export function avaliarElegibilidadeBrasil(
   localizacao: string | null,
   descricao: string | null = null,
@@ -327,6 +349,15 @@ export function avaliarElegibilidadeBrasil(
     return {
       situacao: "incompativel",
       motivo: "A descrição exige residência ou autorização de trabalho em outro país."
+    }
+  }
+
+  // Fallback textual: location=null mas descricao/titulo mencionam Brasil/UF.
+  // Roda DEPOIS de exclusoesBrasil e descricaoRestringeParaOutroPais, para nao
+  // liberar vaga que a descricao explicitamente proibe no Brasil.
+  if (!localizacao) {
+    if (descricaoIndicaLocalizacaoBrasilFallback(descricao ?? "", titulo)) {
+      return { situacao: "compativel", motivo: "A descrição da vaga indica localização no Brasil." }
     }
   }
 

@@ -690,9 +690,20 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
   // Eles vão à frente porque descrevem o que o usuário realmente busca.
   const cargosDoPerfil = deduplicarCargos(perfil)
 
+  // Prefixa o titulo principal de cada familia ativa para garantir
+  // cobertura real de todas as familias. Antes, os 45 cargosPrincipais
+  // (dominados por "support") consumiam todo o slice(0,30), e familias
+  // como dados/processos/implantacao nunca apareciam nos termos de busca
+  // do Glassdoor/Brave. Mantem a ordem original dos cargos do usuario
+  // logo depois dos principais.
+  const principaisAtivos = ORDEM_FAMILIAS
+    .filter(fam => familias[fam].length > 0)
+    .map(fam => ESTRATEGIAS_FAMILIAS_PORTAIS[fam].tituloPrincipal)
+    .filter((x): x is string => Boolean(x))
+
   const termos = deduplicarTermos([
+    ...principaisAtivos,
     ...cargosDoPerfil,
-    ...principais,
     ...relacionados
   ])
 

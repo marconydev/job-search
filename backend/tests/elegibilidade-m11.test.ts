@@ -86,3 +86,63 @@ test("M11: on-site em cidade customizada aceita explicitamente continua compativ
   assert.equal(r.situacao, "compativel")
 })
 
+test("UK explicito em 'Remote (UK)' bloqueia a vaga", () => {
+  const r = avaliarElegibilidadeBrasil("Remote (UK)", null, "Support", true, [], "remote")
+  assert.equal(r.situacao, "incompativel")
+})
+
+test("'Remote (GB)' bloqueia a vaga", () => {
+  const r = avaliarElegibilidadeBrasil("Remote (GB)", null, "Support", true, [], "remote")
+  assert.equal(r.situacao, "incompativel")
+})
+
+test("location=null + 'Brasilia, DF, BR' na descricao e compativel", () => {
+  const r = avaliarElegibilidadeBrasil(
+    null,
+    "Analista de Suporte Tecnico - Brasilia, DF, BR (1 Vaga)",
+    "Analista de Suporte Tecnico",
+    false,
+    [],
+    "unknown"
+  )
+  assert.equal(r.situacao, "compativel")
+})
+
+test("location=null + 'Not available in Brazil' continua incompativel", () => {
+  const r = avaliarElegibilidadeBrasil(
+    null,
+    "Analista de Suporte. This position is not available in Brazil.",
+    "Analista de Suporte",
+    false,
+    [],
+    "unknown"
+  )
+  assert.equal(r.situacao, "incompativel")
+})
+
+test("location=null sem sinal BR continua indefinida", () => {
+  const r = avaliarElegibilidadeBrasil(
+    null,
+    "Generic support role with global teams.",
+    "Technical Support",
+    false,
+    [],
+    "unknown"
+  )
+  assert.equal(r.situacao, "indefinida")
+})
+
+test("'para' sozinho em descricao nao e confundido com o estado Para", () => {
+  const r = avaliarElegibilidadeBrasil(
+    null,
+    "Vaga para analista de suporte com foco em atendimento.",
+    "Analista de Suporte",
+    false,
+    [],
+    "unknown"
+  )
+  // Nao deve ser compativel por falsa deteccao de "para" (estado).
+  // Espera indefinida (sem outro sinal BR).
+  assert.equal(r.situacao, "indefinida")
+})
+

@@ -180,7 +180,10 @@ function normalizarVaga(job: SolidesJob): NewJob | null {
 
     url,
 
-    publishedAt: normalizarData(job.createdAt),
+    // A Sólides so expoe createdAt (data de cadastro no sistema), sem
+    // data de publicacao real. Usar createdAt como proxy causava 107/135
+    // falsos "foraDaJanela". Enviar null: filtro de janela passa a ignorar.
+    publishedAt: null,
 
     partial: !descricaoLimpa
   }

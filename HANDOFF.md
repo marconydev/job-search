@@ -12,7 +12,7 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 **Suíte:** 265/265 testes backend verdes. typecheck + build zerados.
 
-**Estado do banco (Neon):** 898 vagas Gupy; ~791 relevant+new no total; 505 vagas obsoletas ativas da Gupy.
+**Estado do banco (Neon):** ~906 vagas Gupy; ~745 relevant+new (apos saneamento de 43 presencial fora RMPJP em 13/10); ~505 vagas obsoletas ativas da Gupy; LinkedIn/Glassdoor com dados de 25/08/2026 (Brave nao autorizado desde entao).
 
 ## 2. Concluído nas sessões de 07–12/10/2026
 
@@ -29,6 +29,10 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 - Migration `017_add_fontes_ats_desativacao.sql` — `desativada_em`, `motivo_desativacao`, índice `(ativa, falhas_consecutivas)`.
 - `backend/scripts/resync-recuperacao.ts` — reanálise cirúrgica de `job_matches` descartados. 4 baldes (A recuperar, B score baixo, C geo incompat, D título excluído). Suporta `ONLY_IDS=1,2,3` para subconjunto e `REVERT=1 BACKUP=<path>` para desfazer.
 - `backend/scripts/saneamento-onsite.ts` — move para `discarded` vagas `relevant` com `workplace_type` presencial (`on-site`/`presencial`/`onsite`) que a função atual rejeita (RMPJP estrita). Suporta `REVERT=1 BACKUP=<path>`.
+- `bandeirasEstrangeirasRemoto` expandida com variantes de Reino Unido (`uk`, `gb`, `great britain`, `england`, `scotland`, `wales`, `u.k.`).
+- Fallback textual em `elegibilidade-localizacao.ts` quando `location=null`: usa `localizacaoTemUfBrasileira` (texto cru) + `brasil/brazil` (texto normalizado). Sem `localizacoesBrasil` para evitar falso positivo de "para" (estado Para).
+- `solides.ts` — `publishedAt: null` (a API so expoe `createdAt`, data de cadastro, nao de publicacao).
+- `search-queries.ts` — `gerarTermosBuscaNativaGupy` prefixa principais de todas as familias ativas antes dos cargos do perfil.
 - Opção 2 (`localizacoesAceitas`) reordenada: roda após `modalidadeEfetiva`. Termos genéricos (`brasil`, `worldwide`, `global`, `latam`, etc.) não liberam `on-site`. `includes` → `contemTermo` (word boundary).
 
 ## 3. Auditoria em andamento (12/10/2026)
@@ -61,6 +65,26 @@ Causa: `avaliarElegibilidadeBrasil` avaliava `localizacoesAceitas` (Opção 2) *
 Correção: `modalidadeEfetiva` roda primeiro; a Opção 2 só libera quando `modalidade !== "on-site"`. Termos genéricos em `localizacoesAceitas` não liberam presencial. `includes` → `contemTermo` (word boundary).
 
 Aplicado: 43 registros movidos para `discarded`. Backup: `backend/scripts/.backups/saneamento-onsite-2026-10-13T16-32-28.json`.
+
+### 3.5 Solides — `createdAt` nao e `publishedAt`
+
+A API `apigw.solides.com.br/jobs/v3/portal-vacancies` nao expoe data de publicacao. Expoe `createdAt` (data de cadastro da vaga no sistema). O coletor usava `createdAt` como `publishedAt`, o que causava 107 de 135 vagas descartadas por `foraDaJanela` (janela = 21 dias em `JOB_LIFECYCLE.maxAgeDays`).
+
+Correcao: `publishedAt: null`. Filtro de janela passa a ignorar Solides. Vagas existentes com `published_at` preenchido continuam com o valor antigo — nao reprocessa retroativo.
+
+### 3.6 Falsos positivos geograficos — resolvidos em 13/10
+
+- **`"Remote (UK)"`** (id 6078, Arbeitnow): `bandeirasEstrangeirasRemoto` nao tinha `uk`/`gb`/`england`/etc. Vaga passava como indefinida. Adicionadas as variantes.
+- **`location=null` com Brasilia na descricao** (ids 6142/6145/6146, oportunidadesdf): caiam em indefinida porque `tituloTemUfBrasileira` exige separador antes da UF e `localizacaoBrasilConfirmada` so roda com `localizacao` preenchida. Novo fallback textual checa descricao crua por UF e por `brasil/brazil`.
+- **`location=null` sem sinal** permanece `indefinida` — decisao consciente para nao perder vaga remota legitima.
+
+### 3.7 Brave / LinkedIn — diagnostico pendente
+
+Frontend tem 2 botoes em `controle-sincronizacao.tsx`: verde "Sincronizar sem Brave" (`executarSincronizacao(false)`) e indigo "Buscar novas vagas na web" (`executarSincronizacao(true)`, passa por modal de confirmacao). Backend recebe `usarBrave` em `routes/jobs.ts:262` e propaga ate `permitirBuscaLive` em `job-sync.ts:301`.
+
+`BRAVE_SEARCH_API_KEY` esta configurada no Render. LinkedIn/Glassdoor tem dados no banco apenas de 25/08/2026 — nenhuma coleta nova desde entao.
+
+**Falta confirmar:** (a) qual botao o usuario clica em producao; (b) existencia e conteudo da tabela de controle de cache (`controle_busca_web` ou similar — o recon com `%cache%` nao achou); (c) se a query `site:linkedin.com/jobs/view (...) "Brasil"` retorna resultados no Brave com `freshness=pm`.
 
 ## 4. Débitos técnicos confirmados
 

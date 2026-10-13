@@ -19,6 +19,7 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - Auto-desativação de ATS após 5 falhas permanentes consecutivas.
 - Extractor LinkedIn (JSON-LD + fallback HTML topcard, sem login).
 - Saneamento on-site (`backend/scripts/saneamento-onsite.ts`): move para discarded vagas relevant com `workplace_type` presencial que violam a RMPJP estrita.
+- Fallback textual geografico: quando `location=null`, checa descricao/titulo por UF brasileira ou `brasil`/`brazil`.
 - Scripts de saneamento da base (dry-run + apply + reverter).
 
 ## Sessão de outubro/2026 — o que mudou
@@ -41,6 +42,11 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - Resync cirúrgico: `resync-recuperacao.ts` + 2 Curitiba recuperadas.
 - Fix Opção 2 (`localizacoesAceitas` avaliava antes da modalidade).
 - Saneamento on-site: 43 vagas presencial fora RMPJP → discarded.
+- Variantes UK (`uk`, `gb`, `england`...) em `bandeirasEstrangeirasRemoto`.
+- Fallback textual `location=null` (Brasilia e casos similares).
+- Solides: `publishedAt: null` (API so expoe `createdAt`).
+- `gerarTermosBuscaNativaGupy`: principais por familia prefixados.
+- Brave/LinkedIn: diagnostico pendente (confirmar qual botao em producao).
 
 ### Sessão 11–12/10 (auditoria em andamento)
 

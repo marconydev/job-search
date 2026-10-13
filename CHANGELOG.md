@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-10-13 — Falsos positivos geograficos + Solides + termos Gupy]
+
+### Fixed
+
+- `backend/src/services/elegibilidade-localizacao.ts` — `bandeirasEstrangeirasRemoto` nao incluia variantes de Reino Unido (`uk`, `gb`, `great britain`, `england`, `scotland`, `wales`, `u.k.`). Vaga `"Remote (UK)"` passava como indefinida. Adicionadas.
+- Mesma funcao — fallback textual quando `location=null`: usa `localizacaoTemUfBrasileira` sobre o texto cru e `contemAlgumTermo(["brasil","brazil"])` sobre texto normalizado. NAO usa `localizacoesBrasil` (contem "para" — estado Para — que casaria em frase generica). Roda depois de `exclusoesBrasil` e `descricaoRestringeParaOutroPais`, para nao liberar vaga proibida no Brasil.
+- `backend/src/collectors/solides.ts` — `publishedAt: null`. A API da Solides so expoe `createdAt` (data de cadastro no sistema), sem data de publicacao real. Usar `createdAt` como proxy causava 107 de 135 vagas em `foraDaJanela` (79%).
+- `backend/src/config/search-queries.ts` — `gerarTermosBuscaNativaGupy` prefixa o titulo principal de cada familia ativa antes dos cargos do usuario. Antes, os 45 `cargosPrincipais` (dominados por "support") consumiam os 30 slots, e familias como `dados`/`processos`/`implantacao` nunca entravam nos termos de busca do Glassdoor/Brave.
+
+### Added
+
+- 6 testes em `tests/elegibilidade-m11.test.ts` cobrindo: `"Remote (UK)"` e `"Remote (GB)"` bloqueiam; `location=null` + `"Brasilia, DF, BR"` na descricao e compativel; `location=null` + `"Not available in Brazil"` continua incompativel; `location=null` sem sinal BR continua indefinida; `"para"` sozinho em descricao nao e confundido com o estado Para.
+
+### Notes
+
+- **Auditoria Brave/LinkedIn (read-only, concluida):** frontend (`controle-sincronizacao.tsx`) tem 2 botoes — verde "Sincronizar sem Brave" (chama `executarSincronizacao(false)`) e indigo "Buscar novas vagas na web" (abre modal → `executarSincronizacao(true)`). Cadeia completa ate `BRAVE_SEARCH_API_KEY` no Render. LinkedIn/Glassdoor parados desde 25/08/2026 no banco. **Pendente:** confirmar qual botao e usado em producao e inspecionar tabela de controle de cache.
+- **Auditoria de falso-positivo geografico:** `6078` (Arbeitnow, `location="Remote (UK)"`) e `6142/6145/6146` (oportunidadesdf, `location=null`) passaram por `indefinida` no filtro. Ambas as rotas fechadas pelos fixes acima.
+- **Solides:** coletor entrega 135 vagas; 107 caiam em `foraDaJanela` por `createdAt` nao ser data de publicacao. Apos o fix, todas passam para o matcher. Vagas existentes com `published_at` derivado de `createdAt` continuam com o valor antigo no banco (fix so afeta coletas novas).
+- 276/276 backend verdes. typecheck + build zerados.
+
 ## [2026-10-13 — Saneamento on-site + Opção 2 reordenada]
 
 ### Fixed
