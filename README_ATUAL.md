@@ -1,57 +1,53 @@
 # README_ATUAL — Job Search
 
-Snapshot do estado da aplicação após a sessão de 08/10/2026.
+Snapshot do estado da aplicação após a sessão de 12/10/2026.
 
 ## Funcionalidades ativas
 
 - 9 coletores diretos: Gupy, Sólides, Vagas.com, GeekHunter, GetOnBoard, Remotive, Remote OK, Jobicy, Arbeitnow.
-- Aprendizado e coleta de 6 ATS: Greenhouse, Lever, Workable, Ashby, Recruitee, InHire — com modalidade estruturada preservada.
-- Descoberta web complementar via Brave Search (opcional, orçamento controlado).
+- Coleta de 6 ATS: Greenhouse, Lever, Workable, Ashby, Recruitee, InHire — com modalidade estruturada preservada.
+- Descoberta web complementar via Brave Search (orçamento controlado).
 - Cache de buscas web em PostgreSQL com TTL de 7 dias.
-- Trava geográfica v3: presencial só RMPJP, híbrido em todo o Brasil, remoto só com Brasil explícito.
+- Trava geográfica v3: presencial só RMPJP; híbrido em todo o Brasil; remoto só com menção explícita ao Brasil.
+- Opção 2: bandeira estrangeira vence `localizacoesAceitas` do perfil.
 - Matching determinístico local, score 0–100, corte 60.
-- Perfil profissional singleton em JSONB.
+- Perfil profissional singleton em JSONB, lido a cada sync.
 - Importação de currículo PDF, DOCX e TXT.
 - Sincronização assíncrona com trava, heartbeat e detecção de interrupção.
-- Telemetria de funil por execução/fonte em `funil_telemetria` (com contador `localizacaoInferida`).
-- Hash de conteúdo das vagas para evitar reanálise redundante.
-- Fila de ATS prioriza boards produtivos por `coletas_sem_aderentes`.
+- Telemetria de funil por execução/fonte em `funil_telemetria`.
+- Fila de ATS com backoff temporal + classificação permanente/transitória de falha.
+- Auto-desativação de ATS após 5 falhas permanentes consecutivas.
+- Extractor LinkedIn (JSON-LD + fallback HTML topcard, sem login).
 - Scripts de saneamento da base (dry-run + apply + reverter).
-
-## Sessão de outubro/2026 (parte 2) — LinkedIn + expansão de fontes
-
-- Extractor LinkedIn (`extractors/linkedin.ts`) — estático, sem login. JSON-LD + fallback HTML.
-- `conversao-vaga-web.ts` infere modalidade por texto quando não vem estruturada.
-- `page-inspector.ts` integra o extractor LinkedIn antes do fallback JSON-LD.
-- 7 novos boards ATS em `fontes_ats`: stone, btgpactual, inter, c6bank (greenhouse) + cielo, xp, sicredi (inhire).
-- Scripts de descoberta/verificação de ATS: `descobrir-fontes-ats.ts`, `verificar-candidatos-ats.ts`, `aplicar-fontes-confirmadas.cjs`.
-
-## Sessão de outubro/2026 (parte 2) — LinkedIn + expansão de fontes
-
-- Extractor LinkedIn (`extractors/linkedin.ts`) — estático, sem login. JSON-LD + fallback HTML.
-- `conversao-vaga-web.ts` infere modalidade por texto quando não vem estruturada.
-- `page-inspector.ts` integra o extractor LinkedIn antes do fallback JSON-LD.
-- 7 novos boards ATS em `fontes_ats`: stone, btgpactual, inter, c6bank (greenhouse) + cielo, xp, sicredi (inhire).
-- Scripts de descoberta/verificação de ATS: `descobrir-fontes-ats.ts`, `verificar-candidatos-ats.ts`, `aplicar-fontes-confirmadas.cjs`.
 
 ## Sessão de outubro/2026 — o que mudou
 
-- Fase 0.2: `RELATORIO_FASE02.md` (inventário dos 9 coletores + panorama ATS) e `fase02-gerar-relatorio.cjs`.
-- Trava geográfica v3 aplicada:
-  - Presencial só passa em RMPJP (João Pessoa + 20 municípios oficiais).
-  - Híbrido passa em qualquer ponto do Brasil.
-  - Remoto só passa com menção explícita ao Brasil.
-  - Opção 2: bandeira estrangeira vence `localizacoesAceitas` do perfil.
-- ATS Lever, Workable, Ashby, Recruitee e InHire passam a extrair modalidade via `interpretarModalidadeEstruturada` (antes colapsavam híbrido/presencial em `unknown`).
-- `localizacaoInferida` separado de `localizacaoIncompativel` na telemetria.
-- Fail-fast confirmado: score 0 sem cálculo para vaga geo-bloqueada.
-- Saneamento: 227 vagas `relevant` não vistas → `discarded`. Backup reversível em `backend/scripts/.backups/`.
-- `PLANO_EXPANSAO.md`: LinkedIn via Brave dork, sites próprios piloto 30–50 empresas, sem LLM no pipeline, sem burlar bloqueio.
-- 251 testes backend verdes.
+### Sessão 07–08/10
+
+- Fase 0.2 — inventário dos 9 coletores em `RELATORIO_FASE02.md`.
+- Trava geográfica v3 — matriz estrita de 4 pontos.
+- Opção 2 — bandeira estrangeira vence `localizacoesAceitas`.
+- ATS Lever/Workable/Ashby/Recruitee/InHire usando `interpretarModalidadeEstruturada`.
+- Fail-fast confirmado (score 0 antes de qualquer pontuação em vaga geo-bloqueada).
+- Saneamento aplicado: 227 vagas `relevant` → `discarded`. Backup reversível.
+- Extractor LinkedIn + 9 testes.
+- 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
+- Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
+
+### Sessão 11–12/10 (auditoria em andamento)
+
+- Auditoria read-only de 3 anomalias.
+- Replay offline dos 3 commits sobre 898 linhas da Gupy — código exonerado.
+- Auto-Deploy confirmado como `Yes` no Render.
+- Vagas obsoletas ativas medidas: 505 da Gupy + 11 outras.
+- Fase 1 desenhada (A3 + A4 + D6 + D7), não implementada.
 
 ## Pendências
 
-- Piloto de sites próprios (30–50 empresas) — ver `PLANO_EXPANSAO.md`.
+- Fechar auditoria das 3 anomalias (queda 23→256, falso positivo Curitiba, E1).
+- Implementar Fase 1 em branch.
+- Débitos técnicos D2–D8 (ver HANDOFF §4).
+- Piloto de sites próprios (30 empresas).
 - Refinamento de queries Brave a partir do perfil.
 - Reconciliar `jobs.source` com `funil_telemetria.fonte`.
 - Fase 2 (futura): botão "segunda opinião por IA" on-demand.
