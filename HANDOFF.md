@@ -1,16 +1,16 @@
 # HANDOFF — Job Search
 
-## 1. Estado atual (12/10/2026)
+## 1. Estado atual (13/10/2026)
 
 Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (backend) → Neon (banco). Auto-Deploy = **Yes** no Render.
 
 **Últimos commits:**
+- `ee7a212` fix(engine): Opção 2 não bypassa mais a regra de presencial (RMPJP estrita)
+- `e52cef3` feat(scripts): resync-recuperacao
+- `a0f5224` fix(engine): corrige falso positivo em descricaoRestringeParaOutroPais
 - `baa8810` fix(ats): fila com backoff temporal + classificacao de falha permanente/transitoria
-- `d0e4166` feat(web): extractor LinkedIn + inferencia de modalidade + 7 boards ATS
-- `b9bd095` feat(engine): trava geográfica v3 + saneamento + Fase 0.2
-- `e7385ab` docs(fase0): baseline do Neon e relatorio inicial
 
-**Suíte:** 265/265 testes backend verdes. typecheck + build zerados.
+**Suíte:** 276/276 testes backend verdes. typecheck + build zerados.
 
 **Estado do banco (Neon):** ~906 vagas Gupy; ~745 relevant+new (apos saneamento de 43 presencial fora RMPJP em 13/10); ~505 vagas obsoletas ativas da Gupy; LinkedIn/Glassdoor com dados de 25/08/2026 (Brave nao autorizado desde entao).
 
