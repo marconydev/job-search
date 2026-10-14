@@ -78,13 +78,24 @@ Correcao: `publishedAt: null`. Filtro de janela passa a ignorar Solides. Vagas e
 - **`location=null` com Brasilia na descricao** (ids 6142/6145/6146, oportunidadesdf): caiam em indefinida porque `tituloTemUfBrasileira` exige separador antes da UF e `localizacaoBrasilConfirmada` so roda com `localizacao` preenchida. Novo fallback textual checa descricao crua por UF e por `brasil/brazil`.
 - **`location=null` sem sinal** permanece `indefinida` — decisao consciente para nao perder vaga remota legitima.
 
-### 3.7 Brave / LinkedIn — diagnostico pendente
+### 3.7 Brave / LinkedIn — RESOLVIDO em 14/10
 
-Frontend tem 2 botoes em `controle-sincronizacao.tsx`: verde "Sincronizar sem Brave" (`executarSincronizacao(false)`) e indigo "Buscar novas vagas na web" (`executarSincronizacao(true)`, passa por modal de confirmacao). Backend recebe `usarBrave` em `routes/jobs.ts:262` e propaga ate `permitirBuscaLive` em `job-sync.ts:301`.
+Causa raiz: `brave-search.ts:73` enviava `freshness=pm`. A API do Brave passou a responder `bad_results: true` (corpo `mixed` vazio, sem `web.results`) quando `freshness=pm` esta presente em query com `site:linkedin.com/jobs/view`, `site:br.indeed.com/viewjob` ou `site:myworkdayjobs.com`. Remover o parametro restaura a resposta (13-20 results na mesma query). A UI (search.brave.com) nao e afetada.
 
-`BRAVE_SEARCH_API_KEY` esta configurada no Render. LinkedIn/Glassdoor tem dados no banco apenas de 25/08/2026 — nenhuma coleta nova desde entao.
+Descoberto em 13/10 por auditoria read-only:
+- `controle_busca_web.updated_at = 13/10 18:01`, `chamadasPorDia` batendo 30/30 desde 17/08.
+- Cache com 232 consultas; ultima resposta >0 de LinkedIn/Indeed em 31/08 13:42 UTC.
+- `funil_telemetria` nunca teve linhas de `linkedin`/`indeed`/`glassdoor`/`brave`/`web` (debito D7).
 
-**Falta confirmar:** (a) qual botao o usuario clica em producao; (b) existencia e conteudo da tabela de controle de cache (`controle_busca_web` ou similar — o recon com `%cache%` nao achou); (c) se a query `site:linkedin.com/jobs/view (...) "Brasil"` retorna resultados no Brave com `freshness=pm`.
+Comprovado com 6 chamadas diretas a API Brave:
+- `site:linkedin.com/jobs/view "Analista Funcional" "Brasil"` com `freshness=pm` → `bad_results: true`, 0.
+- mesma query sem `freshness` → `bad_results: false`, 13 results.
+- `(site:linkedin.com/jobs/view OR site:br.indeed.com/viewjob OR site:myworkdayjobs.com) ("Analista de Suporte" OR "Analista de Sistemas") "Brasil"` com `freshness=pm` → `bad_results: true`, 0.
+- mesma query sem `freshness` → 20 results, `more_results_available: true`.
+
+Frontend ja correto (2 botoes em `controle-sincronizacao.tsx`). Backend ja correto (`routes/jobs.ts:262` → `job-sync.ts:301` → `permitirBuscaLive`).
+
+Fix aplicado em 14/10: `brave-search.ts` remove `freshness=pm`. Verificar recuperacao em 24-48h via `jobs.source = linkedin/indeed` com `created_at > 14/10`.
 
 ## 4. Débitos técnicos confirmados
 

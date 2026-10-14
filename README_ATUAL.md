@@ -36,6 +36,13 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 14/10
+
+- Fix Brave: removido `freshness=pm` de `brave-search.ts`. LinkedIn/Indeed voltam a retornar
+  via API (estavam zerados desde 31/08 por `bad_results: true` da API Brave).
+- Diagnostico: 6 chamadas diretas a API provaram que o gatilho e o `freshness=pm`, nao a query,
+  nao o `country=BR`, nao o operador `site:`.
+
 ### Sessão 13/10
 
 - Fix `descricaoRestringeParaOutroPais` (co-ocorrência obrigatória).

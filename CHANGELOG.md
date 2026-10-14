@@ -1,5 +1,30 @@
 # Changelog
 
+## [2026-10-14 — Brave: remove freshness=pm (LinkedIn/Indeed parados desde 31/08)]
+
+### Fixed
+
+- `backend/src/discovery/brave-search.ts` — removido `url.searchParams.set("freshness", "pm")`.
+  A API do Brave passou a responder `bad_results: true` (corpo `mixed` vazio, sem `web.results`)
+  para qualquer query que combine `site:linkedin.com/jobs/view`, `site:br.indeed.com/viewjob`
+  ou `site:myworkdayjobs.com` com `freshness=pm`. Sem o parametro, a mesma query devolve
+  13-20 resultados. A UI (search.brave.com) nao e afetada — e comportamento API-only.
+
+### Diagnostico
+
+- Comprovado com 6 chamadas diretas a API Brave em 13-14/10. Cache `controle_busca_web`
+  mostra ultima resposta >0 de LinkedIn/Indeed em 31/08 13:42 UTC. 43 dias zerados.
+- `country=BR`, `result_filter=web` e o operador `site:` nao sao o gatilho. `freshness=pm` e.
+- Impacto antes do fix: ~6 consultas/dia x 43 dias = ~258 chamadas Brave consumidas sem retorno.
+  O cache gravava `paginas: []` e marcava como "consultado hoje", impedindo retentativa.
+
+### Notes
+
+- Consultas web nao instrumentam `funil_telemetria` (debito D7). Verificacao pos-fix e via
+  `controle_busca_web.updated_at` ou SQL direto em `jobs.source`.
+- Cache com 232 consultas antigas sofrera rollover natural em 24h (registroFoiConsultadoHoje).
+- 276/276 backend verdes. typecheck + build zerados.
+
 ## [2026-10-13 — Falsos positivos geograficos + Solides + termos Gupy]
 
 ### Fixed

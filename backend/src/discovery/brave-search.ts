@@ -55,12 +55,24 @@ export async function buscarNaWeb(
   url.searchParams.set("country", "BR")
 
   /**
-   * Continuo utilizando o último mês como preferência de atualidade.
+   * NAO envio "freshness". Diagnostico de 13-14/10/2026:
    *
-   * A aplicação possui deduplicação e validação próprias, portanto não
-   * dependo apenas da data para decidir se uma oportunidade é válida.
+   * A API do Brave passou a responder `bad_results: true` (corpo sem
+   * `web.results`, so `mixed` vazio) para qualquer query que combine
+   * `site:linkedin.com/jobs/view`, `site:br.indeed.com/viewjob` ou
+   * `site:myworkdayjobs.com` com `freshness=pm`. Sem o parametro, a
+   * mesma query devolve 13-20 resultados. A UI (search.brave.com) nao
+   * sofre do problema — e API-only.
+   *
+   * Verificado com 6 chamadas diretas a API em 13-14/10:
+   *   - com freshness=pm + site:linkedin     -> bad_results, 0
+   *   - sem freshness + site:linkedin        -> 13 results
+   *   - com freshness=pm + OR multi-site     -> bad_results, 0
+   *   - sem freshness + OR multi-site        -> 20 results
+   *
+   * A filtragem de data continua a jusante (job-lifecycle). Por isso
+   * removo o parametro por completo, sem substituicao.
    */
-  url.searchParams.set("freshness", "pm")
 
   url.searchParams.set("result_filter", "web")
 
