@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-10-19 — Auditoria Tech Lead: Performance SQL e Expansao de Busca]
+
+### Added
+
+- `backend/src/discovery/brave-search.ts` — Adicionado conversor `converterBraveAgeParaData`.
+  O Brave retorna datas relativas (ex: "2 days ago"); o código agora converte para ISO real.
+- `backend/src/services/processamento-vagas-web.ts` — Reativada a persistência de descobertas
+  da web, condicionada à existência de `publishedAtEstimado` válido (Blindagem 2.0).
+- `database/migrations/018_...` (aplicado via script) — Criados índices parciais para otimização
+  de leitura: `jobs_active_reference_idx` e `jobs_source_url_idx`.
+
+### Changed
+
+- `backend/src/config/search-queries.ts` — Aumento da cobertura de busca.
+  `LIMITE_RELACIONADOS_POR_FAMILIA_GUPY` subiu de 5 para 8. `slice(0, 30)` subiu para 40.
+
 ## [2026-10-18 — Blindagem: fim das vagas zumbis (falsos positivos temporais)]
 
 ### Fixed

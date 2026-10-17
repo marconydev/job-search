@@ -8,6 +8,8 @@ type ResultadoWebBrave = {
   url: string
 
   description?: string
+  page_age?: string
+  age?: string
 }
 
 type RespostaBraveSearch = {
@@ -31,6 +33,23 @@ function normalizarPagina(pagina: number) {
   }
 
   return Math.min(Math.max(Math.floor(pagina), 0), 9)
+}
+
+function converterBraveAgeParaData(ageStr: string | undefined): string | null {
+  if (!ageStr) return null
+  const isoDate = new Date(ageStr)
+  if (!isNaN(isoDate.getTime())) return isoDate.toISOString()
+  const match = ageStr.match(/(\d+)\s+(hour|day|week|month|year)s?\s+ago/i)
+  if (!match) return null
+  const qtd = parseInt(match[1], 10)
+  const unidade = match[2].toLowerCase()
+  let ms = 0
+  if (unidade === 'hour') ms = qtd * 60 * 60 * 1000
+  else if (unidade === 'day') ms = qtd * 24 * 60 * 60 * 1000
+  else if (unidade === 'week') ms = qtd * 7 * 24 * 60 * 60 * 1000
+  else if (unidade === 'month') ms = qtd * 30 * 24 * 60 * 60 * 1000
+  else if (unidade === 'year') ms = qtd * 365 * 24 * 60 * 60 * 1000
+  return new Date(Date.now() - ms).toISOString()
 }
 
 export async function buscarNaWeb(
@@ -112,7 +131,8 @@ export async function buscarNaWeb(
 
       url: resultado.url,
 
-      descricao: resultado.description ?? null
+      descricao: resultado.description ?? null,
+      publishedAtEstimado: converterBraveAgeParaData(resultado.page_age || resultado.age)
     })) ?? []
 
   return {

@@ -36,6 +36,11 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 19/10
+- Auditoria Tech Lead: índices parciais no banco para velocidade do painel.
+- Fix no Brave: conversão nativa de `page_age` para data retroativa (mantém LinkedIn/Indeed).
+- Expansão de queries (até 40 termos na Gupy, 8 por família).
+
 ### Sessão 18/10
 - Fix Zumbis: descoberta web não persiste vagas sem data comprovada.
 - Hardening de data: vaga sem `published_at` (ou > 21 dias) é barrada na ingestão.

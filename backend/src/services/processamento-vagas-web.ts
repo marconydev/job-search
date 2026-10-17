@@ -172,7 +172,8 @@ function avaliarPaginaDescoberta(
 
     competencias: correspondencia.matchedSkills,
 
-    motivos: correspondencia.reasons
+    motivos: correspondencia.reasons,
+    publishedAtEstimado: pagina.publishedAtEstimado
   }
 }
 
@@ -279,7 +280,7 @@ async function persistirRecomendacoesDescoberta(
 
             url: recomendacao.url,
 
-            publishedAt: null,
+            publishedAt: recomendacao.publishedAtEstimado || null,
 
             partial: true
           })
@@ -391,14 +392,20 @@ export async function processarVagasWeb(
 
       descricao: pagina.descricao,
 
-      consulta: pagina.consulta
+      consulta: pagina.consulta,
+      publishedAtEstimado: pagina.publishedAtEstimado
     }))
 
   const recomendacoesDescoberta = criarRecomendacoesDescoberta(somenteDescoberta, perfil)
 
-  // BLINDAGEM: Descoberta web pura (Brave) não tem data confiável.
-  // Para evitar vagas zumbis, não persistimos mais as recomendações.
-  const persistenciaDescoberta = criarResultadoPersistenciaVazio()
+  // BLINDAGEM 2.0: Persistimos apenas se o Brave nos deu uma data estimada válida.
+  const recomendacoesComData = recomendacoesDescoberta.filter(r => {
+    const original = somenteDescoberta.find(p => p.url === r.url)
+    return original?.publishedAtEstimado != null
+  })
+  const persistenciaDescoberta = salvarCompativeis
+    ? await persistirRecomendacoesDescoberta(recomendacoesComData)
+    : criarResultadoPersistenciaVazio()
 
   const resultadosPorProvedor = new Map<ProvedorPagina, ResultadoFonteProcessada>()
 

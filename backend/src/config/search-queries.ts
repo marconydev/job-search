@@ -72,7 +72,7 @@ const ORDEM_FAMILIAS: NomeFamilia[] = [
  * relacionados, garantindo que todas as familias ativas aparecam
  * antes do corte do slice(0, 30).
  */
-const LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 5
+const LIMITE_RELACIONADOS_POR_FAMILIA_GUPY = 8
 
 /**
  * Títulos utilizados tanto pela busca web complementar quanto
@@ -707,7 +707,7 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
     ...relacionados
   ])
 
-  return termos.slice(0, 30)
+  return termos.slice(0, 40)
 }
 
 /**

@@ -74,7 +74,7 @@ describe("gerador de consultas de vagas", () => {
     // Cargos de desvio continuam proibidos.
     assert.equal(termos.includes("Software Developer"), false)
 
-    assert.ok(termos.length <= 30)
+    assert.ok(termos.length <= 40)
   })
 
   test("gera apenas termos brasileiros na coleta nativa da Sólides", () => {

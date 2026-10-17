@@ -16,6 +16,12 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 ## 2. Concluído nas sessões de 07–17/10/2026
 
+**19/10: Auditoria Tech Lead (Busca e SQL)**
+- Brave: conversão de `page_age` (string relativa) para data ISO.
+- Web Discovery: persistência reativada com validação de data estimada.
+- SQL: índices parciais de performance adicionados ao Neon.
+- Gupy/Brave: expansão de queries (limite de 40 termos, 8 por família).
+
 **18/10: Blindagem Temporal (Fim dos Zumbis)**
 - Coletor web (Brave) não salva mais vagas sem data de publicação confiável.
 - Filtro de 21 dias operando `fail-fast` antes do INSERT.

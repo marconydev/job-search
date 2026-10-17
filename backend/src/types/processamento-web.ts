@@ -26,6 +26,7 @@ export type PaginaSomenteDescoberta = {
   descricao: string | null
 
   consulta: string
+  publishedAtEstimado?: string | null
 }
 
 export type ResultadoFonteProcessada = {
@@ -68,6 +69,7 @@ export type RecomendacaoDescoberta = {
   competencias: string[]
 
   motivos: string[]
+  publishedAtEstimado?: string | null
 }
 
 /**

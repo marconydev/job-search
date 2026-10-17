@@ -35,6 +35,7 @@ export type PaginaDescoberta = {
   url: string
 
   descricao: string | null
+  publishedAtEstimado?: string | null
 }
 
 export type PaginaClassificada = PaginaDescoberta & {
