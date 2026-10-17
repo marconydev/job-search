@@ -36,6 +36,11 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 18/10
+- Fix Zumbis: descoberta web não persiste vagas sem data comprovada.
+- Hardening de data: vaga sem `published_at` (ou > 21 dias) é barrada na ingestão.
+- Saneamento de banco: Hard delete de 231 vagas mortas/zumbis.
+
 ### Sessão 17/10
 - Fix Solides: URLs apontam para o portal central (`vagas.solides.com.br`). Links antigos
   (subdomínios `.solides.jobs`) estavam mortos (NXDOMAIN).

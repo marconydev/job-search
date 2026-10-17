@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-10-18 — Blindagem: fim das vagas zumbis (falsos positivos temporais)]
+
+### Fixed
+
+- `backend/src/services/processamento-vagas-web.ts` — Descoberta web (Brave) não persiste mais
+  recomendações soltas sem data. Se não há como extrair a data da vaga, ela é ignorada.
+- `backend/src/services/processamento-vagas-web.ts` — Filtro rígido: vagas extraídas (ATS) com
+  `publishedAt` nulo ou com mais de 21 dias são rejeitadas antes do INSERT.
+
+### Diagnostico
+
+- O fallback de assumir `published_at = NOW()` quando a data era nula estava criando "zumbis":
+  vagas de 2023/2024 entravam no painel como se fossem de hoje.
+- O script de limpeza encontrou 231 vagas fantasma e executou um `HARD DELETE` (apagou do banco
+  fisicamente), mantendo a base limpa e confiável.
+
 ## [2026-10-17 — Solides: portal central e filtro de isDisabled]
 
 ### Fixed

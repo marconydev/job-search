@@ -1,4 +1,5 @@
 import { MIN_SCORE_RELEVANT } from "../config/matcher.js"
+import { JOB_LIFECYCLE } from "../config/job-lifecycle.js"
 import { createHash } from "node:crypto"
 
 import { inspecionarPaginaVaga } from "../discovery/page-inspector.js"
@@ -395,9 +396,9 @@ export async function processarVagasWeb(
 
   const recomendacoesDescoberta = criarRecomendacoesDescoberta(somenteDescoberta, perfil)
 
-  const persistenciaDescoberta = salvarCompativeis
-    ? await persistirRecomendacoesDescoberta(recomendacoesDescoberta)
-    : criarResultadoPersistenciaVazio()
+  // BLINDAGEM: Descoberta web pura (Brave) não tem data confiável.
+  // Para evitar vagas zumbis, não persistimos mais as recomendações.
+  const persistenciaDescoberta = criarResultadoPersistenciaVazio()
 
   const resultadosPorProvedor = new Map<ProvedorPagina, ResultadoFonteProcessada>()
 
@@ -521,6 +522,21 @@ export async function processarVagasWeb(
       resumo.semDadosObrigatorios++
       semDadosObrigatorios++
 
+      continue
+    }
+
+    // BLINDAGEM: Filtro de temporalidade rígido
+    if (!novaVaga.publishedAt) {
+      resumo.semDadosObrigatorios++
+      semDadosObrigatorios++
+      continue
+    }
+
+    const dataPub = new Date(novaVaga.publishedAt)
+    const diffDias = (Date.now() - dataPub.getTime()) / (1000 * 60 * 60 * 24)
+    if (diffDias > JOB_LIFECYCLE.maxAgeDays) {
+      resumo.semDadosObrigatorios++
+      semDadosObrigatorios++
       continue
     }
 

@@ -16,6 +16,11 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 ## 2. Concluído nas sessões de 07–17/10/2026
 
+**18/10: Blindagem Temporal (Fim dos Zumbis)**
+- Coletor web (Brave) não salva mais vagas sem data de publicação confiável.
+- Filtro de 21 dias operando `fail-fast` antes do INSERT.
+- 231 vagas antigas/indefinidas foram deletadas permanentemente do banco (Hard Delete).
+
 **17/10: Fix de links da Solides**
 - Coletor agora gera URLs do portal central (`vagas.solides.com.br/vaga/<id>`) para IDs numéricos.
 - Vagas com `isDisabled: true` são ignoradas no coletor.
