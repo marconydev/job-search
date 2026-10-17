@@ -132,7 +132,7 @@ test("Sólides: normaliza vaga do novo endpoint público", async (t) => {
 
   assert.equal(
     vaga.url,
-    "https://empresa-teste.solides.jobs/vacancies/933421?origem=portal"
+    "https://vagas.solides.com.br/vaga/933421"
   )
 
   assert.equal(vaga.partial, false)

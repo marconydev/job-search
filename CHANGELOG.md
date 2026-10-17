@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-10-17 — Solides: portal central e filtro de isDisabled]
+
+### Fixed
+
+- `backend/src/collectors/solides.ts` — URLs da Solides agora apontam para o portal central
+  (`vagas.solides.com.br/vaga/<id>`) quando o ID é numérico. A API da Solides passou a devolver
+  links para subdomínios desativados (`<empresa>.solides.jobs`), causando erro de DNS (NXDOMAIN)
+  no botão "Abrir vaga" do painel.
+- `backend/src/collectors/solides.ts` — vagas com `isDisabled: true` retornadas pela API são
+  ignoradas no coletor.
+
+### Diagnostico
+
+- Testes em 15-17/10 confirmaram que 100% dos IDs numéricos do banco (75) resolvem no portal
+  central, enquanto IDs alfanuméricos (11) não têm portal válido (subdomínios NXDOMAIN).
+- 74 URLs numéricas foram corrigidas retroativamente no banco (Neon) e 11 alfanuméricas
+  marcadas como `unavailable_at` e descartadas no painel.
+
 ## [2026-10-14 — Brave: remove freshness=pm (LinkedIn/Indeed parados desde 31/08)]
 
 ### Fixed

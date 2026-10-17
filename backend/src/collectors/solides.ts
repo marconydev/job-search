@@ -47,6 +47,8 @@ type SolidesJob = {
 
   createdAt?: string
 
+  isDisabled?: boolean
+
   city?: {
     id?: number
     name?: string
@@ -132,13 +134,21 @@ function localizacaoSolides(job: SolidesJob): string | null {
 }
 
 function normalizarVaga(job: SolidesJob): NewJob | null {
+  if (job.isDisabled === true) {
+    return null
+  }
+
   const idBruto = job.id
 
   const id = idBruto === undefined || idBruto === null ? "" : String(idBruto).trim()
 
   const titulo = job.title?.trim()
 
-  const url = job.redirectLink?.trim()
+  let url = job.redirectLink?.trim()
+
+  if (/^\d+$/.test(id)) {
+    url = `https://vagas.solides.com.br/vaga/${id}`
+  }
 
   if (!id || !titulo || !url) {
     return null

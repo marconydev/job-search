@@ -36,6 +36,12 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 17/10
+- Fix Solides: URLs apontam para o portal central (`vagas.solides.com.br`). Links antigos
+  (subdomínios `.solides.jobs`) estavam mortos (NXDOMAIN).
+- Filtro de `isDisabled: true` no coletor da Solides.
+- Saneamento no banco: 74 URLs corrigidas, 11 vagas alfanuméricas descartadas.
+
 ### Sessão 14/10
 
 - Fix Brave: removido `freshness=pm` de `brave-search.ts`. LinkedIn/Indeed voltam a retornar

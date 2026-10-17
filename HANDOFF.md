@@ -14,7 +14,13 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 **Estado do banco (Neon):** ~906 vagas Gupy; ~745 relevant+new (apos saneamento de 43 presencial fora RMPJP em 13/10); ~505 vagas obsoletas ativas da Gupy; LinkedIn/Glassdoor com dados de 25/08/2026 (Brave nao autorizado desde entao).
 
-## 2. Concluído nas sessões de 07–12/10/2026
+## 2. Concluído nas sessões de 07–17/10/2026
+
+**17/10: Fix de links da Solides**
+- Coletor agora gera URLs do portal central (`vagas.solides.com.br/vaga/<id>`) para IDs numéricos.
+- Vagas com `isDisabled: true` são ignoradas no coletor.
+- 74 URLs numéricas antigas foram atualizadas no banco. 11 alfanuméricas foram descartadas.
+
 
 - Trava geográfica v3 (matriz estrita de 4 pontos) + Opção 2 (bandeira estrangeira vence `localizacoesAceitas`).
 - ATS Lever/Workable/Ashby/Recruitee/InHire com modalidade estruturada preservada via `interpretarModalidadeEstruturada`.
