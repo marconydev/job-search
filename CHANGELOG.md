@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-10-18 — LinkedIn: DOM React + inferência de data]
+
+### Fixed
+
+- `backend/src/extractors/linkedin.ts` — O LinkedIn mudou o frontend para React (classes
+  ofuscadas, sem JSON-LD e sem `topcard__title`). O extrator passou a buscar o título em
+  `h1` e `a[href*="/jobs/view/"]`, a empresa em `a[href*="/company/"]` e a descrição em
+  `[data-testid="expandable-text-box"]`.
+- Inferência de `publishedAt` a partir do texto "há X dias/semanas/meses" quando não há
+  JSON-LD. Isso destrava o filtro de temporalidade no processamento web (P1).
+- Fallback de localização por regex no body quando `.topcard__flavor--bullet` está ausente.
+
+### Diagnostico
+
+- O HTML salvo do LinkedIn (vaga 4470873578) não tinha JSON-LD e usava apenas classes
+  geradas (ex: `i0lmlu`). O extrator antigo devolvia `null` por falta dos seletores antigos.
+
 ## [2026-10-18 — Fase 1: Rastreabilidade e Diagnóstico]
 
 ### Added

@@ -39,6 +39,12 @@ Snapshot do estado da aplicação após a sessão de 20/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 18/10 (LinkedIn)
+
+- Extrator adaptado para o novo frontend React (JSON-LD ausente, classes ofuscadas).
+- Extração de data de publicação pelo texto relativo ("há X semanas").
+- Fallback de localização por regex.
+
 ### Sessão 18/10 (pós)
 
 - ATS: `coletarFontesAtsAprendidas` paralelizada com `executarComPool(fontes, 4, fn)`.

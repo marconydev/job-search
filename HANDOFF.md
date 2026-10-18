@@ -19,6 +19,12 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 ## 2. Concluído nas sessões de 07–17/10/2026
 
+**18/10 (pós-LinkedIn): DOM React**
+- `linkedin.ts` adaptado para React: título via `h1`/`a[href*="/jobs/view/"]`, empresa
+  via `a[href*="/company/"]`, descrição via `[data-testid="expandable-text-box"]`.
+- Inferência de `publishedAt` por "há X semanas/meses" (destrava o filtro de temporalidade).
+- Fallback de localização por regex no body.
+
 **18/10 (pós-Fase 1): Rastreabilidade (A3, D6, D7)**
 - Migration 019 aplicada no Neon: `commit_hash`, `matcher_version`, `elegibilidade_version`, `perfil_hash`, `boot_timestamp`, `metricas`.
 - `localizacaoInferida` adicionado aos `descartes`.

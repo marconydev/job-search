@@ -136,34 +136,53 @@ export function parseLinkedinHtml(html: string, url: string): VagaExtraida | nul
 
   const titulo =
     limparEspacos($("h1.topcard__title").first().text()) ||
-    limparEspacos($("h1[class*='topcard']").first().text()) ||
     limparEspacos($("h1").first().text()) ||
+    limparEspacos($('a[href*="/jobs/view/"]').first().text()) ||
+    limparEspacos($("title").text().split("|")[0]) ||
     null
 
   const empresa =
     limparEspacos($(".topcard__org-name-link").first().text()) ||
+    limparEspacos($('a[href*="/company/"]').first().text()) ||
     limparEspacos($("a[class*='org-name']").first().text()) ||
-    limparEspacos($(".topcard__flavor--black-link").first().text()) ||
     null
 
-  // O primeiro .topcard__flavor--bullet costuma ser a empresa; o
-  // segundo, a localização. Filtro os que contêm vírgula e UF brasileira
-  // ou país.
+  const descricaoHtml =
+    $('[data-testid="expandable-text-box"]').first().html() ||
+    $(".description__text").first().html() ||
+    $(".show-more-less-html__markup").first().html() ||
+    null
+
+  const descricao = descricaoHtml ? limparHtml(descricaoHtml) : null
+
   const bullets = $(".topcard__flavor--bullet")
     .map((_i, el) => limparEspacos($(el).text()))
     .get()
     .filter(Boolean)
 
-  const localizacao =
+  let localizacao =
     bullets.find(b => /,\s*(?:[A-Z]{2}\b|Brasil|Brazil|Portugal|USA?|United)/i.test(b)) ||
     bullets[bullets.length - 1] ||
     null
 
-  const descricao =
-    limparHtml($(".description__text").first().html() ?? "") ||
-    limparHtml($(".show-more-less-html__markup").first().html() ?? "") ||
-    null
+  if (!localizacao) {
+    const locMatch = $("body").text().match(/([A-Z][a-zA-Z\s]+,\s*[A-Z]{2}(?:,\s*Brasil)?)/)
+    if (locMatch) localizacao = limparEspacos(locMatch[1])
+  }
 
+  // Fallback para a data de publicação a partir do texto relativo ("há 2 semanas")
+  let dataPublicacao: string | null = null
+  const matchData = $("body").text().match(/há\s+(\d+)\s+(dia|dias|semana|semanas|mês|meses|ano|anos)/i)
+  if (matchData) {
+    const num = parseInt(matchData[1], 10)
+    const unidade = matchData[2].toLowerCase()
+    const d = new Date()
+    if (unidade.startsWith("dia")) d.setDate(d.getDate() - num)
+    else if (unidade.startsWith("semana")) d.setDate(d.getDate() - (num * 7))
+    else if (unidade.startsWith("mês") || unidade.startsWith("mes")) d.setMonth(d.getMonth() - num)
+    else if (unidade.startsWith("ano")) d.setFullYear(d.getFullYear() - num)
+    dataPublicacao = d.toISOString()
+  }
   if (!titulo || !empresa || !descricao) {
     return null
   }
@@ -178,7 +197,7 @@ export function parseLinkedinHtml(html: string, url: string): VagaExtraida | nul
     descricao,
     localizacao,
     tipoContratacao: null,
-    dataPublicacao: null,
+    dataPublicacao,
     validaAte: null,
     remoto,
     urlCandidatura: url
