@@ -87,6 +87,11 @@ export function parseVagasComHtml(html: string, agora = new Date()) {
       return
     }
 
+    // TRAVA DE SEGURANCA: Se a URL for uma pagina de busca, ignora.
+    if (url.includes("/vagas-de-")) {
+      return
+    }
+
     const externalId = limparEspacos(link.attr("data-id-vaga")) || extrairIdVaga(url)
 
     if (!externalId || vagas.has(externalId)) {

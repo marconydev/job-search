@@ -36,6 +36,10 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 20/10
+- Fix Vagas.com: bloqueio de URLs `/vagas-de-...` (páginas de busca) no classifier e coletor.
+- Saneamento: 10 vagas falsas removidas.
+
 ### Sessão 19/10
 - Auditoria Tech Lead: índices parciais no banco para velocidade do painel.
 - Fix no Brave: conversão nativa de `page_age` para data retroativa (mantém LinkedIn/Indeed).

@@ -110,6 +110,9 @@ export function identificarProvedorPagina(url: string): ProvedorPagina {
     }
 
     if (ehDominio(hostname, "vagas.com.br")) {
+      if (urlAnalisada.pathname.startsWith("/vagas-de-")) {
+        return "desconhecido"
+      }
       return "vagas"
     }
 

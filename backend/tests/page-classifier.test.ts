@@ -69,6 +69,14 @@ describe("classificação de páginas de vagas", () => {
     )
   })
 
+  test("nao classifica pagina de busca do Vagas.com como vaga", () => {
+    assert.equal(identificarProvedorPagina("https://www.vagas.com.br/vagas-de-tecnico-de-suporte-remoto-em-sao-paulo"), "desconhecido")
+  })
+
+  test("classifica vaga real do Vagas.com", () => {
+    assert.equal(identificarProvedorPagina("https://www.vagas.com.br/vagas/v2835603/tecnico-de-impressoras-e-suporte-de-ti-em-campo"), "vagas")
+  })
+
   test("não confunde site desconhecido com plataforma conhecida", () => {
     assert.equal(identificarProvedorPagina("https://example.com/jobs/123"), "desconhecido")
   })

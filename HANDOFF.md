@@ -16,6 +16,10 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 ## 2. Concluído nas sessões de 07–17/10/2026
 
+**20/10: Fix Vagas.com**
+- URLs `/vagas-de-...` bloqueadas no classifier (Brave) e no coletor nativo.
+- 10 vagas falsas deletadas do banco.
+
 **19/10: Auditoria Tech Lead (Busca e SQL)**
 - Brave: conversão de `page_age` (string relativa) para data ISO.
 - Web Discovery: persistência reativada com validação de data estimada.

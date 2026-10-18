@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-10-20 — Fix Vagas.com: bloqueio de URLs de busca]
+
+### Fixed
+
+- `backend/src/discovery/page-classifier.ts` — URLs `/vagas-de-...` do Vagas.com agora são
+  classificadas como `desconhecido` (não como `vagas`). A Descoberta Web do Brave estava
+  salvando páginas de busca como vagas individuais.
+- `backend/src/collectors/vagas-com.ts` — trava de segurança: se a URL do card contiver
+  `/vagas-de-`, a vaga é ignorada no coletor nativo (defesa em profundidade).
+
+### Saneamento
+
+- 10 vagas falsas (URLs de busca) foram deletadas do banco.
+
 ## [2026-10-19 — Auditoria Tech Lead: Performance SQL e Expansao de Busca]
 
 ### Added
