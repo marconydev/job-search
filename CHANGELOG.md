@@ -1,20 +1,5 @@
 # Changelog
 
-## [2026-10-18 — Solides / PCD / LinkedIn publishedAt]
-
-### Fixed
-
-- backend/src/collectors/solides.ts: timeout 15s -> 10s; circuit breaker aborta apos 3 falhas consecutivas. Solides consumia 80s/137s (58%) retornando 0 vagas.
-- backend/src/services/elegibilidade-localizacao.ts: vagaExclusivaPcd bloqueia vagas exclusivas/afirmativas PCD.
-- backend/src/services/conversao-vaga-web.ts: publishedAt usa pagina.publishedAtEstimado como fallback quando o extractor retorna dataPublicacao=null. Brave rodou 30/30 em 17/10 mas LinkedIn ficou em 0 vagas novas desde 25/08.
-
-### Added
-
-- backend/tests/pcd-regression.test.ts (10 testes)
-- backend/tests/publishedat-fallback.test.ts (2 testes)
-
-Suite: 293 -> 295 verdes.
-
 ## [2026-10-18 — Fix PingWind: trava v3 fecha brecha em vaga remota US-federal]
 
 ### Fixed
