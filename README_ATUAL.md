@@ -39,6 +39,12 @@ Snapshot do estado da aplicação após a sessão de 20/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessao 18/10 (pos-PingWind)
+- Fix Solides: timeout 10s + circuit breaker 3 falhas.
+- Fix PCD: vagaExclusivaPcd bloqueia exclusivas/afirmativas PCD.
+- Fix LinkedIn: publishedAtEstimado do Brave como fallback.
+- Suite: 293 -> 295.
+
 ### Sessão 18/10
 - Fix PingWind: vaga US-federal remota (`location="Remote"`, `remote=true`)
   passava pela trava v3 como `indefinida`. Adicionada função
