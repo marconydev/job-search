@@ -20,13 +20,15 @@ import type { PerfilProfissional } from "../types/perfil-profissional.js"
  */
 const URL_BUSCA_SOLIDES = "https://apigw.solides.com.br/jobs/v3/portal-vacancies"
 
-const TEMPO_LIMITE_REQUISICAO_MS = 15000
+const TEMPO_LIMITE_REQUISICAO_MS = 10000
 
 const LIMITE_MAXIMO_POR_TERMO = 100
 
 const LIMITE_MAXIMO_GLOBAL = 500
 
 const LIMITE_MAXIMO_PAGINAS_POR_TERMO = 30
+
+const MAX_FALHAS_CONSECUTIVAS = 3
 
 type SolidesJob = {
   id?: number | string
@@ -283,8 +285,12 @@ export async function collectSolidesJobs(
 
   const vagasPorId = new Map<string, NewJob>()
 
+  let falhasConsecutivas = 0
+
+  let abortarTermos = false
+
   for (const termo of termos) {
-    if (vagasPorId.size >= limiteGlobal) {
+    if (vagasPorId.size >= limiteGlobal || abortarTermos) {
       break
     }
 
@@ -305,10 +311,19 @@ export async function collectSolidesJobs(
 
       try {
         resultado = await buscarPagina(termo, pagina)
+
+        falhasConsecutivas = 0
       } catch (erro) {
+        falhasConsecutivas++
+
         const mensagem = erro instanceof Error ? erro.message : "erro desconhecido"
 
-        console.warn(`Sólides: falha em "${termo}" página ${pagina}: ${mensagem}`)
+        console.warn(`Sólides: falha em "${termo}" página ${pagina} (${falhasConsecutivas}/${MAX_FALHAS_CONSECUTIVAS}): ${mensagem}`)
+
+        if (falhasConsecutivas >= MAX_FALHAS_CONSECUTIVAS) {
+          console.warn(`Sólides: ${MAX_FALHAS_CONSECUTIVAS} falhas consecutivas, abortando coletor.`)
+          abortarTermos = true
+        }
 
         break
       }
