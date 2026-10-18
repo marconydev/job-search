@@ -1,8 +1,11 @@
 # README_ATUAL — Job Search
 
-Snapshot do estado da aplicação após a sessão de 12/10/2026.
+Snapshot do estado da aplicação após a sessão de 20/10/2026.
 
 ## Funcionalidades ativas
+
+- Endpoint `/health` público para liveness probe do Render.
+- Endpoint `/health/database` protegido para readiness probe.
 
 - 9 coletores diretos: Gupy, Sólides, Vagas.com, GeekHunter, GetOnBoard, Remotive, Remote OK, Jobicy, Arbeitnow.
 - Coleta de 6 ATS: Greenhouse, Lever, Workable, Ashby, Recruitee, InHire — com modalidade estruturada preservada.
@@ -85,7 +88,9 @@ Snapshot do estado da aplicação após a sessão de 12/10/2026.
 
 ## Pendências
 
-- Fechar auditoria das 3 anomalias (queda 23→256, E1).
+- Fase 1 (Rastreabilidade e Diagnóstico).
+  - Investigar anomalia 3.1 (queda 23→256 da Gupy) via replay.
+  - Concluir anomalia 3.3 (E1 - estabilidade da Gupy).
 - Implementar Fase 1 em branch.
 - Débitos técnicos D2–D8 (ver HANDOFF §4).
 - Piloto de sites próprios (30 empresas).
