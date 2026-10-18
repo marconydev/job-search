@@ -102,6 +102,62 @@ function registrarDiagnosticoFonte(fonte: string, diagnostico: DiagnosticoFunilV
   }
 }
 
+async function processarFonteDireta(
+  coletor: any, // Collector
+  perfil: PerfilProfissional,
+  limite: number,
+  execucaoId?: string,
+  perfilHash?: string
+): Promise<ResultadoFonte> {
+  const inicioFonte = performance.now();
+
+  try {
+    const coleta = await coletor.collect(limite, perfil)
+    const atualizacao = await refreshExistingJobs(coleta.jobs)
+
+    if (atualizacao.updated > 0 || atualizacao.invalidated > 0) {
+      console.log(`Fonte direta: ${coleta.source} - ${atualizacao.updated} atualizada(s), ${atualizacao.invalidated} reanalise.`)
+    }
+
+    const vagasAderentes = await filtrarVagasAderentesComYield(coleta.jobs, perfil)
+    const importacao = await importJobs({ source: coleta.source, jobs: vagasAderentes })
+    
+    console.log(`Fonte direta: ${coleta.source} - ${coleta.jobs.length} encontradas, ${vagasAderentes.length} aderentes, ${importacao.inserted} novas. (${((performance.now() - inicioFonte)/1000).toFixed(2)}s)`)
+
+    try {
+      const diagnostico = await diagnosticarFunilVagasComYield(coleta.jobs, perfil, vagasAderentes)
+      registrarDiagnosticoFonte(coleta.source, diagnostico)
+      if (execucaoId) {
+        await registrarTelemetriaFonte({
+          execucaoId, fonte: coleta.source,
+          coletadas: diagnostico.recebidas,
+          aposJanela: diagnostico.recebidas - diagnostico.foraDaJanela,
+          aposElegibilidade: diagnostico.recebidas - diagnostico.foraDaJanela - diagnostico.localizacaoIncompativel,
+          aposMatcher: diagnostico.aderentes,
+          importadas: importacao.inserted, duplicadas: importacao.duplicates,
+          descartes: {
+            foraDaJanela: diagnostico.foraDaJanela, localizacaoIncompativel: diagnostico.localizacaoIncompativel,
+            tituloForaFoco: diagnostico.tituloForaFoco, matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo,
+            scoreZero: diagnostico.scoreZero, score1a39: diagnostico.score1a39,
+            score40a49: diagnostico.score40a49, score50a59: diagnostico.score50a59,
+            localizacaoInferida: (diagnostico as any).localizacaoInferida || 0
+          },
+          duracaoMs: Math.round(performance.now() - inicioFonte),
+          commitHash: process.env.RENDER_GIT_COMMIT || "local",
+          matcherVersion: MATCHER_VERSION, elegibilidadeVersion: ELEGIBILIDADE_VERSION,
+          perfilHash: perfilHash || "unknown",
+          bootTimestamp: new Date().toISOString(), metricas: {}
+        })
+      }
+    } catch (e) { console.warn(`Erro telemetria ${coleta.source}:`, e) }
+
+    return { ...importacao, found: coleta.jobs.length, matched: vagasAderentes.length }
+  } catch (erro) {
+    const mensagem = erro instanceof Error ? erro.message : "Erro desconhecido"
+    return { source: coletor.name, found: 0, matched: 0, inserted: 0, duplicates: 0, error: mensagem }
+  }
+}
+
 async function coletarFontesDiretas(
   perfil: PerfilProfissional,
   limite: number,
@@ -110,151 +166,24 @@ async function coletarFontesDiretas(
   const resultados: ResultadoFonte[] = []
   const perfilHash = createHash("sha256").update(JSON.stringify(perfil)).digest("hex").slice(0, 16);
 
-  for (const coletor of collectors) {
-    const inicioFonte = agoraMs()
-
-    try {
-      const coleta = await coletor.collect(limite, perfil)
-
-      /**
-       * Atualizo vagas existentes antes do filtro.
-       *
-       * Isso permite que uma oportunidade que antes parecia remota
-       * seja corrigida para presencial mesmo que, após a correção,
-       * deixe de passar pelo filtro atual.
-       */
-      const atualizacao = await refreshExistingJobs(coleta.jobs)
-
-      if (atualizacao.updated > 0 || atualizacao.invalidated > 0) {
-        console.log(
-          [
-            `Fonte direta: ${coleta.source}`,
-            `${atualizacao.updated} vaga(s) existente(s) atualizada(s),`,
-            `${atualizacao.invalidated} marcada(s) para reanálise.`
-          ].join(" ")
-        )
+  const executarComPool = async (itens: any[], tamanho: number, fn: (item: any, indice: number) => Promise<void>) => {
+    let proximo = 0;
+    const executar = async () => {
+      while (true) {
+        const i = proximo++;
+        if (i >= itens.length) return;
+        await fn(itens[i], i);
       }
+    };
+    const workers = [];
+    for (let w = 0; w < Math.min(tamanho, itens.length); w++) workers.push(executar());
+    await Promise.all(workers);
+  };
 
-      /**
-       * Eu mantenho exatamente o filtro original como única fonte da lista
-       * que será importada.
-       */
-      const vagasAderentes = await filtrarVagasAderentesComYield(coleta.jobs, perfil)
-
-      const importacao = await importJobs({
-        source: coleta.source,
-
-        jobs: vagasAderentes
-      })
-
-      resultados.push({
-        ...importacao,
-
-        found: coleta.jobs.length,
-
-        matched: vagasAderentes.length
-      })
-
-      console.log(
-        [
-          `Fonte direta: ${coleta.source}`,
-          `${coleta.jobs.length} encontrada(s),`,
-          `${vagasAderentes.length} aderente(s),`,
-          `${importacao.inserted} nova(s),`,
-          `${importacao.duplicates} duplicada(s),`,
-          `tempo: ${formatarDuracao(inicioFonte)}s.`
-        ].join(" ")
-      )
-
-      /**
-       * Eu executo a observabilidade somente depois que filtro, importação,
-       * contadores e resultado da fonte já foram definidos. Uma falha aqui
-       * nunca transforma uma sincronização válida em falha.
-       */
-      try {
-        const diagnostico = await diagnosticarFunilVagasComYield(
-          coleta.jobs,
-          perfil,
-          vagasAderentes
-        )
-
-        registrarDiagnosticoFonte(coleta.source, diagnostico)
-
-        if (execucaoId) {
-          try {
-            await registrarTelemetriaFonte({
-              execucaoId,
-
-              fonte: coleta.source,
-
-              coletadas: diagnostico.recebidas,
-
-              aposJanela: diagnostico.recebidas - diagnostico.foraDaJanela,
-
-              aposElegibilidade:
-                diagnostico.recebidas -
-                diagnostico.foraDaJanela -
-                diagnostico.localizacaoIncompativel,
-
-              aposMatcher: diagnostico.aderentes,
-
-              importadas: importacao.inserted,
-
-              duplicadas: importacao.duplicates,
-
-              descartes: {
-                foraDaJanela: diagnostico.foraDaJanela,
-                localizacaoIncompativel: diagnostico.localizacaoIncompativel,
-                tituloForaFoco: diagnostico.tituloForaFoco,
-                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo,
-                scoreZero: diagnostico.scoreZero,
-                score1a39: diagnostico.score1a39,
-                score40a49: diagnostico.score40a49,
-                score50a59: diagnostico.score50a59,
-                localizacaoInferida: (diagnostico as any).localizacaoInferida || 0
-              },
-
-              duracaoMs: Math.round(performance.now() - inicioFonte),
-              commitHash: process.env.RENDER_GIT_COMMIT || "local",
-              matcherVersion: MATCHER_VERSION,
-              elegibilidadeVersion: ELEGIBILIDADE_VERSION,
-              perfilHash,
-              bootTimestamp: new Date().toISOString(),
-              metricas: {}
-            })
-          } catch (erroTelemetria) {
-            console.warn(
-              "Telemetria da fonte " + coleta.source + " nao registrada:",
-              erroTelemetria
-            )
-          }
-        }
-      } catch (erroDiagnostico) {
-        const mensagem =
-          erroDiagnostico instanceof Error ? erroDiagnostico.message : "Erro desconhecido"
-
-        console.warn(`Diagnóstico da fonte ${coleta.source} não foi concluído: ${mensagem}`)
-      }
-    } catch (erro) {
-      const mensagem = erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta"
-
-      resultados.push({
-        source: coletor.name,
-
-        found: 0,
-
-        matched: 0,
-
-        inserted: 0,
-
-        duplicates: 0,
-
-        error: mensagem
-      })
-    }
-
-    await cederEventLoop()
-  }
+  const CONCORRENCIA_DIRETAS = 3;
+  await executarComPool(collectors, CONCORRENCIA_DIRETAS, async (coletor, indice) => {
+    resultados[indice] = await processarFonteDireta(coletor, perfil, limite, execucaoId, perfilHash);
+  });
 
   return resultados
 }

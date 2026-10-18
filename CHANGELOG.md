@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-10-18 — Otimização de Sync + Saneamento]
+
+### Changed
+- `job-sync.ts` paraleliza fontes diretas (Gupy, Solides, Vagas) com pool de 3 workers.
+- `job-analysis.ts` barra vagas > 21 dias, sem data ou estagios.
+
+### Applied
+- Saneamento: 758 vagas antigas/fora da RMPJP/PCD/estagios marcadas como discarded.
+
 ## [2026-10-18 — Anomalia 3.1 (Gupy) resolvida: Falso positivo]
 
 ### Diagnostico

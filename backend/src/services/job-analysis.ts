@@ -28,15 +28,33 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
   let relevant = 0
   let discarded = 0
 
+  const agora = new Date().getTime();
+  const JANELA_DIAS = 21;
+  const isEstagio = (titulo: string) => /\b(estágio|estagiário|intern|trainee)\b/i.test(titulo);
+
   for (let indice = 0; indice < jobs.length; indice++) {
     const job = jobs[indice]
+
+    const dataPub = job.published_at ? new Date(job.published_at).getTime() : null;
+    if (!dataPub || (agora - dataPub) > JANELA_DIAS * 24 * 60 * 60 * 1000) {
+      await saveJobMatch({ jobId: job.id, localScore: 0, matchedSkills: [], reasons: ["Vaga expirada (mais de 21 dias ou sem data)."], status: "discarded" });
+      discarded++;
+      continue;
+    }
+
+    if (isEstagio(job.title)) {
+      await saveJobMatch({ jobId: job.id, localScore: 0, matchedSkills: [], reasons: ["Vaga de estágio/trainee ignorada."], status: "discarded" });
+      discarded++;
+      continue;
+    }
 
     const elegibilidade = avaliarElegibilidadeBrasil(
       job.location,
       job.description,
       job.title,
       job.remote,
-      perfil.localizacoesAceitas
+      perfil.localizacoesAceitas,
+      job.workplace_type
     )
 
     if (elegibilidade.situacao === "incompativel") {
