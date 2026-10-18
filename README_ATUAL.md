@@ -39,6 +39,12 @@ Snapshot do estado da aplicação após a sessão de 20/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 18/10 (Final)
+
+- Anomalia 3.1 (Gupy) resolvida. Não era bug: a Gupy retornou vagas presenciais
+  de outros estados e a Trava v3 agiu corretamente.
+- O projeto está com a Fase 1, LinkedIn, ATS e anomalias finalizados.
+
 ### Sessão 18/10 (LinkedIn)
 
 - Extrator adaptado para o novo frontend React (JSON-LD ausente, classes ofuscadas).

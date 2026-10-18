@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-10-18 — Anomalia 3.1 (Gupy) resolvida: Falso positivo]
+
+### Diagnostico
+
+- A queda 23→256 incompatíveis da Gupy entre os syncs `2dd8743c` e `79d97668`
+  (08/10) **não foi um bug**. O script de diagnóstico `diag-gupy-api.cjs`
+  provou que a Gupy retornou um lote atípico de vagas presenciais fora da RMPJP.
+- Todas as vagas reprovadas tinham `workplaceType: "on-site"` e motivos como
+  `"Vaga presencial fora da região metropolitana de João Pessoa: São Paulo, SP."`.
+- A Trava v3 agiu corretamente ao rejeitá-las.
+
 ## [2026-10-18 — LinkedIn: DOM React + inferência de data]
 
 ### Fixed

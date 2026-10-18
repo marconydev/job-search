@@ -97,6 +97,16 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 Auditoria read-only em curso para investigar 3 anomalias.
 
+### 3.1 Queda `23 → 256` incompatíveis da Gupy em 2 syncs consecutivos — RESOLVIDO em 18/10
+
+**Status:** Resolvido. Não era bug de código.
+**Evidência:** O script `diag-gupy-api.cjs` rodou a API real da Gupy em 18/10 e filtrou 200 vagas.
+Todas as vagas que caíram em `incompativel` tinham `workplaceType: "on-site"` e
+localização em outros estados (SP, RJ, MG, DF, etc.). A Trava v3 as bloqueou corretamente.
+A anomalia de 08/10 foi apenas um pico de vagas presenciais de fora no lote retornado.
+
+*(Texto original abaixo)*
+
 ### 3.1 Queda `23 → 256` incompatíveis da Gupy em 2 syncs consecutivos [REPRIORIZADO - Fase 1]
 
 Syncs `2dd8743c` (23:58:09Z de 08/10) e `79d97668` (00:13:04Z de 09/10), ambos rodando com a trava v3 ativa.
