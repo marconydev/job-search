@@ -176,6 +176,13 @@ export function identificarFonteAtsDaPagina(pagina: PaginaClassificada): NovaFon
       return fonteInHire
     }
 
+    if (hostname.endsWith(".gupy.io") && hostname !== "portal.gupy.io") {
+      const identificador = hostname.slice(0, -8);
+      if (identificador && !identificador.includes(".")) {
+        return { provedor: "gupy", identificador, variante: "padrao", urlOrigem: pagina.url };
+      }
+    }
+
     if (pagina.provedor === "lever") {
       const identificador = obterPrimeiroSegmento(url)
 

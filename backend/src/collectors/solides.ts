@@ -289,9 +289,24 @@ export async function collectSolidesJobs(
 
   let abortarTermos = false
 
-  for (const termo of termos) {
+  const executarComPool = async (itens: string[], tamanho: number, fn: (item: string) => Promise<void>) => {
+    let proximo = 0;
+    const executar = async () => {
+      while (true) {
+        const i = proximo++;
+        if (i >= itens.length) return;
+        await fn(itens[i]);
+      }
+    };
+    const workers = [];
+    for (let w = 0; w < Math.min(tamanho, itens.length); w++) workers.push(executar());
+    await Promise.all(workers);
+  };
+
+  const CONCORRENCIA_SOLIDES = 4;
+  await executarComPool(termos, CONCORRENCIA_SOLIDES, async (termo) => {
     if (vagasPorId.size >= limiteGlobal || abortarTermos) {
-      break
+      return
     }
 
     const idsVistosNesteTermo = new Set<string>()
@@ -378,7 +393,7 @@ export async function collectSolidesJobs(
     console.log(
       `Sólides: "${termo}" consultado. ${idsVistosNesteTermo.size} resultado(s) para o termo.`
     )
-  }
+  });
 
   const jobs = [...vagasPorId.values()]
 

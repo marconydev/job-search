@@ -69,7 +69,8 @@ function vagaPodeSeguirParaAnalise(vaga: NewJob, perfil: PerfilProfissional) {
     vaga.title,
     vaga.remote,
     perfil.localizacoesAceitas,
-    vaga.workplaceType
+    vaga.workplaceType,
+    vaga.source
   )
   return elegibilidade.situacao !== "incompativel"
 }
@@ -179,7 +180,8 @@ export async function diagnosticarFunilVagasComYield(
         vaga.title,
         vaga.remote,
         perfil.localizacoesAceitas,
-        vaga.workplaceType
+        vaga.workplaceType,
+        vaga.source
       )
       if (elegibilidade.situacao === "incompativel") {
         if (elegibilidade.inferida) {

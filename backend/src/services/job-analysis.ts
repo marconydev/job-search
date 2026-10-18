@@ -36,8 +36,13 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
     const job = jobs[indice]
 
     const dataPub = job.published_at ? new Date(job.published_at).getTime() : null;
-    if (!dataPub || (agora - dataPub) > JANELA_DIAS * 24 * 60 * 60 * 1000) {
-      await saveJobMatch({ jobId: job.id, localScore: 0, matchedSkills: [], reasons: ["Vaga expirada (mais de 21 dias ou sem data)."], status: "discarded" });
+    // Sólides e outros portais nacionais não enviam publishedAt (só createdAt).
+    // Nesse caso, não podemos descartar por tempo (Zero Zumbis não se aplica).
+    const fonteSemData = job.source === "solides" || job.source === "vagas";
+    const expiradaPorData = dataPub && (agora - dataPub) > JANELA_DIAS * 24 * 60 * 60 * 1000;
+
+    if (expiradaPorData || (!dataPub && !fonteSemData)) {
+      await saveJobMatch({ jobId: job.id, localScore: 0, matchedSkills: [], reasons: ["Vaga expirada ou sem data."], status: "discarded" });
       discarded++;
       continue;
     }
@@ -54,7 +59,8 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
       job.title,
       job.remote,
       perfil.localizacoesAceitas,
-      job.workplace_type
+      job.workplace_type,
+      job.source
     )
 
     if (elegibilidade.situacao === "incompativel") {

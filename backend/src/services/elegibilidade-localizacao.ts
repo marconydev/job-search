@@ -425,7 +425,8 @@ export function avaliarElegibilidadeBrasil(
   titulo: string | null = null,
   remota = false,
   localizacoesAceitas: string[] = [],
-  workplaceType?: string | null
+  workplaceType?: string | null,
+  fonte?: string
 ): ResultadoElegibilidadeLocalizacao {
   const textoLocalizacao = normalizarTexto(localizacao ?? "")
   const textoDescricao = normalizarTexto(descricao ?? "")
@@ -463,6 +464,9 @@ export function avaliarElegibilidadeBrasil(
   // Roda DEPOIS de exclusoesBrasil e descricaoRestringeParaOutroPais, para nao
   // liberar vaga que a descricao explicitamente proibe no Brasil.
   if (!localizacao) {
+    if (["gupy", "solides", "vagas"].includes(fonte || "")) {
+      return { situacao: "compativel", motivo: "Portal nacional sem localizacao explicita (assumido Brasil)." };
+    }
     if (descricaoIndicaLocalizacaoBrasilFallback(descricao ?? "", titulo)) {
       return { situacao: "compativel", motivo: "A descrição da vaga indica localização no Brasil." }
     }
