@@ -868,5 +868,11 @@ export async function coletarFonteAts(fonte: FonteAts, limite = 500): Promise<Jo
 
     case "inhire":
       return coletarInHire(fonte, limite)
+
+    case "gupy":
+      throw new Error("Gupy coletado pelo extrator dedicado.")
+
+    default:
+      throw new Error(`Provedor ATS não suportado: ${fonte.provedor}`)
   }
 }
