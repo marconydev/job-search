@@ -39,6 +39,15 @@ Snapshot do estado da aplicação após a sessão de 20/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 18/10
+- Fix PingWind: vaga US-federal remota (`location="Remote"`, `remote=true`)
+  passava pela trava v3 como `indefinida`. Adicionada função
+  `descricaoIndicaRestricaoFederalEstrangeira` que bloqueia vagas cuja descrição cita
+  programa federal ou agência governamental estrangeira.
+- Fix anterior (`Remote` puro → `incompativel`) revertido — quebrava vaga em
+  português legítima (`job-matcher.test.ts:162`).
+- 5 novos testes em `backend/tests/pingwind-regression.test.ts`. Suíte: 283/283.
+
 ### Sessão 20/10
 - Fix Vagas.com: bloqueio de URLs `/vagas-de-...` (páginas de busca) no classifier e coletor.
 - Saneamento: 10 vagas falsas removidas.

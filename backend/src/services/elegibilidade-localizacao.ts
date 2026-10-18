@@ -161,6 +161,22 @@ function tituloTemUfBrasileira(titulo: string) {
   })
 }
 
+const SINAIS_FEDERAL = [
+  "public trust",
+  "security clearance",
+  "top secret clearance",
+  "u s department",
+  "us department",
+  "department of defense",
+  "department of education",
+  "federal agency",
+  "federal contractor"
+]
+
+function descricaoIndicaRestricaoFederalEstrangeira(descricao: string) {
+  return contemAlgumTermo(descricao, SINAIS_FEDERAL)
+}
+
 function descricaoRestringeParaOutroPais(descricao: string) {
   // Exige co-ocorrencia: o indicador de restricao e a bandeira estrangeira
   // precisam estar na MESMA janela de ate 100 chars. Sem isso, uma descricao
@@ -349,6 +365,13 @@ export function avaliarElegibilidadeBrasil(
     return {
       situacao: "incompativel",
       motivo: "A descrição exige residência ou autorização de trabalho em outro país."
+    }
+  }
+
+  if (descricaoIndicaRestricaoFederalEstrangeira(textoDescricao)) {
+    return {
+      situacao: "incompativel",
+      motivo: "A descrição menciona requisito de programa federal ou agência governamental estrangeira."
     }
   }
 

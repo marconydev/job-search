@@ -13,11 +13,23 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 - `a0f5224` fix(engine): corrige falso positivo em descricaoRestringeParaOutroPais
 - `baa8810` fix(ats): fila com backoff temporal + classificacao de falha permanente/transitoria
 
-**Suíte:** 276/276 testes backend verdes. typecheck + build zerados.
+**Suíte:** 283/283 testes backend verdes. typecheck + build zerados.
 
 **Estado do banco (Neon):** ~906 vagas Gupy; ~745 relevant+new (apos saneamento de 43 presencial fora RMPJP em 13/10); ~505 vagas obsoletas ativas da Gupy; LinkedIn/Glassdoor com dados de 25/08/2026 (Brave nao autorizado desde entao).
 
 ## 2. Concluído nas sessões de 07–17/10/2026
+
+**18/10: Fix PingWind — trava v3 fecha brecha em vaga remota US-federal**
+- `elegibilidade-localizacao.ts` — nova função
+  `descricaoIndicaRestricaoFederalEstrangeira` com 9 sinais (`public trust`,
+  `security clearance`, `top secret clearance`, `u s department`,
+  `us department`, `department of defense`, `department of education`,
+  `federal agency`, `federal contractor`). Vaga remota com descrição que cita
+  agência federal estrangeira → `incompativel`.
+- Tentativa anterior (`Remote` puro → `incompativel`) revertida: quebrava
+  `job-matcher.test.ts:162`.
+- `backend/tests/pingwind-regression.test.ts` — 5 testes de regressão.
+- Suíte: 278 → 283 testes backend verdes.
 
 **20/10: Fix Vagas.com**
 - URLs `/vagas-de-...` bloqueadas no classifier (Brave) e no coletor nativo.
@@ -121,6 +133,29 @@ Frontend ja correto (2 botoes em `controle-sincronizacao.tsx`). Backend ja corre
 
 Fix aplicado em 14/10: `brave-search.ts` remove `freshness=pm`. Verificar recuperacao em 24-48h via `jobs.source = linkedin/indeed` com `created_at > 14/10`.
 
+### 3.8 PingWind — vaga remota US-federal passou pela trava v3 — RESOLVIDO em 18/10
+
+Vaga `Help Desk Support Agent (Mid)` da PingWind (Lever), `location="Remote"`
+puro, `remote=true`, `workplace_type="remote"`, descrição cita
+`U.S. Department of Education` e `Public Trust`.
+`avaliarElegibilidadeBrasil` retornava `indefinida` (branch `remote` do
+check `contemAlgumTermo(textoLoc, SINAIS_REMOTO)`). `filtragem-vagas.ts` e
+`job-matcher.ts` tratavam `indefinida !== "incompativel"` como passagem livre,
+e o +10 por remota no matcher levava o score a >= 60.
+
+Primeira tentativa: mudar `indefinida` → `incompativel` no branch. Revertida —
+quebrava `job-matcher.test.ts:162` ("mantém vaga em português quando a localização é
+apenas Remote"), que representa vaga legítima em português sem sinal estrangeiro.
+
+Fix final: nova função `descricaoIndicaRestricaoFederalEstrangeira` com 9 sinais
+concretos (`public trust`, `security clearance`, `top secret clearance`,
+`u s department`, `us department`, `department of defense`,
+`department of education`, `federal agency`, `federal contractor`).
+Roda após `descricaoRestringeParaOutroPais`; marca `incompativel` se algum sinal
+aparece na descrição. Não afeta `Remote` puro sem sinal estrangeiro — recall preservado.
+
+Teste: `backend/tests/pingwind-regression.test.ts` (5 casos).
+
 ## 4. Débitos técnicos confirmados
 
 | ID | Débito | Evidência | Impacto |
@@ -219,7 +254,7 @@ Copie o texto entre as linhas abaixo para iniciar a próxima conversa.
 Estou continuando o desenvolvimento do projeto Job Search (C:\Projetos\job-search).
 
 Stack: Node.js, TypeScript, Express 5, PostgreSQL (Neon), Next.js 16. Deploy: Vercel → Render (job-search-api-xap1) → Neon.
-Commit atual em produção: d679e2d. Suíte: 278/278 backend verdes. Auto-Deploy = Yes no Render.
+Commit atual em produção: d679e2d. Suíte: 283/283 backend verdes. Auto-Deploy = Yes no Render.
 
 O que foi resolvido nas últimas sessões (já está em produção):
 1. Brave Search: Removido `freshness=pm` e adicionado conversor de `page_age` (string para ISO).
@@ -227,6 +262,10 @@ O que foi resolvido nas últimas sessões (já está em produção):
 3. Zumbis Temporais: Ingestão web bloqueia vagas sem data ou com mais de 21 dias.
 4. Vagas.com: Classificador e coletor bloqueiam URLs de busca (`/vagas-de-...`).
 5. SQL: Índices parciais (`jobs_active_reference_idx`, `jobs_source_url_idx`).
+6. PingWind: `descricaoIndicaRestricaoFederalEstrangeira` bloqueia vagas remotas
+   com descrição que cita programa federal ou agência governamental estrangeira
+   (`public trust`, `security clearance`, `u s department`,
+   `federal contractor`, etc.). Teste: `backend/tests/pingwind-regression.test.ts`.
 
 Estado das anomalias:
 - As anomalias 3.1 (Gupy 23→256) e 3.3 (E1 - estabilidade da Gupy) foram REPRIORIZADAS para a Fase 1.

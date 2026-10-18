@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-10-18 — Fix PingWind: trava v3 fecha brecha em vaga remota US-federal]
+
+### Fixed
+
+- `backend/src/services/elegibilidade-localizacao.ts` — nova função
+  `descricaoIndicaRestricaoFederalEstrangeira` bloqueia vagas cuja descrição menciona
+  requisito de programa federal ou agência governamental estrangeira (`public trust`,
+  `security clearance`, `u s department`, `department of education`,
+  `federal contractor`, etc.). Resolve o caso da vaga PingWind
+  `Help Desk Support Agent (Mid)` — `location="Remote"` puro, sem menção
+  explícita ao Brasil, que passava pela trava v3 como `indefinida`.
+
+### Added
+
+- `backend/tests/pingwind-regression.test.ts` — 5 testes de regressão: sinal federal
+  com location remota (rejeitado), `Remote` + Brazil na descrição (aceito),
+  `Remote, USA` (rejeitado por bandeira), `Remote` + UF no título (aceito),
+  `location=null` + `remote=true` sem sinal BR (indefinido).
+
+### Diagnostico
+
+- Raiz: `avaliarElegibilidadeBrasil` retornava `indefinida` para
+  `location="Remote"` puro, e `filtragem-vagas.ts` / `job-matcher.ts`
+  tratavam `indefinida !== "incompativel"` como passagem livre. +10 de remota levava
+  o score a >= 60.
+- Fix anterior tentou mudar `indefinida` para `incompativel` no branch remoto —
+  revertido porque quebrava `job-matcher.test.ts:162` ("mantém vaga em português
+  quando a localização é apenas Remote"), que representa vaga legítima em português sem
+  sinal estrangeiro.
+- Fix final: sinal concreto de restrição federal estrangeira na descrição. Não bloqueia
+  `Remote` puro sem sinal estrangeiro. Recall preservado.
+
 ## [2026-10-20 — Fix Vagas.com: bloqueio de URLs de busca]
 
 ### Fixed
