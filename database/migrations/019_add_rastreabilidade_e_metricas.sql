@@ -1,0 +1,7 @@
+ALTER TABLE funil_telemetria
+ADD COLUMN IF NOT EXISTS commit_hash TEXT,
+ADD COLUMN IF NOT EXISTS matcher_version INT,
+ADD COLUMN IF NOT EXISTS elegibilidade_version TEXT,
+ADD COLUMN IF NOT EXISTS perfil_hash TEXT,
+ADD COLUMN IF NOT EXISTS boot_timestamp TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS metricas JSONB;

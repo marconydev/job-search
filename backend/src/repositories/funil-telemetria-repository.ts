@@ -21,6 +21,13 @@ export type TelemetriaFonte = {
 
   erros?: string[]
 
+  commitHash?: string
+  matcherVersion?: number
+  elegibilidadeVersion?: string
+  perfilHash?: string
+  bootTimestamp?: string
+  metricas?: Record<string, unknown>
+
   duracaoMs?: number
 }
 
@@ -28,8 +35,10 @@ export async function registrarTelemetriaFonte(t: TelemetriaFonte) {
   await db.query(
     `INSERT INTO funil_telemetria (
        execucao_id, fonte, coletadas, apos_janela, apos_elegibilidade,
-       apos_matcher, importadas, duplicadas, descartes, erros, duracao_ms
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11)`,
+       apos_matcher, importadas, duplicadas, descartes, erros, duracao_ms,
+       commit_hash, matcher_version, elegibilidade_version, perfil_hash, boot_timestamp, metricas
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,
+            $12, $13, $14, $15, $16, $17::jsonb)`,
     [
       t.execucaoId,
       t.fonte,
@@ -41,7 +50,13 @@ export async function registrarTelemetriaFonte(t: TelemetriaFonte) {
       t.duplicadas,
       JSON.stringify(t.descartes ?? {}),
       JSON.stringify(t.erros ?? []),
-      t.duracaoMs ?? null
+      t.duracaoMs ?? null,
+      t.commitHash ?? null,
+      t.matcherVersion ?? null,
+      t.elegibilidadeVersion ?? null,
+      t.perfilHash ?? null,
+      t.bootTimestamp ?? null,
+      JSON.stringify(t.metricas ?? {})
     ]
   )
 }

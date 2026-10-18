@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-10-18 — Fase 1: Rastreabilidade e Diagnóstico]
+
+### Added
+- Migration 019: colunas `commit_hash`, `matcher_version`, `elegibilidade_version`, `perfil_hash`, `boot_timestamp` e `metricas` (JSONB) em `funil_telemetria`.
+- `ELEGIBILIDADE_VERSION` exportada em `elegibilidade-localizacao.ts`.
+- `localizacaoInferida` persistido em `descartes` na telemetria (D6).
+- Rastreabilidade preenchida em `fontes-ats.ts` e `job-sync.ts` (A3).
+
 ## [2026-10-18 — ATS: paralelização + duracao_ms na telemetria]
 
 ### Changed

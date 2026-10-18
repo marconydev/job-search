@@ -19,6 +19,11 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 ## 2. Concluído nas sessões de 07–17/10/2026
 
+**18/10 (pós-Fase 1): Rastreabilidade (A3, D6, D7)**
+- Migration 019 aplicada no Neon: `commit_hash`, `matcher_version`, `elegibilidade_version`, `perfil_hash`, `boot_timestamp`, `metricas`.
+- `localizacaoInferida` adicionado aos `descartes`.
+- `ELEGIBILIDADE_VERSION` exportada.
+
 **18/10 (pós): ATS: paralelização + duracao_ms**
 - `fontes-ats.ts` — corpo por fonte extraído em `processarFonteAts`.
 - Despacho via `executarComPool(fontes, 4, fn)` (semáforo genérico). 4 workers +

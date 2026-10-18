@@ -1,5 +1,7 @@
 import type { ResultadoElegibilidadeLocalizacao } from "../types/elegibilidade.js"
 
+export const ELEGIBILIDADE_VERSION = "v3.1"
+
 import {
   interpretarModalidadeEstruturada,
   type ModalidadeEstruturada

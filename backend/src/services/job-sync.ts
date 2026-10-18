@@ -3,6 +3,9 @@ import { collectors } from "../collectors/index.js"
 import { refreshExistingJobs } from "../repositories/job-repository.js"
 
 import { registrarTelemetriaFonte } from "../repositories/funil-telemetria-repository.js"
+import { ELEGIBILIDADE_VERSION } from "./elegibilidade-localizacao.js"
+import { MATCHER_VERSION } from "../config/matcher.js"
+import { createHash } from "node:crypto"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
@@ -105,6 +108,7 @@ async function coletarFontesDiretas(
   execucaoId?: string
 ): Promise<ResultadoFonte[]> {
   const resultados: ResultadoFonte[] = []
+  const perfilHash = createHash("sha256").update(JSON.stringify(perfil)).digest("hex").slice(0, 16);
 
   for (const coletor of collectors) {
     const inicioFonte = agoraMs()
@@ -206,10 +210,17 @@ async function coletarFontesDiretas(
                 scoreZero: diagnostico.scoreZero,
                 score1a39: diagnostico.score1a39,
                 score40a49: diagnostico.score40a49,
-                score50a59: diagnostico.score50a59
+                score50a59: diagnostico.score50a59,
+                localizacaoInferida: (diagnostico as any).localizacaoInferida || 0
               },
 
-              duracaoMs: Math.round(performance.now() - inicioFonte)
+              duracaoMs: Math.round(performance.now() - inicioFonte),
+              commitHash: process.env.RENDER_GIT_COMMIT || "local",
+              matcherVersion: MATCHER_VERSION,
+              elegibilidadeVersion: ELEGIBILIDADE_VERSION,
+              perfilHash,
+              bootTimestamp: new Date().toISOString(),
+              metricas: {}
             })
           } catch (erroTelemetria) {
             console.warn(

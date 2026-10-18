@@ -25,6 +25,9 @@ import {
 } from "./filtragem-vagas.js"
 
 import { registrarTelemetriaFonte } from "../repositories/funil-telemetria-repository.js"
+import { ELEGIBILIDADE_VERSION } from "./elegibilidade-localizacao.js"
+import { MATCHER_VERSION } from "../config/matcher.js"
+import { createHash } from "node:crypto"
 
 import { importJobs, type JobImportResult } from "./job-import.js"
 
@@ -347,6 +350,7 @@ async function processarFonteAts(
 ): Promise<ResultadoFonteAts> {
   const nomeFonte = obterNomeFonte(fonte.provedor, fonte.identificador);
   const inicioFonte = performance.now();
+  const perfilHash = createHash("sha256").update(JSON.stringify(perfil)).digest("hex").slice(0, 16);
 
   try {
     console.log("");
@@ -430,9 +434,16 @@ async function processarFonteAts(
               scoreZero: diagnostico.scoreZero,
               score1a39: diagnostico.score1a39,
               score40a49: diagnostico.score40a49,
-              score50a59: diagnostico.score50a59
+              score50a59: diagnostico.score50a59,
+              localizacaoInferida: (diagnostico as any).localizacaoInferida || 0
             },
-            duracaoMs: Math.round(performance.now() - inicioFonte)
+            duracaoMs: Math.round(performance.now() - inicioFonte),
+            commitHash: process.env.RENDER_GIT_COMMIT || "local",
+            matcherVersion: MATCHER_VERSION,
+            elegibilidadeVersion: ELEGIBILIDADE_VERSION,
+            perfilHash,
+            bootTimestamp: new Date().toISOString(),
+            metricas: {}
           });
         } catch (erroTelemetria) {
           console.warn(
