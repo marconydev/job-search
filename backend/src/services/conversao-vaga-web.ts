@@ -206,6 +206,12 @@ export function converterVagaWebParaNovaVaga(
 
     url,
 
-    publishedAt: vaga.dataPublicacao
+    /**
+     * Blindagem 2.0: quando Brave retorna page_age (publishedAtEstimado),
+     * o extractor HTML de LinkedIn/Indeed pode nao trazer dataPublicacao.
+     * Usar estimado como fallback evita que a vaga caia no filtro
+     * "if (!novaVaga.publishedAt) continue" em processamento-vagas-web.
+     */
+    publishedAt: vaga.dataPublicacao ?? ((pagina as { publishedAtEstimado?: string | null }).publishedAtEstimado ?? null)
   }
 }
