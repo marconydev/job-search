@@ -14,7 +14,7 @@ import {
 
 import type { PaginaClassificada } from "../types/discovery.js"
 
-import type { NovaFonteAts } from "../types/fonte-ats.js"
+import type { FonteAts, NovaFonteAts } from "../types/fonte-ats.js"
 
 import type { PerfilProfissional } from "../types/perfil-profissional.js"
 
@@ -339,6 +339,166 @@ function registrarDiagnosticoFonteAts(fonte: string, diagnostico: DiagnosticoFun
  * - se a leitura do board foi completa, vagas ausentes são marcadas
  *   como indisponíveis.
  */
+async function processarFonteAts(
+  fonte: FonteAts,
+  perfil: PerfilProfissional,
+  limiteVagasPorFonte: number,
+  execucaoId?: string
+): Promise<ResultadoFonteAts> {
+  const nomeFonte = obterNomeFonte(fonte.provedor, fonte.identificador);
+  const inicioFonte = performance.now();
+
+  try {
+    console.log("");
+    console.log("ATS: coletando " + fonte.provedor + " / " + fonte.identificador);
+
+    const coleta = await coletarFonteAts(fonte, limiteVagasPorFonte);
+    const quantidadeBruta = coleta.jobs.length;
+    const atualizacao = await refreshExistingJobs(coleta.jobs, coleta.sourceKey);
+
+    if (atualizacao.updated > 0 || atualizacao.invalidated > 0) {
+      console.log(
+        [
+          "ATS: " + fonte.provedor + "/" + fonte.identificador,
+          atualizacao.updated + " vaga(s) existente(s) atualizada(s),",
+          atualizacao.invalidated + " marcada(s) para reanalise."
+        ].join(" ")
+      );
+    }
+
+    const vagasAderentes = filtrarVagasAderentes(coleta.jobs, perfil);
+
+    const importacao = await importJobs({
+      source: coleta.source,
+      sourceKey: coleta.sourceKey,
+      jobs: vagasAderentes
+    });
+
+    let indisponiveis = 0;
+
+    if (coleta.complete === true && coleta.sourceKey) {
+      indisponiveis = await reconcileCompleteSourceAvailability(coleta.sourceKey, coleta.jobs);
+    }
+
+    await registrarSucessoColetaFonteAts(fonte.id, vagasAderentes.length);
+
+    const resultado: ResultadoFonteAts = {
+      ...importacao,
+      found: quantidadeBruta,
+      matched: vagasAderentes.length
+    };
+
+    console.log(
+      [
+        "ATS: " + fonte.provedor + "/" + fonte.identificador,
+        quantidadeBruta + " encontrada(s),",
+        vagasAderentes.length + " aderente(s),",
+        importacao.inserted + " nova(s),",
+        importacao.duplicates + " duplicada(s),",
+        indisponiveis + " encerrada(s)."
+      ].join(" ")
+    );
+
+    try {
+      const diagnostico = await diagnosticarFunilVagasComYield(
+        coleta.jobs,
+        perfil,
+        vagasAderentes
+      );
+
+      registrarDiagnosticoFonteAts(nomeFonte, diagnostico);
+
+      if (execucaoId) {
+        try {
+          await registrarTelemetriaFonte({
+            execucaoId,
+            fonte: nomeFonte,
+            coletadas: diagnostico.recebidas,
+            aposJanela: diagnostico.recebidas - diagnostico.foraDaJanela,
+            aposElegibilidade:
+              diagnostico.recebidas -
+              diagnostico.foraDaJanela -
+              diagnostico.localizacaoIncompativel,
+            aposMatcher: diagnostico.aderentes,
+            importadas: importacao.inserted,
+            duplicadas: importacao.duplicates,
+            descartes: {
+              foraDaJanela: diagnostico.foraDaJanela,
+              localizacaoIncompativel: diagnostico.localizacaoIncompativel,
+              tituloForaFoco: diagnostico.tituloForaFoco,
+              matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo,
+              scoreZero: diagnostico.scoreZero,
+              score1a39: diagnostico.score1a39,
+              score40a49: diagnostico.score40a49,
+              score50a59: diagnostico.score50a59
+            },
+            duracaoMs: Math.round(performance.now() - inicioFonte)
+          });
+        } catch (erroTelemetria) {
+          console.warn(
+            "Telemetria da fonte " + nomeFonte + " nao registrada:",
+            erroTelemetria
+          );
+        }
+      }
+    } catch (erroDiagnostico) {
+      const mensagem =
+        erroDiagnostico instanceof Error ? erroDiagnostico.message : "Erro desconhecido";
+
+      console.warn("Diagnostico da fonte " + nomeFonte + " nao foi concluido: " + mensagem);
+    }
+
+    return resultado;
+  } catch (erro) {
+    const mensagem =
+      erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta ATS";
+
+    const permanente = erro instanceof ErroColetaAts ? erro.permanente : false;
+
+    await registrarFalhaColetaFonteAts(fonte.id, mensagem, permanente);
+
+    console.error("ATS: falha em " + fonte.provedor + "/" + fonte.identificador + ": " + mensagem);
+
+    return {
+      source: nomeFonte,
+      found: 0,
+      matched: 0,
+      inserted: 0,
+      duplicates: 0,
+      error: mensagem
+    };
+  }
+}
+
+async function executarComPool<T>(
+  itens: T[],
+  tamanho: number,
+  fn: (item: T, indice: number) => Promise<void>
+): Promise<void> {
+  let proximo = 0;
+
+  const executar = async (): Promise<void> => {
+    while (true) {
+      const i = proximo;
+      proximo += 1;
+
+      if (i >= itens.length) {
+        return;
+      }
+
+      await fn(itens[i]!, i);
+    }
+  };
+
+  const workers: Promise<void>[] = [];
+
+  for (let w = 0; w < Math.min(tamanho, itens.length); w++) {
+    workers.push(executar());
+  }
+
+  await Promise.all(workers);
+}
+
 export async function coletarFontesAtsAprendidas(
   perfil: PerfilProfissional,
   limiteFontes = 40,
@@ -359,162 +519,11 @@ export async function coletarFontesAtsAprendidas(
 
   console.log(`ATS: iniciando coleta direta de ${fontes.length} fonte(s).`)
 
-  for (const fonte of fontes) {
-    const nomeFonte = obterNomeFonte(fonte.provedor, fonte.identificador)
+  const CONCORRENCIA_ATS = 4;
 
-    try {
-      console.log("")
-
-      console.log(`ATS: coletando ${fonte.provedor} / ${fonte.identificador}`)
-
-      const coleta = await coletarFonteAts(fonte, limiteVagasPorFonte)
-
-      const quantidadeBruta = coleta.jobs.length
-
-      const atualizacao = await refreshExistingJobs(coleta.jobs, coleta.sourceKey)
-
-      if (atualizacao.updated > 0 || atualizacao.invalidated > 0) {
-        console.log(
-          [
-            `ATS: ${fonte.provedor}/${fonte.identificador}`,
-            `${atualizacao.updated} vaga(s) existente(s) atualizada(s),`,
-            `${atualizacao.invalidated} marcada(s) para reanálise.`
-          ].join(" ")
-        )
-      }
-
-      const vagasAderentes = filtrarVagasAderentes(coleta.jobs, perfil)
-
-      const importacao = await importJobs({
-        source: coleta.source,
-
-        sourceKey: coleta.sourceKey,
-
-        jobs: vagasAderentes
-      })
-
-      let indisponiveis = 0
-
-      /**
-       * Só comparo ausências quando tenho certeza de que percorri a origem
-       * inteira. Uma resposta truncada nunca é tratada como encerramento.
-       */
-      if (coleta.complete === true && coleta.sourceKey) {
-        indisponiveis = await reconcileCompleteSourceAvailability(coleta.sourceKey, coleta.jobs)
-      }
-
-      await registrarSucessoColetaFonteAts(fonte.id, vagasAderentes.length)
-
-      resultados.push({
-        ...importacao,
-
-        found: quantidadeBruta,
-
-        matched: vagasAderentes.length
-      })
-
-      console.log(
-        [
-          `ATS: ${fonte.provedor}/${fonte.identificador}`,
-          `${quantidadeBruta} encontrada(s),`,
-          `${vagasAderentes.length} aderente(s),`,
-          `${importacao.inserted} nova(s),`,
-          `${importacao.duplicates} duplicada(s),`,
-          `${indisponiveis} encerrada(s).`
-        ].join(" ")
-      )
-
-      /**
-       * Eu executo o diagnóstico somente depois que atualização, filtro,
-       * importação, reconciliação, contadores e sucesso da fonte já foram
-       * definidos. Uma falha aqui nunca muda o resultado produtivo.
-       */
-      try {
-        const diagnostico = await diagnosticarFunilVagasComYield(
-          coleta.jobs,
-          perfil,
-          vagasAderentes
-        )
-
-        registrarDiagnosticoFonteAts(nomeFonte, diagnostico)
-
-        if (execucaoId) {
-          try {
-            await registrarTelemetriaFonte({
-              execucaoId,
-
-              fonte: nomeFonte,
-
-              coletadas: diagnostico.recebidas,
-
-              aposJanela: diagnostico.recebidas - diagnostico.foraDaJanela,
-
-              aposElegibilidade:
-                diagnostico.recebidas -
-                diagnostico.foraDaJanela -
-                diagnostico.localizacaoIncompativel,
-
-              aposMatcher: diagnostico.aderentes,
-
-              importadas: importacao.inserted,
-
-              duplicadas: importacao.duplicates,
-
-              descartes: {
-                foraDaJanela: diagnostico.foraDaJanela,
-                localizacaoIncompativel: diagnostico.localizacaoIncompativel,
-                tituloForaFoco: diagnostico.tituloForaFoco,
-                matcherAbaixoDoMinimo: diagnostico.matcherAbaixoDoMinimo,
-                scoreZero: diagnostico.scoreZero,
-                score1a39: diagnostico.score1a39,
-                score40a49: diagnostico.score40a49,
-                score50a59: diagnostico.score50a59
-              }
-            })
-          } catch (erroTelemetria) {
-            console.warn(
-              "Telemetria da fonte " + nomeFonte + " nao registrada:",
-              erroTelemetria
-            )
-          }
-        }
-      } catch (erroDiagnostico) {
-        const mensagem =
-          erroDiagnostico instanceof Error ? erroDiagnostico.message : "Erro desconhecido"
-
-        console.warn(`Diagnóstico da fonte ${nomeFonte} não foi concluído: ${mensagem}`)
-      }
-    } catch (erro) {
-      const mensagem =
-        erro instanceof Error ? erro.message : "Erro desconhecido durante a coleta ATS"
-
-      /**
-       * Classificacao: apenas ErroColetaAts carrega a distincao
-       * permanente/transitoria. Qualquer outro erro (rede caiu,
-       * fetch abortado, JSON invalido) e tratado como transitorio
-       * para nunca desativar um board por falha temporaria.
-       */
-      const permanente = erro instanceof ErroColetaAts ? erro.permanente : false
-
-      await registrarFalhaColetaFonteAts(fonte.id, mensagem, permanente)
-
-      resultados.push({
-        source: nomeFonte,
-
-        found: 0,
-
-        matched: 0,
-
-        inserted: 0,
-
-        duplicates: 0,
-
-        error: mensagem
-      })
-
-      console.error(`ATS: falha em ${fonte.provedor}/${fonte.identificador}: ${mensagem}`)
-    }
-  }
+  await executarComPool(fontes, CONCORRENCIA_ATS, async (fonte, indice) => {
+    resultados[indice] = await processarFonteAts(fonte, perfil, limiteVagasPorFonte, execucaoId);
+  });
 
   const totalEncontradas = resultados.reduce((total, resultado) => total + resultado.found, 0)
 

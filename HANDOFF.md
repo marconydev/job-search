@@ -19,6 +19,17 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 ## 2. Concluído nas sessões de 07–17/10/2026
 
+**18/10 (pós): ATS: paralelização + duracao_ms**
+- `fontes-ats.ts` — corpo por fonte extraído em `processarFonteAts`.
+- Despacho via `executarComPool(fontes, 4, fn)` (semáforo genérico). 4 workers +
+  pool `pg max=5` deixam 1 conexão livre para dashboard/heartbeat.
+- `duracaoMs: Math.round(performance.now() - inicioFonte)` passado em
+  `registrarTelemetriaFonte`. Único ponto do backend com `duracao_ms` NULL;
+  `job-sync.ts:181` já estava correto.
+- Race em `falhas_consecutivas` era fantasma: `UPDATE ... = ... + 1 WHERE id = $1`
+  é atômico por linha; a fila retorna IDs únicos.
+- Suíte: 295/295 backend verdes. typecheck + build zerados.
+
 **18/10: Fix PingWind — trava v3 fecha brecha em vaga remota US-federal**
 - `elegibilidade-localizacao.ts` — nova função
   `descricaoIndicaRestricaoFederalEstrangeira` com 9 sinais (`public trust`,
@@ -254,7 +265,7 @@ Copie o texto entre as linhas abaixo para iniciar a próxima conversa.
 Estou continuando o desenvolvimento do projeto Job Search (C:\Projetos\job-search).
 
 Stack: Node.js, TypeScript, Express 5, PostgreSQL (Neon), Next.js 16. Deploy: Vercel → Render (job-search-api-xap1) → Neon.
-Commit atual em produção: 8e41796. Suíte: 295/295 backend verdes. Commits pos-d679e2d: f44567b PingWind, 44bdf3e docs paste, 02c218d Solides, 77332d5 PCD, 8e41796 LinkedIn publishedAt. Auto-Deploy = Yes no Render.
+Commit atual: 705136b (ATS: pool de 4 + duracao_ms na telemetria). Suíte: 295/295 backend verdes. Commits recentes: f44567b PingWind, 02c218d Solides, 77332d5 PCD, 8e41796 LinkedIn publishedAt, 2433be2 docs, 705136b ATS paralelização. Auto-Deploy = Yes no Render.
 
 O que foi resolvido nas últimas sessões (já está em produção):
 1. Brave Search: Removido `freshness=pm` e adicionado conversor de `page_age` (string para ISO).
@@ -266,6 +277,9 @@ O que foi resolvido nas últimas sessões (já está em produção):
    com descrição que cita programa federal ou agência governamental estrangeira
    (`public trust`, `security clearance`, `u s department`,
    `federal contractor`, etc.). Teste: `backend/tests/pingwind-regression.test.ts`.
+7. ATS: `coletarFontesAtsAprendidas` paralelizada (`executarComPool`, 4 workers,
+   pool `pg max=5`). `duracaoMs` passado em `registrarTelemetriaFonte` — corrige
+   `duracao_ms` NULL nos registros ATS. Race em `falhas_consecutivas` era fantasma.
 
 Estado das anomalias:
 - As anomalias 3.1 (Gupy 23→256) e 3.3 (E1 - estabilidade da Gupy) foram REPRIORIZADAS para a Fase 1.

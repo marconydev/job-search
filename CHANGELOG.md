@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-10-18 — ATS: paralelização + duracao_ms na telemetria]
+
+### Changed
+
+- `backend/src/services/fontes-ats.ts` — `coletarFontesAtsAprendidas` extrai o corpo
+  por fonte em `processarFonteAts(fonte, perfil, limiteVagasPorFonte, execucaoId)`
+  e passa a despachar via `executarComPool(fontes, 4, fn)` (semáforo genérico).
+  Pool `pg` tem `max: 5`; 4 workers deixam 1 conexão livre para dashboard/heartbeat.
+- Ordem de `resultados` preservada: cada worker grava em `resultados[indice]`.
+  `processarFonteAts` sempre retorna `ResultadoFonteAts` (nunca lança), então o
+  array final não tem buracos.
+
+### Fixed
+
+- `fontes-ats.ts` passa `duracaoMs: Math.round(performance.now() - inicioFonte)`
+  para `registrarTelemetriaFonte`. Era o único ponto do backend com `duracao_ms`
+  NULL. `job-sync.ts:181` (coletores diretos) já passava o campo.
+
+### Diagnostico
+
+- O "race condition em falhas_consecutivas" citado no HANDOFF anterior é fantasma:
+  `UPDATE ... SET falhas_consecutivas = falhas_consecutivas + 1 WHERE id = $1` é
+  atômico por linha no PostgreSQL, e a fila retorna fontes com IDs únicos.
+  Paralelização segura sem lock extra.
+- Suíte: 295/295 backend verdes. typecheck + build zerados.
+
 ## [2026-10-18 — Solides + PCD + LinkedIn publishedAt]
 
 ### Fixed

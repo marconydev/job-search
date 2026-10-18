@@ -39,6 +39,13 @@ Snapshot do estado da aplicação após a sessão de 20/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 18/10 (pós)
+
+- ATS: `coletarFontesAtsAprendidas` paralelizada com `executarComPool(fontes, 4, fn)`.
+- Telemetria ATS passa a preencher `duracao_ms` (era NULL); `job-sync.ts:181` já estava ok.
+- Race em `falhas_consecutivas` era fantasma; UPDATE é atômico por linha.
+- Suíte: 295/295.
+
 ### Sessão 18/10
 - Fix PingWind: vaga US-federal remota (`location="Remote"`, `remote=true`)
   passava pela trava v3 como `indefinida`. Adicionada função
