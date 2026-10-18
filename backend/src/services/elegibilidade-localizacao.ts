@@ -177,6 +177,81 @@ function descricaoIndicaRestricaoFederalEstrangeira(descricao: string) {
   return contemAlgumTermo(descricao, SINAIS_FEDERAL)
 }
 
+const padroesRestricaoPcdExplicita = [
+  "vaga pcd",
+  "vagas pcd",
+  "vaga para pcd",
+  "vagas para pcd",
+  "vaga exclusiva pcd",
+  "vagas exclusivas pcd",
+  "vaga exclusiva para pcd",
+  "vagas exclusivas para pcd",
+  "vaga afirmativa pcd",
+  "vagas afirmativas pcd",
+  "vaga afirmativa para pcd",
+  "vagas afirmativas para pcd"
+]
+
+const marcadoresPcd = [
+  "pcd",
+  "pcds",
+  "pessoa com deficiencia",
+  "pessoas com deficiencia",
+  "portador de deficiencia",
+  "portadora de deficiencia",
+  "portadores de deficiencia",
+  "cadeirante",
+  "cadeirantes",
+  "pne",
+  "deficiencia"
+]
+
+const indicadoresRestricaoPcd = [
+  "exclusiva", "exclusivo", "exclusivas", "exclusivos",
+  "afirmativa", "afirmativo", "afirmativas", "afirmativos",
+  "apenas", "somente",
+  "reservada", "reservado", "reservadas", "reservados",
+  "destinada", "destinado", "destinadas", "destinados",
+  "direcionada", "direcionado", "direcionadas", "direcionados"
+]
+
+function buscarRestricaoPcdNaProximidade(textoNormalizado: string, janela = 100): boolean {
+  for (const ind of indicadoresRestricaoPcd) {
+    const re = new RegExp("(^|[^a-z0-9])" + escaparRegex(ind) + "(?![a-z0-9])", "gi")
+    let m: RegExpExecArray | null
+    while ((m = re.exec(textoNormalizado)) !== null) {
+      const inicio = m.index + m[1].length
+      const fim = m.index + m[0].length
+      const antes = textoNormalizado.slice(Math.max(0, inicio - janela), inicio)
+      const antesLimpo = antes.split(/[.!?\n]/).pop() ?? ""
+      const depois = textoNormalizado.slice(fim, fim + janela)
+      const depoisLimpo = depois.split(/[.!?\n]/)[0] ?? ""
+      const janelaTexto = antesLimpo + " " + textoNormalizado.slice(inicio, fim) + " " + depoisLimpo
+      if (contemAlgumTermo(janelaTexto, marcadoresPcd)) return true
+    }
+  }
+  return false
+}
+
+function vagaExclusivaPcd(titulo: string | null, descricao: string | null): boolean {
+  if (titulo) {
+    const t = normalizarTexto(titulo)
+    if (t) {
+      if (contemAlgumTermo(t, padroesRestricaoPcdExplicita)) return true
+      if (buscarRestricaoPcdNaProximidade(t)) return true
+    }
+  }
+  if (descricao) {
+    const d = normalizarTexto(descricao)
+    if (d) {
+      if (contemAlgumTermo(d, padroesRestricaoPcdExplicita)) return true
+      const header = d.slice(0, 500)
+      if (header && buscarRestricaoPcdNaProximidade(header)) return true
+    }
+  }
+  return false
+}
+
 function descricaoRestringeParaOutroPais(descricao: string) {
   // Exige co-ocorrencia: o indicador de restricao e a bandeira estrangeira
   // precisam estar na MESMA janela de ate 100 chars. Sem isso, uma descricao
@@ -358,6 +433,13 @@ export function avaliarElegibilidadeBrasil(
     return {
       situacao: "incompativel",
       motivo: "A oportunidade exclui explicitamente candidatos localizados no Brasil."
+    }
+  }
+
+  if (vagaExclusivaPcd(titulo, descricao)) {
+    return {
+      situacao: "incompativel",
+      motivo: "Vaga exclusiva/afirmativa PCD fora do escopo do perfil."
     }
   }
 
