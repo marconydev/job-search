@@ -44,6 +44,15 @@ unicidade, backup), usar `.cjs` + `node arquivo.cjs`.
 - **Heredoc com expansão** quando o conteúdo tem `$` ou backticks.
   Usar aspas simples no delimitador.
 
+- **Backtick no corpo do heredoc** — trunca o paste no Git Bash Windows
+  (comprovado 3x em 18/10/2026: patch-trava-remote.cjs, patch-federal.cjs,
+  apply-docs.cjs). Para markdown/código com backtick, usar .cjs com
+  String.fromCharCode(96) ou printf com listas de linhas.
+- **Diff verboso no meio de bloco** — trunca o paste. Redirecionar diff
+  para .txt e abrir no notepad. Nunca colar diff no meio de bloco de shell.
+- **Mensagem de commit multiline via heredoc** — mesmo problema. Usar
+  printf '%s\n' 'linha1' 'linha2' ... > msg.txt e git commit -F msg.txt.
+
 ## 3. Backups e rollback
 
 - Antes de alterar arquivo: `[ -f "$F.bak" ] || cp "$F" "$F.bak"`.

@@ -4,7 +4,7 @@ Contrato operacional. Toda IA deve ler isto antes de propor qualquer coisa.
 
 ## 0. Contexto
 
-- Nao sou dev profissional. Sou Analista de Suporte/Infra com experiencia
+- Sou dev. Sou Analista de Suporte/Infra com experiencia
   em processos, supervisao e coordenacao.
 - Nao executo terminal com fluencia. Copio e colo.
 - Estou desempregado e usando o sistema para procurar vaga. Velocidade
@@ -26,7 +26,7 @@ Contrato operacional. Toda IA deve ler isto antes de propor qualquer coisa.
 ## 2. Como gerar scripts
 
 - Bloco unico. Sempre. Nunca divida. Nunca peca Ctrl+D.
-- cat > arquivo.sh <<'SCRIPT_END' ... SCRIPT_END, depois chmod +x
+- tee arquivo.sh <<'SCRIPT_END' ... SCRIPT_END, depois chmod +x
   e execucao — tudo junto.
 - set -uo pipefail (com -u e -o pipefail, SEM -e).
 - Heredoc com aspas simples no delimitador.
@@ -43,6 +43,13 @@ Contrato operacional. Toda IA deve ler isto antes de propor qualquer coisa.
 - Heredoc aninhado com $ ou backtick.
 - grep com regex complicado em aspas duplas.
 - Backticks dentro de bloco de codigo (quebra o parser do chat).
+- Backtick no corpo de heredoc no terminal — trunca o paste (comprovado 3x em 18/10).
+  Para markdown/codigo com backtick, usar .cjs com String.fromCharCode(96) ou
+  printf '%s\n' 'linha1' 'linha2' ... > arquivo.
+- Diff verboso no meio de bloco — trunca o paste. Diff sempre em .txt + notepad,
+  nunca colado no meio de bloco.
+- Mensagem de commit multiline — printf '%s\n' 'linha1' 'linha2' ... > msg.txt,
+  depois git commit -F msg.txt. Nunca heredoc.
 
 ### Preferir .cjs quando possivel
 
