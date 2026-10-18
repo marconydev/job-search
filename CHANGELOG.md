@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-18 — Solides + PCD + LinkedIn publishedAt]
+
+### Fixed
+
+- solides.ts: timeout 15s -> 10s; circuit breaker apos 3 falhas. 80s/137s -> ~57s.
+- elegibilidade-localizacao.ts: vagaExclusivaPcd bloqueia exclusivas/afirmativas PCD.
+- conversao-vaga-web.ts: publishedAt = dataPublicacao ?? publishedAtEstimado. LinkedIn 53 dias sem vagas novas.
+
+Suite: 293 -> 295.
+
 ## [2026-10-18 — Fix PingWind: trava v3 fecha brecha em vaga remota US-federal]
 
 ### Fixed

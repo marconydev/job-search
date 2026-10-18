@@ -13,7 +13,7 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 - `a0f5224` fix(engine): corrige falso positivo em descricaoRestringeParaOutroPais
 - `baa8810` fix(ats): fila com backoff temporal + classificacao de falha permanente/transitoria
 
-**Suíte:** 283/283 testes backend verdes. typecheck + build zerados.
+**Suíte:** 295/295 testes backend verdes. typecheck + build zerados.
 
 **Estado do banco (Neon):** ~906 vagas Gupy; ~745 relevant+new (apos saneamento de 43 presencial fora RMPJP em 13/10); ~505 vagas obsoletas ativas da Gupy; LinkedIn/Glassdoor com dados de 25/08/2026 (Brave nao autorizado desde entao).
 
@@ -254,7 +254,7 @@ Copie o texto entre as linhas abaixo para iniciar a próxima conversa.
 Estou continuando o desenvolvimento do projeto Job Search (C:\Projetos\job-search).
 
 Stack: Node.js, TypeScript, Express 5, PostgreSQL (Neon), Next.js 16. Deploy: Vercel → Render (job-search-api-xap1) → Neon.
-Commit atual em produção: d679e2d. Suíte: 283/283 backend verdes. Auto-Deploy = Yes no Render.
+Commit atual em produção: 8e41796. Suíte: 295/295 backend verdes. Commits pos-d679e2d: f44567b PingWind, 44bdf3e docs paste, 02c218d Solides, 77332d5 PCD, 8e41796 LinkedIn publishedAt. Auto-Deploy = Yes no Render.
 
 O que foi resolvido nas últimas sessões (já está em produção):
 1. Brave Search: Removido `freshness=pm` e adicionado conversor de `page_age` (string para ISO).

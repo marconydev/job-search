@@ -95,6 +95,14 @@ Snapshot do estado da aplicação após a sessão de 20/10/2026.
 - Vagas obsoletas ativas medidas: 505 da Gupy + 11 outras.
 - Fase 1 desenhada (A3 + A4 + D6 + D7), não implementada.
 
+### Commits pos-20/10
+- f44567b: PingWind (bloqueia vaga remota com sinal federal estrangeiro).
+- 44bdf3e: regras de paste em COMO_TRABALHAR + PROTOCOLO.
+- 02c218d: Solides circuit breaker (timeout 10s, aborta apos 3 falhas).
+- 77332d5: vagaExclusivaPcd bloqueia exclusivas/afirmativas PCD.
+- 8e41796: LinkedIn publishedAt usa publishedAtEstimado do Brave.
+- Suite 295/295.
+
 ## Pendências
 
 - Fase 1 (Rastreabilidade e Diagnóstico).
