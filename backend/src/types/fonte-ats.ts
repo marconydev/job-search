@@ -42,7 +42,7 @@ export type FonteAts = {
   /**
    * Quantas vagas aderentes a última coleta entregou.
    *
-   * Opcional para não quebrar mocks antigos de teste; o repositório
+   * Opcional para não quebrar mocks antigos de teste | "gupy"; o repositório
    * sempre preenche quando vem do banco.
    */
   ultimosAderentes?: number
