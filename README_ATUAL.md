@@ -39,6 +39,11 @@ Snapshot do estado da aplicação após a sessão de 20/10/2026.
 - 7 boards ATS adicionados (Stone, BTG, Inter, C6, Cielo, XP, Sicredi).
 - Fila de ATS com backoff temporal + auto-desativação após 5 falhas permanentes.
 
+### Sessão 18/10 (Expansão de Cobertura)
+- Gupy: subdomínios `*.gupy.io` mapeados como ATS.
+- Sólides: paralelizada e sem descarte fantasma por falta de data.
+- Elegibilidade: fallback geográfico para portais nacionais.
+
 ### Sessão 18/10 (Final)
 
 - Anomalia 3.1 (Gupy) resolvida. Não era bug: a Gupy retornou vagas presenciais

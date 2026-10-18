@@ -19,6 +19,17 @@ Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (b
 
 ## 2. Concluído nas sessões de 07–17/10/2026
 
+
+**18/10 (pós): Expansão de Cobertura e Performance**
+
+- `solides.ts`: paralelizado com pool de 4 workers.
+- `fontes-ats.ts`: reconhece `*.gupy.io` como ATS.
+- `elegibilidade-localizacao.ts`: fallback para portais nacionais (assume Brasil).
+- `job-analysis.ts`: não descarta Sólides/Vagas sem `publishedAt`.
+- `fonte-ats.ts`: adicionado `"gupy"` ao union type (corrige build no Render).
+
+**[PENDENTE]** Rodar o script `verify-full-coverage.cjs` (instruções no PENDENTE.md) para homologar as 9 URLs de exemplo e provar a queda de tempo.
+
 **18/10 (pós-LinkedIn): DOM React**
 - `linkedin.ts` adaptado para React: título via `h1`/`a[href*="/jobs/view/"]`, empresa
   via `a[href*="/company/"]`, descrição via `[data-testid="expandable-text-box"]`.
@@ -286,7 +297,7 @@ Copie o texto entre as linhas abaixo para iniciar a próxima conversa.
 Estou continuando o desenvolvimento do projeto Job Search (C:\Projetos\job-search).
 
 Stack: Node.js, TypeScript, Express 5, PostgreSQL (Neon), Next.js 16. Deploy: Vercel → Render (job-search-api-xap1) → Neon.
-Commit atual: 705136b (ATS: pool de 4 + duracao_ms na telemetria). Suíte: 295/295 backend verdes. Commits recentes: f44567b PingWind, 02c218d Solides, 77332d5 PCD, 8e41796 LinkedIn publishedAt, 2433be2 docs, 705136b ATS paralelização. Auto-Deploy = Yes no Render.
+Commit atual: 43639d1 (Expansão de cobertura + fix de tipos). Suíte: 295/295 backend verdes (build local OK). Commits recentes: 162492a Otimização, c42482ba Cobertura parcial, 49ee153 Tipo Gupy, 43639d1 Fix definitivo. **Render: Auto-Deploy ativo. Build corrigido e deployado.**
 
 O que foi resolvido nas últimas sessões (já está em produção):
 1. Brave Search: Removido `freshness=pm` e adicionado conversor de `page_age` (string para ISO).

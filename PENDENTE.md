@@ -1,14 +1,16 @@
 # PENDENTES — Job Search
 
 ## Status Atual
+✅ **Código de Cobertura (Gupy/Sólides) e Performance** - Commitado e enviado para o Render (43639d1).
+✅ **Fixes no Render** - Build de TypeScript corrigido.
 
-✅ **Fase 1 (Rastreabilidade e Diagnóstico)** - Concluída (93e88cb).
-✅ **LinkedIn Extractor (DOM React)** - Concluída (c33d1a2).
-✅ **ATS paralelização e telemetria** - Concluída (705136b).
-✅ **Otimização + Saneamento** - Fontes paralelizadas e banco limpo (758 descartadas).
-✅ **Anomalia 3.1 (Gupy 23→256)** - Resolvida (não era bug, trava v3 funcionou).
+## Ação Imediata Necessária (Próxima Conversa)
+O código está em produção, mas a **prova empírica** ainda não foi rodada.
 
-## Próximos Passos (Futuro)
-- Piloto de sites próprios (30 empresas).
-- Refinamento de queries Brave a partir do perfil.
-- Fase 2: botão "segunda opinião por IA" on-demand.
+**Passo 1:** Aguardar o Render concluir o deploy do commit `43639d1`.
+**Passo 2:** Rodar o script de homologação (`C:/Projetos/job-search-diag/verify-full-coverage.cjs`) para provar:
+- Se as 9 URLs de teste (5 Gupy, 4 Sólides) entraram como `relevant`.
+- Se a Sólides rodou em menos de 30s.
+- Se o tempo total da sync ficou abaixo de 60s.
+
+**Passo 3:** Se o script falhar, investigar a fundo. Não há mais pendências de código lógico pendentes.

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-10-18 — Expansão de Cobertura e Correções de Performance]
+
+### Fixed
+- **Gupy (Subdomínios):** `fontes-ats.ts` agora reconhece URLs `*.gupy.io` como fonte ATS, permitindo a coleta de vagas fora do portal central.
+- **Sólides (Descarte Fantasma):** `job-analysis.ts` não descarta mais vagas da Sólides e Vagas.com por falta de `publishedAt`. A Sólides só envia `createdAt`.
+- **Sólides (Performance):** Coletor paralelizado com pool de 4 workers (tempo esperado cai de ~107s para ~25s).
+- **Elegibilidade (Falso Negativo):** `avaliarElegibilidadeBrasil` assume Brasil quando a vaga vem de portal nacional (Gupy, Sólides, Vagas) e a localização é nula.
+- **TypeScript:** Adicionado `"gupy"` ao `ProvedorFonteAts` em `fonte-ats.ts`, resolvendo a falha de build no Render.
+
 ## [2026-10-18 — Otimização de Sync + Saneamento]
 
 ### Changed
