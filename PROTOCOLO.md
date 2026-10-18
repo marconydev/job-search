@@ -15,7 +15,7 @@ hipótese.
 ### 2.1. Script único no Git Bash
 
 ```
-cat > arquivo.sh <<'SCRIPT_END'
+tee arquivo.sh <<'SCRIPT_END'
 #!/usr/bin/env bash
 set -uo pipefail
 cd /c/Projetos/job-search

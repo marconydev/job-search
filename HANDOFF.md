@@ -5,6 +5,9 @@
 Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (backend) → Neon (banco). Auto-Deploy = **Yes** no Render.
 
 **Últimos commits:**
+- `d679e2d` fix(collectors): bloqueia paginas de busca do Vagas.com
+- `1503f01` feat(engine): auditoria tech lead - otimizacao SQL e expansao
+- `373ebac` fix(web): blinda ingestao contra falsos positivos temporais
 - `ee7a212` fix(engine): Opção 2 não bypassa mais a regra de presencial (RMPJP estrita)
 - `e52cef3` feat(scripts): resync-recuperacao
 - `a0f5224` fix(engine): corrige falso positivo em descricaoRestringeParaOutroPais
@@ -215,20 +218,32 @@ Copie o texto entre as linhas abaixo para iniciar a próxima conversa.
 
 Estou continuando o desenvolvimento do projeto Job Search (C:\Projetos\job-search).
 
-Stack: Node.js, TypeScript, Express 5, PostgreSQL (pg), Next.js 16, React 19. Deploy: Vercel (frontend) → Render (job-search-api-xap1) → Neon.
+Stack: Node.js, TypeScript, Express 5, PostgreSQL (Neon), Next.js 16. Deploy: Vercel → Render (job-search-api-xap1) → Neon.
+Commit atual em produção: d679e2d. Suíte: 278/278 backend verdes. Auto-Deploy = Yes no Render.
 
-Commit atual em produção: baa8810. Suíte 265/265 backend verdes. Auto-Deploy = Yes no Render.
+O que foi resolvido nas últimas sessões (já está em produção):
+1. Brave Search: Removido `freshness=pm` e adicionado conversor de `page_age` (string para ISO).
+2. Sólides: Links apontam para o portal central (`vagas.solides.com.br`). Coletor ignora `isDisabled`.
+3. Zumbis Temporais: Ingestão web bloqueia vagas sem data ou com mais de 21 dias.
+4. Vagas.com: Classificador e coletor bloqueiam URLs de busca (`/vagas-de-...`).
+5. SQL: Índices parciais (`jobs_active_reference_idx`, `jobs_source_url_idx`).
 
-Estado do banco: 898 vagas Gupy, 791 relevant+new, 505 vagas obsoletas ativas da Gupy.
+Estado das anomalias:
+- As anomalias 3.1 (Gupy 23→256) e 3.3 (E1 - estabilidade da Gupy) foram REPRIORIZADAS para a Fase 1.
+- Tuning de SQL (bulk insert, N+1) também foi movido para a Fase 1 para evitar duplo deploy.
 
-Em andamento: auditoria read-only investigando 3 anomalias — (1) queda 23→256 incompatíveis da Gupy entre 2dd8743c e 79d97668 (código e deploy descartados; hipótese F1 em aberto), (2) falso positivo de descricaoRestringeParaOutroPais em vagas hybrid de Curitiba, (3) E1 (estabilidade da API da Gupy).
+Próximo passo: Iniciar a Fase 1 (Rastreabilidade e Diagnóstico).
+- A3: commit_hash, perfil_hash, boot_timestamp em `funil_telemetria`.
+- A4: tabela `descartes_amostra` com reservoir sampling.
+- D6: `localizacaoInferida` na telemetria.
+- D7: métricas JSONB na telemetria (tempo/req por termo).
 
-Débitos técnicos confirmados: D2 (coletores diretos não marcam fechadas — 505 obsoletas), D3 (unavailable_at sem motivo), D4 (sem commit por execução), D5 (sem snapshot de perfil), D6 (localizacaoInferida não persistido), D7 (sem tempo/req por termo), D8 (MATCHER_VERSION não bumpou em b9bd095).
+Regras de trabalho:
+- Recon antes de patch. 1 a 3 arquivos por vez.
+- Scripts em bloco único (use `tee`, não `cat`).
+- Backup antes de alterar. Typecheck + Testes + Build antes de commitar.
+- Toda afirmação marcada com [observado], [hipótese], [não medido], [não encontrei].
 
-Fase 1 aprovada em desenho: A3 (rastreabilidade por execução — commit_hash, perfil_hash, boot_timestamp), A4 (descartes_amostra com reservoir sampling, retenção 7d dentro do sync), D6 (localizacaoInferida na telemetria), D7 (metricas JSONB). Branch, testes, migration reversível, sem merge.
+---
 
-Scripts de diagnóstico vivem em C:/Projetos/job-search-diag/ (fora do repo).
-
-Regras de trabalho: read-only durante auditoria; sem LLM no pipeline; scripts em bloco único; backup antes; typecheck + testes + lint + build antes de considerar pronto; marcar toda afirmação como [observado]/[hipótese]/[não encontrei]/[não medido].
-
-Leia HANDOFF.md, README_ATUAL.md e PROTOCOLO.md antes de qualquer coisa. Depois me diga se está pronto para continuar. Próximo passo sugerido: rodar o script C:/Projetos/job-search-diag/7-service-desk.cjs para inspecionar a descrição das vagas hybrid de Curitiba.
+*Última atualização: 20/10/2026.*
