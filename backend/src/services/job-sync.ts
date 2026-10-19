@@ -244,6 +244,31 @@ export async function syncJobs(
     execucaoId: opcoes.execucaoId
   })
 
+  if (opcoes.execucaoId) {
+    try {
+      await registrarTelemetriaFonte({
+        execucaoId: opcoes.execucaoId,
+        fonte: "web",
+        coletadas: web.paginasDescobertas || 0,
+        aposJanela: web.paginasDescobertas || 0,
+        aposElegibilidade: web.compativeisBrasil || 0,
+        aposMatcher: web.recomendacoesDescoberta?.length || 0,
+        importadas: web.persistenciaDescoberta?.novas || 0,
+        duplicadas: web.persistenciaDescoberta?.atualizadas || 0,
+        descartes: {},
+        duracaoMs: Math.round(agoraMs() - inicioWeb),
+        commitHash: process.env.RENDER_GIT_COMMIT || "local",
+        matcherVersion: MATCHER_VERSION,
+        elegibilidadeVersion: ELEGIBILIDADE_VERSION,
+        perfilHash: "web",
+        bootTimestamp: new Date().toISOString(),
+        metricas: {}
+      })
+    } catch (e) {
+      console.warn("Erro ao registrar telemetria web:", e)
+    }
+  }
+
   console.log(`Tempo web/cache: ${formatarDuracao(inicioWeb)}s`)
 
   await cederEventLoop()
