@@ -1,3 +1,31 @@
+
+## Sessão 19/10/2026 — Sprint 1 & 2 (Sanidade e Match)
+
+- **Hack Removido:** `job-analysis.ts` voltou a respeitar a Regra de Ouro Geográfica (presenciais fora da RMPJP são descartados).
+- **Bloqueio de Desvio:** `job-matcher.ts` bloqueia cargos como Desenvolvedor, Fullstack, Delphi, C# com Score 0.
+- **Saneamento:** O banco foi expurgado de links de listagem (InfoJobs, BNE) e subdomínios mortos (Sólides/Ashby). 24 vagas de Dev foram descartadas.
+- **Estado do Painel:** O Top 10 de vagas relevantes agora é 100% aderente (Suporte/Infra/Remoto).
+
+### Pendências Técnicas (Sprint 3):
+- **Rotação de Termos:** Implementar offset no banco para varrer todos os cargos do perfil (Suporte, Infra, Sistemas) sem estourar o limite diário.
+- **Gupy:** Ajustar o parser para aceitar vagas antigas que ainda estão "published".
+- **LinkedIn/Glassdoor:** Refinar dorks do Brave.
+
+
+
+## Sessão 19/10/2026 — Sprint 1, 2 e 3
+
+- **Hack Removido:** `job-analysis.ts` respeita 100% a localização (RMPJP).
+- **Bloqueio de Desvio:** `job-matcher.ts` zera Score de cargos de Dev.
+- **Saneamento:** Banco limpo de links mortos, Devs e presenciais fora da RMPJP.
+- **Rotação:** Todos os coletores diretos (Gupy, Sólides, Vagas, etc.) agora recebem um offset salvo no banco para buscar termos diferentes a cada sync.
+- **Cache Tolerante:** `controle-busca-web-repository.ts` não descarta o cache inteiro se uma consulta falhar.
+
+### Pendências:
+- Validar LinkedIn via Brave (rodar sync com Brave ativado).
+- Confirmar avanço dos offsets no banco.
+
+
 # README_ATUAL — Job Search
 
 Snapshot do estado da aplicação após a sessão de 20/10/2026.

@@ -1,5 +1,42 @@
 # HANDOFF — Job Search
 
+
+## 0. Sessão 19/10/2026 — Sprint 1 e 2 (Tech Lead)
+
+**Último commit:** e032f85
+**Estado:** Base limpa (Sem hacks, sem Devs, sem links mortos).
+
+### Concluído:
+- **Remoção do Hack Geográfico:** `job-analysis.ts` não força mais `relevant` por Score alto.
+- **Bloqueio de Desvio:** `job-matcher.ts` zera o Score para cargos na lista `cargosDesvio` do perfil.
+- **Saneamento de Links:** `solides.ts` corrigiu links e o banco foi expurgado de links de listagem e subdomínios mortos.
+- **Expurgo de Dados:** O banco descartou 24 vagas de Dev e 5 presenciais fora da RMPJP.
+
+### PENDENTE (Próximos Passos - Sprint 3):
+1. **Gupy Date Filter:** O coletor precisa ignorar o filtro de 21 dias se a vaga estiver com status "published" (ex: vagas antigas mas com inscrições abertas).
+2. **Rotação de Termos de Busca:** Implementar um "offset" persistente no banco para que a busca (Gupy, Sólides, Brave, LinkedIn) rotacione os termos do perfil (Suporte, Infra, Sistemas) a cada sync, ao invés de sempre cortar os mesmos 20/40 termos.
+3. **Mapeamento LinkedIn/Brave:** Expandir e testar as dorks para garantir cobertura das vagas manuais (InfoJobs, Glassdoor, LinkedIn).
+
+
+
+## 0. Sessão 19/10/2026 — Sprint 1, 2 e 3 (Tech Lead)
+
+**Último commit:** [Será preenchido no script de retomada]
+**Estado:** Base limpa. Rotação implementada. Faltando validar LinkedIn/Brave e limpar fontes.
+
+### Concluído:
+- **Hack Geográfico Removido:** `job-analysis.ts` voltou a respeitar a RMPJP.
+- **Bloqueio de Desvio:** `job-matcher.ts` zera Score para cargos na lista `cargosDesvio`.
+- **Expurgo de Dados:** O banco descartou vagas de Dev, presenciais fora da RMPJP e links mortos.
+- **Rotação de Termos:** `job-sync.ts` rotaciona os termos de busca para os coletores diretos usando offsets salvos no JSONB.
+- **Cache Tolerante:** `controle-busca-web-repository.ts` não invalida mais o cache inteiro se uma consulta estiver corrompida.
+
+### PENDENTE (Próximos Passos - Sprint 3):
+1. **Validar LinkedIn/Indeed via Brave:** O cache tem 298 consultas antigas, mas precisa rodar com Brave ativado para atualizar.
+2. **Validar Rotação:** Confirmar no log do Render que os offsets avançaram (de 40 para 80 na Gupy).
+3. **Fontes Silenciosas:** O log mostra que as vagas de web (Brave) caem em `desconhecido` ou `agregador`. É preciso investigar se o parser do LinkedIn está extraindo localização corretamente.
+
+
 ## 1. Estado atual (13/10/2026)
 
 Branch `main`. Produção: Vercel (frontend) → Render `job-search-api-xap1` (backend) → Neon (banco). Auto-Deploy = **Yes** no Render.

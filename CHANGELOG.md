@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-10-19 — Sprint 1 e 2 (Tech Lead) e Início da Sprint 3]
+
+### Fixed
+- **job-analysis.ts:** Removido o hack que forçava Score >= 80 a ser `relevant` ignorando a localização.
+- **job-matcher.ts:** Adicionado bloqueio hard para `cargosDesvio` (Dev, Engineer, Fullstack) puxando do perfil. Score cai para 0 imediatamente.
+- **links (solides.ts):** IDs alfanuméricos (subdomínios mortos) são descartados. Links numéricos apontam para o portal central.
+- **cacheBuscaEhValido (controle-busca-web-repository.ts):** Validação agora é tolerante. Consultas corrompidas são deletadas, mas o cache (e os offsets) não é mais invalidado inteiro.
+
+### Added
+- **Rotação de Termos:** O sistema agora avança o offset de busca para Gupy, Sólides, Vagas.com, GeekHunter, GetOnBoard, Remotive, Arbeitnow e Remote OK.
+- **Debug de Offset:** Log no `job-sync.ts` mostrando os offsets lidos.
+- **Telemetria Web:** `execucaoId` agora é passado corretamente para `processarVagasWeb`.
+
+### Applied (Neon)
+- Expurgo de 24 vagas de Dev, 5 presenciais fora da RMPJP e 70 links de listagem/mortos.
+
+
+## [2026-10-19 — Sprint 1 e 2: Correção Tech Lead (Match e Links)]
+
+### Fixed
+- **job-analysis.ts:** Removido o hack de blindagem que forçava Score >= 80 a ser `relevant` ignorando a localização. A regra geográfica estrita foi restaurada.
+- **job-matcher.ts:** Adicionado bloqueio hard para `cargosDesvio` (Dev, Engineer, Fullstack). Se o título ou descrição contiver a palavra, o Score cai para 0 imediatamente. Corrigido bug de variável (`vaga` em vez de `job`).
+- **solides.ts:** Coletor agora descarta IDs alfanuméricos (links mortos) e normaliza os numéricos para o portal central (`vagas.solides.com.br/vaga/<id>`).
+
+### Applied (Expurgo no Neon)
+- 5 vagas presenciais/híbridas fora da RMPJP descartadas.
+- 24 vagas com cargos de desvio (Dev, Delphi, C#, Java, etc.) descartadas.
+- 70 vagas com URLs de listagem ou links mortos (Ashby, Solides antigos) deletadas.
+
+### Notes
+- O Top 10 de vagas agora reflete 100% de aderência ao perfil (Suporte/Infra) e geografia (remoto ou RMPJP).
+
+
 ## [2026-10-18 — Expansão de Cobertura e Correções de Performance]
 
 ### Fixed
