@@ -26,7 +26,7 @@ function cederEventLoop() {
   })
 }
 
-async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
+async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, execucaoId?: string) {
   const perfilHash = createHash("sha256").update(JSON.stringify(perfil)).digest("hex").slice(0, 16);
   let relevant = 0
   let discarded = 0
@@ -114,12 +114,12 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
   return { analyzed: jobs.length, relevant, discarded }
 }
 
-export async function analyzePendingJobs(perfil: PerfilProfissional) {
+export async function analyzePendingJobs(perfil: PerfilProfissional, execucaoId?: string) {
   const jobs = await listJobsPendingAnalysis(MATCHER_VERSION)
-  return analisarVagas(jobs, perfil)
+  return analisarVagas(jobs, perfil, execucaoId)
 }
 
-export async function reanalisarTodasAsVagas(perfil: PerfilProfissional) {
+export async function reanalisarTodasAsVagas(perfil: PerfilProfissional, execucaoId?: string) {
   const jobs = await listJobs()
   return analisarVagas(jobs, perfil)
 }

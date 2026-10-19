@@ -55,6 +55,9 @@ export async function saveJobMatch(match: NewJobMatch) {
           matcher_version =
             EXCLUDED.matcher_version,
 
+          perfil_hash =
+            EXCLUDED.perfil_hash,
+
           analyzed_at =
             NOW(),
 

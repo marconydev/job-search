@@ -306,7 +306,7 @@ export async function syncJobs(
 
   const inicioAnalise = agoraMs()
 
-  const analise = await analyzePendingJobs(perfil)
+  const analise = await analyzePendingJobs(perfil, opcoes.execucaoId)
 
   console.log(`Tempo análise: ${formatarDuracao(inicioAnalise)}s`)
 
