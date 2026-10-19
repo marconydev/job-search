@@ -72,11 +72,6 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
     let status = getMatchStatus(match.score)
     let isIncompativel = elegibilidade.situacao === "incompativel"
 
-    // Blindagem: score muito alto (>= 80) nunca e descartado por localizacao
-    if (match.score >= 80) {
-      isIncompativel = false
-      status = "relevant"
-    }
 
     if (isIncompativel) {
       await saveJobMatch({
