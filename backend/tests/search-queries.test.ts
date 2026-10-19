@@ -74,7 +74,8 @@ describe("gerador de consultas de vagas", () => {
     // Cargos de desvio continuam proibidos.
     assert.equal(termos.includes("Software Developer"), false)
 
-    assert.ok(termos.length <= 40)
+    // A rotação agora ocorre no job-sync. A função pura retorna a lista completa.
+    assert.ok(termos.length > 0)
   })
 
   test("gera apenas termos brasileiros na coleta nativa da Sólides", () => {
@@ -94,7 +95,8 @@ describe("gerador de consultas de vagas", () => {
 
     assert.equal(termos.includes("Software Developer"), false)
 
-    assert.ok(termos.length <= 20)
+    // A rotação agora ocorre no job-sync. A função pura retorna a lista completa.
+    assert.ok(termos.length > 0)
   })
 
   test("não usa mais Brave para pesquisas dedicadas à Gupy", () => {
