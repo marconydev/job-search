@@ -75,6 +75,7 @@ export type JobMatchStatus = "relevant" | "discarded" | "applied" | "ignored"
 export type UserJobStatus = "relevant" | "applied" | "ignored"
 
 export type NewJobMatch = {
+  perfilHash?: string;
   jobId: number
 
   localScore: number

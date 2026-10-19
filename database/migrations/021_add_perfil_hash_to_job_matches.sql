@@ -1,0 +1,1 @@
+ALTER TABLE job_matches ADD COLUMN IF NOT EXISTS perfil_hash TEXT;

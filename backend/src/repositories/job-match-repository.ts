@@ -25,7 +25,8 @@ export async function saveJobMatch(match: NewJobMatch) {
           matched_skills,
           reasons,
           status,
-          matcher_version
+          matcher_version,
+          perfil_hash
         )
 
         VALUES (
@@ -34,7 +35,8 @@ export async function saveJobMatch(match: NewJobMatch) {
           $3::jsonb,
           $4::jsonb,
           $5,
-          $6
+          $6,
+          $7
         )
 
         ON CONFLICT (job_id)
@@ -104,9 +106,7 @@ export async function saveJobMatch(match: NewJobMatch) {
 
       JSON.stringify(match.reasons),
 
-      match.status,
-
-      MATCHER_VERSION
+      match.status, MATCHER_VERSION, match.perfilHash || null
     ]
   )
 

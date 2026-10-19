@@ -11,6 +11,8 @@ import type { PerfilProfissional } from "../types/perfil-profissional.js"
 import { avaliarElegibilidadeBrasil } from "./elegibilidade-localizacao.js"
 
 import { matchJob } from "./job-matcher.js"
+import { salvarAmostraDescarte } from "../repositories/descartes-amostra-repository.js"
+import { createHash } from "node:crypto"
 
 const TAMANHO_LOTE_ANALISE = 25
 
@@ -25,6 +27,7 @@ function cederEventLoop() {
 }
 
 async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
+  const perfilHash = createHash("sha256").update(JSON.stringify(perfil)).digest("hex").slice(0, 16);
   let relevant = 0
   let discarded = 0
 
@@ -79,7 +82,8 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
         localScore: 0,
         matchedSkills: [],
         reasons: [elegibilidade.motivo],
-        status: "discarded"
+        status: "discarded",
+        perfilHash
       })
       discarded++
     } else {
@@ -94,7 +98,8 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
         localScore: match.score,
         matchedSkills: match.matchedSkills,
         reasons: match.reasons,
-        status
+        status,
+        perfilHash
       })
 
       if (status === "relevant") relevant++
