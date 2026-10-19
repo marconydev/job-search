@@ -75,7 +75,13 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
       discarded++
     } else {
       const match = matchJob(job, perfil)
-      const status = getMatchStatus(match.score)
+      let status = getMatchStatus(match.score)
+      
+      // Blindagem: portais nacionais (Sólides/Gupy/Vagas) com score alto nao caem por metadados vagos
+      const isFonteNacional = ["solides", "gupy", "vagas"].includes(job.source)
+      if (isFonteNacional && match.score >= MIN_SCORE_RELEVANT) {
+        status = "relevant"
+      }
 
       await saveJobMatch({
         jobId: job.id,
