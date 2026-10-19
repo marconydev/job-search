@@ -332,3 +332,10 @@ Regras de trabalho:
 ---
 
 *Última atualização: 20/10/2026.*
+### Sessao 19/10 (PRIO 1 e PRIO 2)
+- **Filtro Geografico:** Score >= 80 agora ignora falso negativo de localizacao. Vagas do Brave/LinkedIn/Indeed/Glassdoor voltaram a entrar.
+- **Telemetria:** `execucaoId` propagado para o `processarVagasWeb`. Proxima sync tera os dados no `funil_telemetria`.
+
+### Sessao 19/10 (Fechamento PRIO 1 e 2)
+- **PRIO 1:** Score >= 80 forca `relevant` e ignora falso negativo de localizacao. Vagas do Indeed/LinkedIn/Agregadores resgatadas.
+- **PRIO 2:** `execucaoId` agora e propagado para o `processarVagasWeb` e a interface o inclui corretamente. Proxima sync registrara a telemetria web.

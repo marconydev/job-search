@@ -66,6 +66,7 @@ type OpcoesProcessamentoWeb = {
    * responsável pela descoberta.
    */
   limiteChamadasBrave?: number
+  execucaoId?: string;
 }
 
 function criarResultadoProvedor(provedor: ProvedorPagina): ResultadoFonteProcessada {

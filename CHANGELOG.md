@@ -633,3 +633,26 @@ Consolidado a partir do histórico de commits de `main` e das mudanças da sess�
 ### Fixed
 - `solides.ts`: Redução da concorrência para 2 workers, adição de delay de 200ms entre chamadas e timeout de 4s. 
 - Reintrodução do Circuit Breaker: se 4 falhas consecutivas ocorrerem (rate limit, 429 ou timeout), a coleta inteira é abortada. O tempo de desistência cai de 44s para < 16s.
+
+## [2026-10-19 — PRIO 1: Filtro Geografico e PRIO 2: Telemetria]
+
+### Fixed
+- **job-analysis.ts:** Vagas com score >= 80 agora sao forcadas para `relevant`, ignorando falsos negativos de localizacao (ex: LinkedIn/Indeed/Glassdoor).
+- **job-sync.ts:** `execucaoId` agora e propagado corretamente para o `processarVagasWeb`, garantindo que a telemetria seja gravada no Neon.
+
+### Applied
+- Homologacao confirmou resgate de vagas do Indeed e Agregadores com scores 84, 88 e 98 que estavam sendo descartadas.
+
+## [2026-10-19 — Fechamento Sprint PRIO 1 e PRIO 2]
+
+### Fixed
+- **job-analysis.ts:** Score >= 80 forca relevant e ignora falso negativo de localizacao.
+- **job-sync.ts:** `execucaoId` propagado corretamente para o `processarVagasWeb` via `opcoes.execucaoId`.
+- **processamento-vagas-web.ts:** Interface `OpcoesProcessamentoWeb` agora inclui `execucaoId` opcional.
+
+## [2026-10-19 — Fechamento Sprint PRIO 1 e PRIO 2]
+
+### Fixed
+- **job-analysis.ts:** Score >= 80 forca relevant e ignora falso negativo de localizacao.
+- **job-sync.ts:** `execucaoId` propagado para o `processarVagasWeb` via `opcoes.execucaoId`.
+- **processamento-vagas-web.ts:** Interface `OpcoesProcessamentoWeb` inclui `execucaoId` opcional com sintaxe TS correta.

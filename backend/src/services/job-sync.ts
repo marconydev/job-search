@@ -240,7 +240,8 @@ export async function syncJobs(
 
     permitirBuscaLive: usarBrave,
 
-    limiteChamadasBrave: limiteBrave
+    limiteChamadasBrave: limiteBrave,
+    execucaoId: opcoes.execucaoId
   })
 
   console.log(`Tempo web/cache: ${formatarDuracao(inicioWeb)}s`)
