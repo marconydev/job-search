@@ -144,9 +144,11 @@ function normalizarVaga(job: SolidesJob): NewJob | null {
 
   let url = job.redirectLink?.trim()
 
-  if (/^\d+$/.test(id)) {
-    url = `https://vagas.solides.com.br/vaga/${id}`
+  if (!/^\d+$/.test(id)) {
+    // IDs alfanumericos nao tem portal central garantido. Descartar para evitar links quebrados.
+    return null
   }
+  url = `https://vagas.solides.com.br/vaga/${id}`
 
   if (!id || !titulo || !url) {
     return null
