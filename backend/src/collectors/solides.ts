@@ -136,10 +136,6 @@ function localizacaoSolides(job: SolidesJob): string | null {
 }
 
 function normalizarVaga(job: SolidesJob): NewJob | null {
-  if (job.isDisabled === true) {
-    return null
-  }
-
   const idBruto = job.id
 
   const id = idBruto === undefined || idBruto === null ? "" : String(idBruto).trim()
