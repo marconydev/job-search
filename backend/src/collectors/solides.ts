@@ -20,7 +20,7 @@ import type { PerfilProfissional } from "../types/perfil-profissional.js"
  */
 const URL_BUSCA_SOLIDES = "https://apigw.solides.com.br/jobs/v3/portal-vacancies"
 
-const TEMPO_LIMITE_REQUISICAO_MS = 10000
+const TEMPO_LIMITE_REQUISICAO_MS = 4000
 
 const LIMITE_MAXIMO_POR_TERMO = 100
 
@@ -28,7 +28,7 @@ const LIMITE_MAXIMO_GLOBAL = 500
 
 const LIMITE_MAXIMO_PAGINAS_POR_TERMO = 30
 
-const MAX_FALHAS_CONSECUTIVAS = 3
+const MAX_FALHAS_CONSECUTIVAS = 4
 
 type SolidesJob = {
   id?: number | string
@@ -287,14 +287,14 @@ export async function collectSolidesJobs(
 
   let falhasConsecutivas = 0
 
-  let abortarTermos = false
-
+  let abortarColetaGlobal = false;
   const executarComPool = async (itens: string[], tamanho: number, fn: (item: string) => Promise<void>) => {
     let proximo = 0;
     const executar = async () => {
       while (true) {
         const i = proximo++;
-        if (i >= itens.length) return;
+        if (i >= itens.length || abortarColetaGlobal) return;
+        await new Promise(r => setTimeout(r, 200)); // Delay de 200ms
         await fn(itens[i]);
       }
     };
@@ -303,9 +303,9 @@ export async function collectSolidesJobs(
     await Promise.all(workers);
   };
 
-  const CONCORRENCIA_SOLIDES = 4;
+  const CONCORRENCIA_SOLIDES = 2;
   await executarComPool(termos, CONCORRENCIA_SOLIDES, async (termo) => {
-    if (vagasPorId.size >= limiteGlobal || abortarTermos) {
+    if (vagasPorId.size >= limiteGlobal) {
       return
     }
 
@@ -336,10 +336,11 @@ export async function collectSolidesJobs(
         console.warn(`Sólides: falha em "${termo}" página ${pagina} (${falhasConsecutivas}/${MAX_FALHAS_CONSECUTIVAS}): ${mensagem}`)
 
         if (falhasConsecutivas >= MAX_FALHAS_CONSECUTIVAS) {
-          console.warn(`Sólides: ${MAX_FALHAS_CONSECUTIVAS} falhas consecutivas, abortando coletor.`)
-          abortarTermos = true
+          console.warn(`Sólides: Circuit Breaker acionado. ${MAX_FALHAS_CONSECUTIVAS} falhas seguidas. Abortando coleta inteira.`)
+          abortarColetaGlobal = true;
         }
 
+        resultado = { jobs: [], totalPages: null }
         break
       }
 

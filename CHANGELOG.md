@@ -627,3 +627,9 @@ Consolidado a partir do histórico de commits de `main` e das mudanças da sess�
 
 - Estrutura inicial do backend.
 - Fluxo inicial de vagas.
+
+## [2026-10-18 — Resiliência Sólides: Circuit Breaker e Rate Limit]
+
+### Fixed
+- `solides.ts`: Redução da concorrência para 2 workers, adição de delay de 200ms entre chamadas e timeout de 4s. 
+- Reintrodução do Circuit Breaker: se 4 falhas consecutivas ocorrerem (rate limit, 429 ou timeout), a coleta inteira é abortada. O tempo de desistência cai de 44s para < 16s.
