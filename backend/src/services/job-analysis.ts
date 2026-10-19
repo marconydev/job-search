@@ -63,7 +63,17 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
       job.source
     )
 
-    if (elegibilidade.situacao === "incompativel") {
+    const match = matchJob(job, perfil)
+    let status = getMatchStatus(match.score)
+    let isIncompativel = elegibilidade.situacao === "incompativel"
+
+    // Blindagem: score muito alto (>= 80) nunca e descartado por localizacao
+    if (match.score >= 80) {
+      isIncompativel = false
+      status = "relevant"
+    }
+
+    if (isIncompativel) {
       await saveJobMatch({
         jobId: job.id,
         localScore: 0,
@@ -71,13 +81,9 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional) {
         reasons: [elegibilidade.motivo],
         status: "discarded"
       })
-
       discarded++
     } else {
-      const match = matchJob(job, perfil)
-      let status = getMatchStatus(match.score)
-      
-      // Blindagem: portais nacionais (Sólides/Gupy/Vagas) com score alto nao caem por metadados vagos
+      // Blindagem: portais nacionais (Sólides/Gupy/Vagas) com score >= 60
       const isFonteNacional = ["solides", "gupy", "vagas"].includes(job.source)
       if (isFonteNacional && match.score >= MIN_SCORE_RELEVANT) {
         status = "relevant"
