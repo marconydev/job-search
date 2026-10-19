@@ -46,12 +46,14 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
 
     if (expiradaPorData || (!dataPub && !fonteSemData)) {
       await saveJobMatch({ jobId: job.id, localScore: 0, matchedSkills: [], reasons: ["Vaga expirada ou sem data."], status: "discarded" });
+      await salvarAmostraDescarte({ execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000", fonte: job.source, motivo: "expirada", trechoDescricao: job.description?.substring(0, 200) || null, regraDisparada: "Expirada ou sem data" });
       discarded++;
       continue;
     }
 
     if (isEstagio(job.title)) {
       await saveJobMatch({ jobId: job.id, localScore: 0, matchedSkills: [], reasons: ["Vaga de estágio/trainee ignorada."], status: "discarded" });
+      await salvarAmostraDescarte({ execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000", fonte: job.source, motivo: "estagio", trechoDescricao: job.description?.substring(0, 200) || null, regraDisparada: "Estagio/trainee" });
       discarded++;
       continue;
     }
@@ -85,16 +87,8 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
         status: "discarded",
         perfilHash
       })
-      
-      // A4: Salva amostra de descarte por elegibilidade
-      await salvarAmostraDescarte({
-        execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000",
-        fonte: job.source,
-        motivo: elegibilidade.situacao || "incompativel",
-        trechoDescricao: job.description?.substring(0, 200) || null,
-        regraDisparada: elegibilidade.motivo || null
-      })
-      
+            
+      await salvarAmostraDescarte({ execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000", fonte: job.source, motivo: elegibilidade.situacao || "incompativel", trechoDescricao: job.description?.substring(0, 200) || null, regraDisparada: elegibilidade.motivo || "Incompativel" });
       discarded++
     } else {
       // Blindagem: portais nacionais (Sólides/Gupy/Vagas) com score >= 60
@@ -113,7 +107,10 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
       })
 
       if (status === "relevant") relevant++
-      else discarded++
+      else {
+        await salvarAmostraDescarte({ execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000", fonte: job.source, motivo: "score_baixo", trechoDescricao: job.description?.substring(0, 200) || null, regraDisparada: "Score abaixo do minimo" });
+        discarded++
+      }
     }
 
     if ((indice + 1) % TAMANHO_LOTE_ANALISE === 0) {
