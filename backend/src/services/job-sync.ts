@@ -3,6 +3,7 @@ import { collectors } from "../collectors/index.js"
 import { refreshExistingJobs } from "../repositories/job-repository.js"
 
 import { registrarTelemetriaFonte } from "../repositories/funil-telemetria-repository.js"
+import { buscarControleBuscaWeb, salvarControleBuscaWeb } from "../repositories/controle-busca-web-repository.js"
 import { ELEGIBILIDADE_VERSION } from "./elegibilidade-localizacao.js"
 import { MATCHER_VERSION } from "../config/matcher.js"
 import { createHash } from "node:crypto"
@@ -107,12 +108,13 @@ async function processarFonteDireta(
   perfil: PerfilProfissional,
   limite: number,
   execucaoId?: string,
-  perfilHash?: string
+  perfilHash?: string,
+  offset?: number
 ): Promise<ResultadoFonte> {
   const inicioFonte = performance.now();
 
   try {
-    const coleta = await coletor.collect(limite, perfil)
+    const coleta = await coletor.collect(limite, perfil, { offset })
     const atualizacao = await refreshExistingJobs(coleta.jobs)
 
     if (atualizacao.updated > 0 || atualizacao.invalidated > 0) {
@@ -161,7 +163,8 @@ async function processarFonteDireta(
 async function coletarFontesDiretas(
   perfil: PerfilProfissional,
   limite: number,
-  execucaoId?: string
+  execucaoId?: string,
+  offsets?: Record<string, number>
 ): Promise<ResultadoFonte[]> {
   const resultados: ResultadoFonte[] = []
   const perfilHash = createHash("sha256").update(JSON.stringify(perfil)).digest("hex").slice(0, 16);
@@ -182,7 +185,8 @@ async function coletarFontesDiretas(
 
   const CONCORRENCIA_DIRETAS = 3;
   await executarComPool(collectors, CONCORRENCIA_DIRETAS, async (coletor, indice) => {
-    resultados[indice] = await processarFonteDireta(coletor, perfil, limite, execucaoId, perfilHash);
+    const offset = offsets?.[coletor.name] || 0
+    resultados[indice] = await processarFonteDireta(coletor, perfil, limite, execucaoId, perfilHash, offset);
   });
 
   return resultados
@@ -222,7 +226,12 @@ export async function syncJobs(
 
   const inicioFontes = agoraMs()
 
-  const fontesDiretas = await coletarFontesDiretas(perfil, limite, opcoes.execucaoId)
+  const cache = await buscarControleBuscaWeb() || { versao: 1, consultas: {}, chamadasPorDia: {}, offsets: {} }
+  const offsetGupy = cache.offsets?.gupy || 0
+  const offsetSolides = cache.offsets?.solides || 0
+  console.log(`[DEBUG OFFSETS] cache lido: ${JSON.stringify(cache.offsets)} | Gupy: ${offsetGupy} | Solides: ${offsetSolides}`);
+
+  const fontesDiretas = await coletarFontesDiretas(perfil, limite, opcoes.execucaoId, { gupy: offsetGupy, solides: offsetSolides })
 
   console.log(`Tempo fontes diretas: ${formatarDuracao(inicioFontes)}s`)
 
@@ -310,24 +319,36 @@ export async function syncJobs(
 
   console.log(`Tempo análise: ${formatarDuracao(inicioAnalise)}s`)
 
+
+
+  // Salva os novos offsets para a proxima rodada (avanço específico por coletor)
+  const cacheFinal: any = (await buscarControleBuscaWeb()) || { versao: 1, consultas: {}, chamadasPorDia: {}, offsets: {} }
+  if (!cacheFinal.offsets) cacheFinal.offsets = {}
+  
+  for (const coletor of collectors) {
+    const offsetAtual = cacheFinal.offsets[coletor.name] || 0
+    let avanco = 10
+    if (coletor.name === 'gupy') avanco = 40
+    else if (coletor.name === 'solides') avanco = 20
+    else if (coletor.name === 'getonboard') avanco = 8
+    else if (coletor.name === 'remotive') avanco = 8
+    
+    cacheFinal.offsets[coletor.name] = offsetAtual + avanco
+  }
+  await salvarControleBuscaWeb(cacheFinal)
+
   console.log(`Tempo total sincronização: ${formatarDuracao(inicioTotal)}s`)
 
   return {
     modo: {
       braveAutorizada: usarBrave,
-
       limiteBrave
     },
-
     fontes,
-
     web,
-
     analise: {
       analisadas: analise.analyzed,
-
       relevantes: analise.relevant,
-
       descartadas: analise.discarded
     }
   }

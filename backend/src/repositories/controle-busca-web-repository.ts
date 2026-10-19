@@ -14,6 +14,8 @@ export type CacheBuscas = {
   consultas: Record<string, RegistroConsultaCache>
 
   chamadasPorDia: Record<string, number>
+
+  offsets?: Record<string, number>
 }
 
 function ehObjeto(valor: unknown): valor is Record<string, unknown> {
@@ -27,32 +29,21 @@ function ehObjeto(valor: unknown): valor is Record<string, unknown> {
  * de descoberta de vagas.
  */
 export function cacheBuscaEhValido(valor: unknown): valor is CacheBuscas {
-  if (!ehObjeto(valor)) {
-    return false
-  }
-
-  if (valor.versao !== 1) {
-    return false
-  }
-
-  if (!ehObjeto(valor.consultas) || !ehObjeto(valor.chamadasPorDia)) {
-    return false
-  }
-
-  for (const registro of Object.values(valor.consultas)) {
-    if (!ehObjeto(registro)) {
-      return false
-    }
-
-    if (typeof registro.consultadoEm !== "string" || !Array.isArray(registro.paginas)) {
-      return false
+  if (!ehObjeto(valor)) return false
+  if (valor.versao !== 1) return false
+  if (!ehObjeto(valor.consultas) || !ehObjeto(valor.chamadasPorDia)) return false
+  
+  // Limpa consultas invalidas em vez de descartar o cache inteiro
+  for (const chave of Object.keys(valor.consultas)) {
+    const registro = valor.consultas[chave]
+    if (!ehObjeto(registro) || typeof registro.consultadoEm !== "string" || !Array.isArray(registro.paginas)) {
+      delete valor.consultas[chave]
     }
   }
 
-  for (const quantidade of Object.values(valor.chamadasPorDia)) {
-    if (typeof quantidade !== "number" || !Number.isFinite(quantidade) || quantidade < 0) {
-      return false
-    }
+  // Garante que offsets existam
+  if (!valor.offsets) {
+    valor.offsets = {}
   }
 
   return true
