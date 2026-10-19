@@ -177,6 +177,14 @@ function avaliarCursos(
 }
 
 export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): CorrespondenciaVaga {
+  // Bloqueio Hard de Cargos de Desvio (Prioridade Absoluta)
+  const textoDesvio = `${vaga.title || ""} ${vaga.description || ""}`.toLowerCase();
+  const desvios = perfil.cargosDesvio || [];
+  for (const desvio of desvios) {
+    if (textoDesvio.includes(desvio.toLowerCase())) {
+      return { job: vaga, score: 0, matchedSkills: [], reasons: [`Cargo de desvio detectado: ${desvio}`] };
+    }
+  }
   const titulo = normalizarTexto(vaga.title)
   const descricao = normalizarTexto(removerHtml(vaga.description))
   const motivos: string[] = []
