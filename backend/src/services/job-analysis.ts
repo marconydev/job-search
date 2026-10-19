@@ -85,6 +85,16 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
         status: "discarded",
         perfilHash
       })
+      
+      // A4: Salva amostra de descarte por elegibilidade
+      await salvarAmostraDescarte({
+        execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000",
+        fonte: job.source,
+        motivo: elegibilidade.situacao || "incompativel",
+        trechoDescricao: job.description?.substring(0, 200) || null,
+        regraDisparada: elegibilidade.motivo || null
+      })
+      
       discarded++
     } else {
       // Blindagem: portais nacionais (Sólides/Gupy/Vagas) com score >= 60
