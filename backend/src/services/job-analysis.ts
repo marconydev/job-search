@@ -43,8 +43,9 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
     // Nesse caso, não podemos descartar por tempo (Zero Zumbis não se aplica).
     const fonteSemData = job.source === "solides" || job.source === "vagas";
     const expiradaPorData = dataPub && (agora - dataPub) > JANELA_DIAS * 24 * 60 * 60 * 1000;
+    const isGupy = job.source === "gupy";
 
-    if (expiradaPorData || (!dataPub && !fonteSemData)) {
+    if ((expiradaPorData && !isGupy) || (!dataPub && !fonteSemData && !isGupy)) {
       await saveJobMatch({ jobId: job.id, localScore: 0, matchedSkills: [], reasons: ["Vaga expirada ou sem data."], status: "discarded" });
       await salvarAmostraDescarte({ execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000", fonte: job.source, motivo: "expirada", trechoDescricao: job.description?.substring(0, 200) || null, regraDisparada: "Expirada ou sem data" });
       discarded++;
@@ -87,7 +88,8 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
       discarded++
     } else {
       // Blindagem: portais nacionais (Sólides/Gupy/Vagas) com score >= 60
-      const isFonteNacional = ["solides", "gupy", "vagas"].includes(job.source)
+      const fonteStr = String(job.source || "").toLowerCase();
+      const isFonteNacional = fonteStr.includes("solides") || fonteStr.includes("gupy") || fonteStr.includes("vagas");
       if (isFonteNacional && match.score >= MIN_SCORE_RELEVANT) {
         status = "relevant"
       }
@@ -103,6 +105,7 @@ async function analisarVagas(jobs: StoredJob[], perfil: PerfilProfissional, exec
 
       if (status === "relevant") relevant++
       else {
+        match.reasons.push("Score abaixo do corte de " + MIN_SCORE_RELEVANT);
         await salvarAmostraDescarte({ execucaoId: execucaoId || "00000000-0000-0000-0000-000000000000", fonte: job.source, motivo: "score_baixo", trechoDescricao: job.description?.substring(0, 200) || null, regraDisparada: "Score abaixo do minimo" });
         discarded++
       }

@@ -176,10 +176,13 @@ export async function listRelevantJobMatches(minScore: number) {
 
           AND j.unavailable_at IS NULL
 
-          AND COALESCE(
-            j.published_at,
-            j.created_at
-          ) >= NOW() - ($2::int * INTERVAL '1 day')
+          AND (
+            j.source = 'gupy'
+            OR COALESCE(
+              j.published_at,
+              j.created_at
+            ) >= NOW() - ($2::int * INTERVAL '1 day')
+          )
 
           AND (
             COALESCE(
@@ -296,19 +299,24 @@ export async function listDashboardJobMatches() {
 
             AND j.unavailable_at IS NULL
 
-            AND COALESCE(
-              j.published_at,
-              j.created_at
-            ) >= NOW() - ($1::int * INTERVAL '1 day')
-
             AND (
-              COALESCE(
-                j.published_at,
-                j.created_at
-              ) >= NOW() - ($2::int * INTERVAL '1 day')
+              j.source = 'gupy'
+              OR (
+                COALESCE(
+                  j.published_at,
+                  j.created_at
+                ) >= NOW() - ($1::int * INTERVAL '1 day')
 
-              OR j.last_seen_at >=
-                NOW() - ($3::int * INTERVAL '1 day')
+                AND (
+                  COALESCE(
+                    j.published_at,
+                    j.created_at
+                  ) >= NOW() - ($2::int * INTERVAL '1 day')
+
+                  OR j.last_seen_at >=
+                    NOW() - ($3::int * INTERVAL '1 day')
+                )
+              )
             )
           )
         )
@@ -404,19 +412,24 @@ export async function getJobDashboardSummary() {
 
               AND j.unavailable_at IS NULL
 
-              AND COALESCE(
-                j.published_at,
-                j.created_at
-              ) >= NOW() - ($1::int * INTERVAL '1 day')
-
               AND (
-                COALESCE(
-                  j.published_at,
-                  j.created_at
-                ) >= NOW() - ($2::int * INTERVAL '1 day')
+                j.source = 'gupy'
+                OR (
+                  COALESCE(
+                    j.published_at,
+                    j.created_at
+                  ) >= NOW() - ($1::int * INTERVAL '1 day')
 
-                OR j.last_seen_at >=
-                  NOW() - ($3::int * INTERVAL '1 day')
+                  AND (
+                    COALESCE(
+                      j.published_at,
+                      j.created_at
+                    ) >= NOW() - ($2::int * INTERVAL '1 day')
+
+                    OR j.last_seen_at >=
+                      NOW() - ($3::int * INTERVAL '1 day')
+                  )
+                )
               )
             )
           )

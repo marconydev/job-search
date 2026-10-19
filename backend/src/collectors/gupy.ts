@@ -49,6 +49,7 @@ type GupyJob = {
   careerPageUrl?: string
 
   publishedDate?: string
+  status?: string
 }
 
 type GupyResponse = {
@@ -126,6 +127,9 @@ function montarLocalizacao(vaga: GupyJob) {
 }
 
 function normalizarVaga(vaga: GupyJob): NewJob | null {
+  if (vaga.status && vaga.status !== "published") {
+    return null
+  }
   const id = vaga.id
 
   const titulo = texto(vaga.name)
@@ -171,7 +175,7 @@ function normalizarVaga(vaga: GupyJob): NewJob | null {
 
     url,
 
-    publishedAt: normalizarData(vaga.publishedDate),
+    publishedAt: normalizarData(vaga.publishedDate), // Fix Tech Lead: Extrai a data real de publicacao da Gupy
 
     /**
      * Se por algum motivo a listagem vier sem descrição, preservo a vaga
@@ -241,7 +245,8 @@ async function buscarPaginaGupy(termo: string, limit: number, offset: number) {
  */
 export async function collectGupyJobs(
   limit = 100,
-  perfil?: PerfilProfissional
+  perfil?: PerfilProfissional,
+  opcoes?: { offset?: number }
 ): Promise<JobCollection> {
   if (!perfil) {
     return {
@@ -251,14 +256,20 @@ export async function collectGupyJobs(
     }
   }
 
-  const termos = gerarTermosBuscaNativaGupy(perfil)
-
-  if (termos.length === 0) {
+  const todosTermos = gerarTermosBuscaNativaGupy(perfil)
+  
+  if (todosTermos.length === 0) {
     return {
       source: "gupy",
 
       jobs: []
     }
+  }
+
+  const offset = opcoes?.offset || 0
+  let termos = todosTermos.slice(offset, offset + 40)
+  if (termos.length === 0) {
+    termos = todosTermos.slice(0, 40)
   }
 
   const limitePorTermo = normalizarLimite(limit)
