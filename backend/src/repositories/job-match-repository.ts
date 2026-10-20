@@ -177,7 +177,7 @@ export async function listRelevantJobMatches(minScore: number) {
           AND j.unavailable_at IS NULL
 
           AND (
-            j.source = 'gupy'
+            j.source IN ('gupy', 'solides')
             OR COALESCE(
               j.published_at,
               j.created_at
@@ -300,7 +300,7 @@ export async function listDashboardJobMatches() {
             AND j.unavailable_at IS NULL
 
             AND (
-              j.source = 'gupy'
+              j.source IN ('gupy', 'solides')
               OR (
                 COALESCE(
                   j.published_at,
@@ -413,7 +413,7 @@ export async function getJobDashboardSummary() {
               AND j.unavailable_at IS NULL
 
               AND (
-                j.source = 'gupy'
+                j.source IN ('gupy', 'solides')
                 OR (
                   COALESCE(
                     j.published_at,

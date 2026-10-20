@@ -563,6 +563,10 @@ export function avaliarElegibilidadeBrasil(
   }
 
   if (modalidade === "remote") {
+    // Fix Tech Lead: Worldwide/Global/LATAM são aprovados automaticamente
+    if (contemAlgumTermo(textoLocalizacao, ["worldwide", "global", "anywhere", "latam", "south america", "america do sul", "americas"])) {
+      return { situacao: "compativel", motivo: "Vaga remota com aceitação global (Worldwide/Global/LATAM)." };
+    }
     if (localizacaoBrasilConfirmada(localizacao)) {
       return {
         situacao: "compativel",

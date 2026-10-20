@@ -118,7 +118,7 @@ export function PainelVagas({
 
   const [filtroFonte, setFiltroFonte] = useState("todas")
 
-  const [pontuacaoMinima, setPontuacaoMinima] = useState(60)
+  const [pontuacaoMinima, setPontuacaoMinima] = useState(0)
 
   const [ordenacao, setOrdenacao] = useState<OrdenacaoVagas>("recentes")
 
@@ -281,7 +281,7 @@ export function PainelVagas({
   }
 
   function alterarFiltroStatus(valor: FiltroStatus) {
-    const novoScoreMinimo = valor === "applied" || valor === "ignored" ? 0 : 60
+    const novoScoreMinimo = 0
 
     setFiltroStatus(valor)
 
@@ -446,14 +446,14 @@ export function PainelVagas({
 
     setFiltroFonte("todas")
 
-    setPontuacaoMinima(60)
+    setPontuacaoMinima(0)
 
     setOrdenacao("recentes")
 
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
 
     const primeiraAberta = dados.vagas.find(
-      vaga => vaga.local_score >= 60 && vagaPertenceAoFiltro(vaga, "abertas")
+      vaga => vaga.local_score >= 0 && vagaPertenceAoFiltro(vaga, "abertas")
     )
 
     setVagaSelecionadaId(primeiraAberta?.id ?? null)
@@ -468,7 +468,7 @@ export function PainelVagas({
     filtroStatus !== "abertas" ||
     filtroModalidade !== "todas" ||
     filtroFonte !== "todas" ||
-    pontuacaoMinima !== 60
+    pontuacaoMinima !== 0
 
   const itensOportunidades = [
     {

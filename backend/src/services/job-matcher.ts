@@ -81,6 +81,11 @@ function encontrarCompetencias(texto: string, perfil: PerfilProfissional) {
 }
 
 function pontuarCargo(titulo: string, motivos: string[], perfil: PerfilProfissional) {
+  const tituloNorm = normalizarTexto(titulo);
+  if (/\b(suporte|support|infraestrutura|infrastructure|service desk|helpdesk|help desk|implantacao|implementation)\b/.test(tituloNorm)) {
+    motivos.push("Cargo diretamente relacionado (núcleo de Suporte/Infra)");
+    return { pontos: 60, aderente: true, principal: true };
+  }
   const principais = encontrarCargos(titulo, perfil.cargosPrincipais)
   if (principais.length > 0) {
     motivos.push("Cargo diretamente relacionado ao perfil")
@@ -178,7 +183,7 @@ function avaliarCursos(
 
 export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): CorrespondenciaVaga {
   // Bloqueio Hard de Cargos de Desvio (Prioridade Absoluta)
-  const textoDesvio = `${vaga.title || ""} ${vaga.description || ""}`.toLowerCase();
+  const textoDesvio = (vaga.title || "").toLowerCase(); // Fix Tech Lead: Desvio apenas no título
   const desvios = perfil.cargosDesvio || [];
   for (const desvio of desvios) {
     if (textoDesvio.includes(desvio.toLowerCase())) {
@@ -258,10 +263,7 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
   pontuacao += avaliarExperiencia(titulo, competencias, motivos, perfil)
   pontuacao += avaliarCursos(texto, competencias, motivos, perfil)
 
-  if (politica.desconto > 0) {
-    pontuacao -= politica.desconto
-    motivos.push(`Título fora do foco em português: -${politica.desconto} ponto(s)`)
-  }
+  // Fix Tech Lead: Penalidade de idioma removida
 
   return {
     job: vaga,
