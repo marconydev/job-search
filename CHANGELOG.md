@@ -1,3 +1,15 @@
+## [2026-10-20 — Tech Lead: Correção de Offset, Timeouts e Regra Gupy]
+
+### Fixed
+- **Rotação de Termos (`gupy.ts` e `solides.ts`):** Corrigida a lógica de offset. Os 10 termos principais sempre rodam, evitando que vagas core (ex: "Analista de Suporte") fossem puladas pelo avanço cego.
+- **Timeouts Remotos (`remotive.ts`, `remote-ok.ts`, `arbeitnow.ts`):** Injetado `fetchComTimeout` para evitar travamentos indefinidos do Node.
+- **Regra Temporal da Gupy (`job-match-repository.ts`):** Removido o hack `maxAgeDays=365`. A API da Gupy agora é isenta do corte de 21 dias via SQL (pois só retorna vagas abertas), enquanto outras fontes respeitam o limite estrito.
+- **Telemetria (`job-analysis.ts`):** Removida a duplicação do `match.reasons.push`.
+
+### Validated
+- **Brave (LinkedIn/Indeed/Glassdoor):** Teste de integração provou que a busca web está ativa (5 chamadas, 80 resultados).
+- **GeekHunter Limbo:** Auditoria comprovou que as 57 vagas "desaparecidas" caíram em `localizacaoInferida` (a telemetria já estava correta).
+
 # Changelog
 
 ## [2026-10-19 — Sprint 1 e 2 (Tech Lead) e Início da Sprint 3]

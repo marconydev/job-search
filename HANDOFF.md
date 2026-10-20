@@ -1,5 +1,23 @@
 # HANDOFF — Job Search
 
+## 0. Sessão 20/10/2026 — Correção de Rotação, Timeout e Regra Gupy
+
+**Estado:** Deploy autorizado.
+
+### Concluído nesta sessão:
+- **Hack Removido (de novo):** O `maxAgeDays = 365` que eu havia aplicado foi removido. O SQL da API agora isenta **apenas a Gupy** do filtro de 21 dias, respeitando o campo de inscrições abertas que a API da Gupy fornece implicitamente.
+- **Offset Corrigido:** A rotação de termos da Gupy e da Sólides agora **sempre** inclui os 10 primeiros termos principais antes de rotacionar. Isso impede que "Analista de Suporte" suma da busca quando o offset avança.
+- **Timeout em Fontes Remotas:** Remotive, Remote OK e Arbeitnow agora usam `fetchComTimeout`, evitando que o terminal ou o Render travem esperando resposta infinita.
+- **Brave Validado:** A busca web (LinkedIn, Indeed, Glassdoor) foi testada com sucesso (5 chamadas, 80 resultados).
+
+### PENDENTE (Próximos Passos):
+1. **Extração Web:** O Brave retornou 80 resultados, mas `Compativeis Brasil: 0`. Precisamos investigar o extrator (`page-inspector.ts` e `linkedin.ts`) para ver por que a localização não está sendo confirmada.
+2. **Frontend/API:** Após o deploy, se as 95 vagas da Gupy (que passaram no funil) não aparecerem na tela, o problema está na API (`/jobs/dashboard`).
+
+
+---
+
+
 
 ## 0. Sessão 19/10/2026 — Sprint 1 e 2 (Tech Lead)
 
