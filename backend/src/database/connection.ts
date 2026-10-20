@@ -1,3 +1,6 @@
+import dns from "node:dns"
+dns.setDefaultResultOrder("ipv4first")
+
 import "dotenv/config"
 
 import pg from "pg"
@@ -36,7 +39,8 @@ const configuracaoPool = {
 export const db = databaseUrl
   ? new Pool({
       connectionString: databaseUrl,
-
+      ssl: { rejectUnauthorized: false },
+      keepAlive: true,
       ...configuracaoPool
     })
   : new Pool({
