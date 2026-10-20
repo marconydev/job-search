@@ -1,5 +1,13 @@
 # README_ATUAL — Job Search
 
+## Sessão 20/10/2026 — Consolidação
+- **Matcher:** Correção total de falsos negativos (inglês, SRE, núcleo de suporte).
+- **Geolocalização:** Worldwide/LATAM liberados para vagas remotas.
+- **Banco:** Expurgo de 967 vagas incompatíveis. As 492 melhores vagas estão prontas no painel.
+
+---
+h
+
 Snapshot do estado da aplicação após a sessão de 20/10/2026.
 
 ## Funcionalidades ativas (Correções Aplicadas)

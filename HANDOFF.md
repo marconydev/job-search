@@ -1,5 +1,21 @@
 # HANDOFF — Job Search
 
+## 0. Sessão 20/10/2026 — Banco Limpo e Matcher Desbloqueado
+
+**Estado:** 100% Funcional, banco saneado (1459 analisadas, 492 relevantes).
+
+### Concluído:
+- **Infra (IPv4):** O Render não sofre mais timeout com o Neon.
+- **Matcher:** SRE na descrição não zera mais vaga. Títulos em inglês não perdem pontos. Família de cargos normalizada.
+- **Frontend:** Filtro de Score restaurado para 60 (exibe apenas as 492 vagas boas).
+- **Banco:** Limpeza definitiva. As 967 vagas ruins (PCDs, Devs, Score 0) foram devidamente descartadas no Neon.
+
+### Pendências (Sprint 3):
+- Validar cobertura do Brave (LinkedIn/Indeed).
+
+---
+
+
 ## 0. Sessão 20/10/2026 — Correção de Rotação, Timeout e Regra Gupy
 
 **Estado:** Deploy autorizado.

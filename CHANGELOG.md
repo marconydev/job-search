@@ -1,3 +1,16 @@
+## [2026-10-20 — Reanálise em Massa e Consolidação do Matcher]
+
+### Fixed
+- **job-matcher.ts:** Removido bloqueio de desvio (SRE/Dev) na descrição, removida a punição de -15 pts em inglês e adicionado núcleo de cargo (Assistente/Suporte).
+- **elegibilidade-localizacao.ts:** Vagas Worldwide, Global, Anywhere e LATAM liberadas para o remoto.
+- **job-match-repository.ts:** API isenta a Sólides do corte de 21 dias.
+- **painel-vagas.tsx:** Filtro de exibição inicial restaurado para Score 60 (esconde o lixo).
+
+### Applied (Neon)
+- Reanálise em massa de 1459 vagas no banco.
+- 967 vagas (PCD, Dev, Score 0, Geo incompatível) movidas para DISCARDED.
+- 492 vagas de Suporte/Infra/Remoto confirmadas como RELEVANT.
+
 ## [2026-10-20 — Tech Lead: Correção de Offset, Timeouts e Regra Gupy]
 
 ### Fixed
