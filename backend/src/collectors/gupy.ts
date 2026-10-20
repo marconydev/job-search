@@ -267,10 +267,13 @@ export async function collectGupyJobs(
   }
 
   const offset = opcoes?.offset || 0
-  let termos = todosTermos.slice(offset, offset + 40)
-  if (termos.length === 0) {
-    termos = todosTermos.slice(0, 40)
+  const principais = todosTermos.slice(0, 10);
+  const rotativos = todosTermos.slice(10);
+  let termosRotacionados = rotativos.slice(offset, offset + 30);
+  if (termosRotacionados.length === 0) {
+    termosRotacionados = rotativos.slice(0, 30);
   }
+  let termos = [...principais, ...termosRotacionados];
 
   const limitePorTermo = normalizarLimite(limit)
 

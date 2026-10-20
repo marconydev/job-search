@@ -257,7 +257,8 @@ async function buscarPagina(
  */
 export async function collectSolidesJobs(
   limit = 100,
-  perfil?: PerfilProfissional
+  perfil?: PerfilProfissional,
+  opcoes?: { offset?: number }
 ): Promise<JobCollection> {
   if (!perfil) {
     return {
@@ -267,15 +268,24 @@ export async function collectSolidesJobs(
     }
   }
 
-  const termos = gerarTermosBuscaNativaSolides(perfil)
-
-  if (termos.length === 0) {
+  const todosTermos = gerarTermosBuscaNativaSolides(perfil)
+  
+  if (todosTermos.length === 0) {
     return {
       source: "solides",
 
       jobs: []
     }
   }
+
+  const offset = opcoes?.offset || 0
+  const principais = todosTermos.slice(0, 5);
+  const rotativos = todosTermos.slice(5);
+  let termosRotacionados = rotativos.slice(offset, offset + 15);
+  if (termosRotacionados.length === 0) {
+    termosRotacionados = rotativos.slice(0, 15);
+  }
+  let termos = [...principais, ...termosRotacionados];
 
   const limitePorTermo = normalizarLimite(limit)
 

@@ -1,4 +1,5 @@
 import { gerarTermosBuscaPortugues } from "./collector-utils.js"
+import { fetchComTimeout } from "./collector-utils.js"
 
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
@@ -46,9 +47,16 @@ function normalizeJob(job: RemotiveJob): NewJob {
 
 export async function collectRemotiveJobs(
   limit = 100,
-  perfil?: PerfilProfissional
+  perfil?: PerfilProfissional,
+  opcoes?: { offset?: number }
 ): Promise<JobCollection> {
-  const termos = perfil ? gerarTermosBuscaPortugues(perfil, 8) : []
+  const todosTermos = perfil ? gerarTermosBuscaPortugues(perfil, 100) : []
+  const offset = opcoes?.offset || 0
+  const offsetFinal = offset % (todosTermos.length || 1)
+  let termos = todosTermos.slice(offsetFinal, offsetFinal + 8)
+  if (termos.length < 8 && todosTermos.length > 0) {
+    termos = termos.concat(todosTermos.slice(0, 8 - termos.length))
+  }
 
   const vagasPorId = new Map<number, NewJob>()
 
@@ -63,7 +71,7 @@ export async function collectRemotiveJobs(
       url.searchParams.set("limit", String(limit))
     }
 
-    const response = await fetch(url)
+    const response = await fetchComTimeout(url)
 
     if (!response.ok) {
       throw new Error(`Remotive respondeu com status ${response.status}`)

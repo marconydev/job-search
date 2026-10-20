@@ -1,4 +1,5 @@
 import { gerarTermosBuscaPortugues, normalizarTexto } from "./collector-utils.js"
+import { fetchComTimeout } from "./collector-utils.js"
 
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
@@ -84,7 +85,8 @@ function normalizarVaga(vaga: ArbeitnowJob): NewJob | null {
 
 async function collectArbeitnowJobs(
   limit = 100,
-  perfil?: PerfilProfissional
+  perfil?: PerfilProfissional,
+  opcoes?: { offset?: number }
 ): Promise<JobCollection> {
   const termos = perfil ? gerarTermosBuscaPortugues(perfil, 10).map(normalizarTexto) : []
 
@@ -101,7 +103,7 @@ async function collectArbeitnowJobs(
   while (proximaUrl && jobs.length < limit && paginas < 5) {
     paginas++
 
-    const response = await fetch(proximaUrl, {
+    const response = await fetchComTimeout(proximaUrl, {
       headers: {
         Accept: "application/json"
       }

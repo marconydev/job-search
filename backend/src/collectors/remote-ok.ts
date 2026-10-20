@@ -1,4 +1,5 @@
 import { gerarTermosBuscaPortugues, normalizarTexto } from "./collector-utils.js"
+import { fetchComTimeout } from "./collector-utils.js"
 
 import type { JobCollection, JobCollector } from "../types/collector.js"
 
@@ -102,9 +103,10 @@ function normalizarVaga(vaga: RemoteOkJob): NewJob | null {
 
 async function collectRemoteOkJobs(
   limit = 100,
-  perfil?: PerfilProfissional
+  perfil?: PerfilProfissional,
+  opcoes?: { offset?: number }
 ): Promise<JobCollection> {
-  const response = await fetch(URL_REMOTE_OK, {
+  const response = await fetchComTimeout(URL_REMOTE_OK, {
     headers: {
       Accept: "application/json",
 
