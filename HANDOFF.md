@@ -2,6 +2,24 @@
 
 ## 0. Sessão 03/11/2026 — Sprint 1 Concluída (Bug Aba Novas)
 
+**Estado:** Sprint 1 finalizada. Backend, Frontend e Banco homologados.
+
+### Concluído nesta Sessão:
+- **Bug da Aba Novas:** Corrigido. A tabela `estado_sincronizacao` não é mais usada para calcular se a vaga é nova. A regra agora é estritamente baseada em `created_at >= NOW() - INTERVAL '7 days'`.
+- **Filtro de Data:** O `COALESCE(published_at, created_at)` foi removido da query da Dashboard para não esconder vagas recém-coletadas.
+- **Deploy Render:** Cache do Render estava servindo código antigo. Solucionado com 'Manual Deploy'.
+- **Testes Unitários:** Todos os 241 testes foram atualizados para as novas regras (Worldwide aceito, sem desconto de inglês).
+- **Banco de Dados:** As 572 vagas abertas foram reprocessadas no Neon. O lixo (PCDs, fora do perfil, score baixo) foi movido para discarded.
+
+### PENDENTE (Sprint 2):
+1. **Hard Cutoff de Senioridade:** Bloquear determinísticamente vagas Sênior/Especialista se o perfil for Pleno/Júnior.
+2. **Motor ATS:** Refinar o cálculo de aderência (score) para simular a probabilidade real de seleção.
+
+---
+
+
+## 0. Sessão 03/11/2026 — Sprint 1 Concluída (Bug Aba Novas)
+
 **Estado:** Sprint 1 finalizada e homologada no banco (74 vagas novas validadas via SQL direto).
 
 ### Concluído nesta Sessão:

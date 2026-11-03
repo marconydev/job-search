@@ -1,3 +1,15 @@
+## [2026-11-03 — Sprint 1 Concluída e Homologada]
+
+### Fixed
+- **job-match-repository.ts:** Substituída a janela global de sincronização por uma janela móvel de 7 dias (`created_at >= NOW() - INTERVAL '7 days'`).
+- **job-match-repository.ts:** Removido o `COALESCE` no filtro temporal da dashboard. Agora usa `created_at` puro, impedindo que vagas recém-descobertas sejam escondidas por datas de publicação antigas.
+- **controle-sincronizacao.tsx:** Modal agora exibe 'Novas (Inseridas)' para transparência de dados.
+- **Render:** Problema de cache no deploy resolvido via 'Manual Deploy'.
+
+### Applied (Neon)
+- Reprocessamento e limpeza das vagas em aberto no banco de produção.
+- Validação direta na API confirmou a contagem correta de 67 novas vagas.
+
 ## [2026-11-03 — Sprint 1 Concluída: Correção do Bug de Sincronização e Estado da Aba Novas]
 
 ### Fixed
