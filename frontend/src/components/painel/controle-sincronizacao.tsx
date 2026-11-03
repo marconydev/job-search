@@ -480,6 +480,7 @@ export function ControleSincronizacao() {
     )
 
     const novasFontes = fontes.reduce((total, fonte) => total + fonte.inserted, 0)
+    const descartadasFontes = fontes.reduce((total, fonte) => total + (fonte.found - fonte.matched), 0)
 
     const duplicadasFontes = fontes.reduce((total, fonte) => total + fonte.duplicates, 0)
 
@@ -504,6 +505,7 @@ export function ControleSincronizacao() {
       novasWeb,
 
       novasOportunidades: novasFontes + novasWeb,
+      descartadasFontes,
 
       falhasWeb: resultado.dados.web.falhas + resultado.dados.web.persistenciaDescoberta.falhas
     }
@@ -897,7 +899,7 @@ export function ControleSincronizacao() {
 
               <div className="rounded-2xl bg-emerald-50 p-3 dark:bg-emerald-950/20">
                 <div className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                  Novas
+                  Novas (Inseridas)
                 </div>
 
                 <div className="mt-1 text-xl font-bold text-emerald-700 dark:text-emerald-300">

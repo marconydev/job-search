@@ -1,5 +1,20 @@
 # HANDOFF — Job Search
 
+## 0. Sessão 03/11/2026 — Sprint 1 Concluída (Bug Aba Novas)
+
+**Estado:** Sprint 1 finalizada e homologada no banco (74 vagas novas validadas via SQL direto).
+
+### Concluído nesta Sessão:
+- **Bug da Aba Novas:** A causa era dupla. (1) A tabela `estado_sincronizacao` era sobrescrita, perdendo o rastro das vagas do sync anterior. (2) O filtro `COALESCE(published_at, created_at)` escondia vagas recém-encontradas que tinham data de publicação antiga. Ambas as queries (Dashboard e Summary) foram reescritas para usar `created_at >= NOW() - INTERVAL '7 days'`.
+- **Testes:** Todos os 241 testes unitários foram atualizados para as novas regras do Tech Lead e estão passando.
+
+### PENDENTE (Próximos Passos - Sprint 2):
+1. **Refinamento de Filtros (Hard Cutoff):** Implementar bloqueio determinístico para senioridade e papéis indesejados (ex: bloquear tudo que for 'Sênior' ou 'Especialista' se o perfil não pedir).
+2. **Motor de Aderência (ATS):** Revisar o cálculo de score percentual para simular a probabilidade real de seleção.
+
+---
+
+
 ## 0. Sessão 20/10/2026 — Banco Limpo e Matcher Desbloqueado
 
 **Estado:** 100% Funcional, banco saneado (1459 analisadas, 492 relevantes).

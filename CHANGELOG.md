@@ -1,3 +1,14 @@
+## [2026-11-03 — Sprint 1 Concluída: Correção do Bug de Sincronização e Estado da Aba Novas]
+
+### Fixed
+- **job-match-repository.ts (Backend):** A regra de 'Nova' foi alterada de uma janela global de sincronização para uma janela móvel de 7 dias (`created_at >= NOW() - INTERVAL '7 days'`).
+- **job-match-repository.ts (Backend):** Removida a dependência do `COALESCE(published_at, created_at)` no filtro temporal da dashboard, usando apenas `created_at`. Isso impede que vagas recém-encontradas sejam escondidas por terem datas de publicação antigas.
+- **controle-sincronizacao.tsx (Frontend):** Modal ajustado para diferenciar 'Novas (Inseridas)' de vagas descartadas pelo funil, dando transparência ao usuário.
+- **Testes Unitários:** Suíte de testes atualizada para refletir as novas regras de negócio do Tech Lead (Worldwide liberado, sem punição de título em inglês). 241 testes passando.
+
+### Applied (Neon)
+- Validação direta no banco via SQL confirmou que a nova regra retorna corretamente 74 vagas na aba 'Novas'.
+
 ## [2026-10-20 — Reanálise em Massa e Consolidação do Matcher]
 
 ### Fixed

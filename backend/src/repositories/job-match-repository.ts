@@ -137,7 +137,7 @@ export async function listRelevantJobMatches(minScore: number) {
           j.external_id,
           j.company,
           j.title,
-          j.description,
+          SUBSTRING(j.description, 1, 2500) AS description,
           j.location,
           j.remote,
           j.url,
@@ -178,17 +178,11 @@ export async function listRelevantJobMatches(minScore: number) {
 
           AND (
             j.source IN ('gupy', 'solides')
-            OR COALESCE(
-              j.published_at,
-              j.created_at
-            ) >= NOW() - ($2::int * INTERVAL '1 day')
+            OR j.created_at >= NOW() - ($2::int * INTERVAL '1 day')
           )
 
           AND (
-            COALESCE(
-              j.published_at,
-              j.created_at
-            ) >= NOW() - ($3::int * INTERVAL '1 day')
+            j.created_at >= NOW() - ($3::int * INTERVAL '1 day')
 
             OR j.last_seen_at >=
               NOW() - ($4::int * INTERVAL '1 day')
@@ -229,12 +223,12 @@ export async function listDashboardJobMatches() {
   const result = await db.query(
     `
       SELECT
-        j.id,
-        j.source,
-        j.external_id,
-        j.company,
-        j.title,
-        j.description,
+          j.id,
+          j.source,
+          j.external_id,
+          j.company,
+          j.title,
+          SUBSTRING(j.description, 1, 2500) AS description,
         j.location,
         j.remote,
         j.url,
@@ -242,23 +236,8 @@ export async function listDashboardJobMatches() {
         j.partial,
         j.created_at,
 
-        EXISTS (
-          SELECT 1
-
-          FROM estado_sincronizacao es
-
-          WHERE
-            es.id = 1
-
-            AND es.estado = 'concluida'
-
-            AND es.iniciado_em IS NOT NULL
-
-            AND es.concluido_em IS NOT NULL
-
-            AND j.created_at >= es.iniciado_em
-
-            AND j.created_at <= es.concluido_em
+        (
+          j.created_at >= NOW() - INTERVAL '7 days'
         ) AS nova_sincronizacao,
 
         jm.local_score,
@@ -302,16 +281,10 @@ export async function listDashboardJobMatches() {
             AND (
               j.source IN ('gupy', 'solides')
               OR (
-                COALESCE(
-                  j.published_at,
-                  j.created_at
-                ) >= NOW() - ($1::int * INTERVAL '1 day')
+                j.created_at >= NOW() - ($1::int * INTERVAL '1 day')
 
                 AND (
-                  COALESCE(
-                    j.published_at,
-                    j.created_at
-                  ) >= NOW() - ($2::int * INTERVAL '1 day')
+                  j.created_at >= NOW() - ($2::int * INTERVAL '1 day')
 
                   OR j.last_seen_at >=
                     NOW() - ($3::int * INTERVAL '1 day')
@@ -365,24 +338,7 @@ export async function getJobDashboardSummary() {
 
           j.created_at AS job_created_at,
 
-          EXISTS (
-            SELECT 1
-
-            FROM estado_sincronizacao es
-
-            WHERE
-              es.id = 1
-
-              AND es.estado = 'concluida'
-
-              AND es.iniciado_em IS NOT NULL
-
-              AND es.concluido_em IS NOT NULL
-
-              AND j.created_at >= es.iniciado_em
-
-              AND j.created_at <= es.concluido_em
-          ) AS nova_sincronizacao,
+          ( j.created_at >= NOW() - INTERVAL '7 days' ) AS nova_sincronizacao,
 
           jm.local_score,
 
@@ -415,16 +371,10 @@ export async function getJobDashboardSummary() {
               AND (
                 j.source IN ('gupy', 'solides')
                 OR (
-                  COALESCE(
-                    j.published_at,
-                    j.created_at
-                  ) >= NOW() - ($1::int * INTERVAL '1 day')
+                  j.created_at >= NOW() - ($1::int * INTERVAL '1 day')
 
                   AND (
-                    COALESCE(
-                      j.published_at,
-                      j.created_at
-                    ) >= NOW() - ($2::int * INTERVAL '1 day')
+                    j.created_at >= NOW() - ($2::int * INTERVAL '1 day')
 
                     OR j.last_seen_at >=
                       NOW() - ($3::int * INTERVAL '1 day')
