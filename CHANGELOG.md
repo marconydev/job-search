@@ -1,3 +1,14 @@
+## [2026-11-04 - Sprint 2 Concluída: Aba Expiradas e Ajuste Fino]
+
+### Added
+- **Aba "Possivelmente Expiradas":** Vagas com mais de 21 dias agora são movidas automaticamente para esta aba, em vez de poluir o painel principal ou serem deletadas.
+- **Lógica de Estado (Frontend):** `vagaEstaExpirada()` calcula dinamicamente a idade da vaga.
+- **Backend:** `maxAgeDays` aumentou de 21 para 90, permitindo buscar o histórico de vagas no banco.
+
+### Notes
+- A ordenação por Score (Maior Compatibilidade) já está ativa por padrão.
+- Backend 249/249 verdes. typecheck + build zerados.
+
 ## [2026-11-04 - Sprint 2: ATS 2.0 (Frontend)]
 
 ### Added

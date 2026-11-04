@@ -1,30 +1,18 @@
 # PENDENTES — Job Search
 
-Lista oficial de tarefas e débitos técnicos para as próximas Sprints.
+Lista oficial de tarefas e débitos técnicos.
 
-## 🟡 Sprint 2: Refinamento de Filtros (Hard Cutoff)
-- OK **Senioridade (03/11/2026):** Bloqueio deterministico implementado. Campo `senioridadesExcluidas` em `PerfilProfissional`, cutoff antes de `pontuarCargo`. `MATCHER_VERSION` bumpado.
-- **Cargos Desconexos:** Refinar a lista de `cargosDesvio` (ex: Dev, Fullstack, Engenheiro de Software) para que sejam barrados no título (Score 0).
-- **Ruído Remanescente:** Auditar os logs do Matcher para identificar padrões de vagas que ainda estão passando indevidamente (ex: SEO, Marketing, Vendas).
-
-## 🔵 Sprint 3: Motor de Aderência ATS
-- OK **Cálculo de Score (04/11/2026):** Reformulado. Motor ATS com pesos redistribuídos.
-- OK **Dimensões de Peso (04/11/2026):** Cargo 35, Stack 30, Exp 15, Formação 10, Cursos 5, Local +5, Remoto +10.
-- OK **Threshold (04/11/2026):** Corte em 60 exige stack técnica. Título sozinho soma ~50.
-
-## 🔵 Sprint 3: Motor de Aderência ATS (Fase 2 - Em andamento)
-- OK **Cálculo de Score Base (04/11/2026):** Pesos redistribuídos (Cargo 35, Stack 30, Exp 15, etc.).
-- ⏳ **Missing Keywords (Backend):** Extrair `missingSkills` e injetar em `reasons` com prefixo `[MISSING]`.
-- ⏳ **Zonal Regex (Backend):** Peso 1.5x para skills na zona de requisitos, com fallback defensivo 1.0x.
-- OK **Tiers (Frontend 04/11/2026):** Cores de Tier e tags de `[MISSING]` renderizadas no card e no detalhe. Constantes exportadas para `frontend/src/config/matcher.ts`.
+## 🟢 Sprints 1, 2 e 3 (ATS): Concluídas
+- **Sprint 1:** Correção da Aba Novas (janela de 7 dias).
+- **Sprint 2:** Hard Cutoff de Senioridade e Cargos Desvio. Aba "Possivelmente Expiradas" (> 21 dias).
+- **Sprint 3 (ATS 2.0):** Pesos Redistribuídos (Cargo 35, Stack 30), Zonal Regex (1.5x), Missing Keywords e Tiers de UI.
 
 ## 🟣 Sprint 4: Cobertura de Descoberta (Web)
-- **Brave/LinkedIn:** Investigar por que vagas encontradas via `Brave` (LinkedIn/Indeed) frequentemente caem em `indefinida` ou são descartadas na extração (Débito D7).
+- **Brave/LinkedIn:** Investigar por que vagas encontradas via Brave frequentemente caem em `indefinida` ou são descartadas na extração (Débito D7).
 - **Isolamento de Falhas:** Garantir que a queda de um parser (ex: LinkedIn mudou o DOM) não corrompa a execução global da busca.
 
 ## 🟤 Débitos Técnicos (Backlog)
-- **D2 (Zumbis):** Coletores diretos ainda podem deixar passar vagas fechadas há mais de 21 dias. Criar rotina de reconciliação.
+- **D2 (Zumbis / Automação):** Criar rotina automática (cronjob) para testar as URLs das vagas em "Possivelmente Expiradas" e marcar como `unavailable_at` apenas se derem 404 (evitando deletar vagas da Gupy que estão só demorando).
 - **D3 (Motivo de Unavailable):** Adicionar a coluna `motivo` na tabela `jobs` ao invés de apenas marcar `unavailable_at`.
 - **D4/D5 (Rastreabilidade):** Garantir o preenchimento de `commit_hash` e `perfil_hash` em todas as execuções da telemetria.
-
----
+- **Remotar Jobs (Camada 3):** Adicionar a dork `site:remotar.com.br/job` no Brave e ensinar o `page-classifier` a ler as páginas.

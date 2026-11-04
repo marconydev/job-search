@@ -1,5 +1,19 @@
 # HANDOFF — Job Search
 
+## 0. Sessao 04/11/2026 - Sprint 2: Conclusao e Aba Expiradas
+
+**Estado:** Sprint 2 100% concluida.
+
+### Concluido nesta Sessao:
+- **Aba Expiradas:** Vagas com mais de 21 dias saem de "Em aberto" e vao para "Possivelmente Expiradas".
+- **Ordenacao UI:** Painel inicia ordenado por maior Score.
+- **Remotar:** Decidido nao criar coletor nativo (sem API). Adicionada ao radar da Camada 3 (Brave).
+
+### PENDENTE (Proximas Sprints):
+- Sprint 4: Cobertura de Descoberta (Brave/LinkedIn) e Debates D2/D3 (Zumbis e Motivo).
+
+---
+
 ## 0. Sessao 04/11/2026 - ATS 2.0 (Design-First)
 
 **Estado:** Contrato aprovado e documentado. Aguardando implementacao.

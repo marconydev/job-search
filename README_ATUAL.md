@@ -1,5 +1,12 @@
 # README_ATUAL — Job Search
 
+## Sessao 04/11/2026 - Sprint 2: Conclusao
+- **Aba Expiradas:** Adicionada interface para arquivar vagas com mais de 21 dias.
+- **ATS 2.0:** Motor de pontuacao com pesos, zonal regex e missing keywords finalizado.
+- **Ordenacao:** Maior compatibilidade por padrao.
+
+---
+
 ## Sessao 04/11/2026 - Sprint 2: ATS 2.0
 - **Missing Keywords:** skills que a vaga pede e o perfil nao tem viram tags `[MISSING] X` em `reasons` (JSONB).
 - **Zonal Regex:** skills na zona de "Requisitos" valem 1.5x. Fallback defensivo 1.0x.
