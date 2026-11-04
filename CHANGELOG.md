@@ -1,3 +1,16 @@
+## [2026-11-04 - Sprint 2: ATS 2.0 (Frontend)]
+
+### Added
+- **frontend/src/config/matcher.ts:** Constantes TIER_PERFEITO=85, TIER_ADERENTE=70, TIER_BORDERLINE=60 espelhadas do backend.
+
+### Changed
+- **cartao-vaga.tsx:** Cores dinâmicas por Tier. Adicionada renderização de até 2 skills `[MISSING]` em vermelho, com indicador `+N`.
+- **detalhe-vaga.tsx:** Cores dinâmicas por Tier. Seção "Aderência com seu perfil" agora exibe motivos positivos (check verde) e skills ausentes (X vermelho + "Falta no perfil: X").
+
+### Notes
+- Backend permanece como fonte única da verdade (Single Source of Truth).
+- `DESIGN.md` atualizado para indicar o consumo dos Tiers.
+
 ## [2026-11-04 - Sprint 2: ATS 2.0 (Missing Keywords, Zonal Regex, Tiers)]
 
 ### Added

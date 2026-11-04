@@ -82,9 +82,7 @@ Se as ancoras nao forem encontradas claramente (fallback defensivo), o texto int
 e processado com multiplicador **1.0x**. O parser nunca aplica 1.5x no escuro.
 
 ### Tiers de Aderencia (Frontend)
-As constantes `TIER_PERFEITO = 85`, `TIER_ADERENTE = 70` e `TIER_BORDERLINE = 60`
-serao exportadas em `config/matcher.ts` para que o Frontend atue como camada burra
-de apresentacao (apenas renderiza as cores), mantendo o backend como fonte unica da verdade.
+As constantes `TIER_PERFEITO = 85`, `TIER_ADERENTE = 70` e `TIER_BORDERLINE = 60` foram exportadas em `backend/src/config/matcher.ts` e espelhadas em `frontend/src/config/matcher.ts` (mantendo o backend como fonte unica da verdade). O Frontend renderiza as cores (Verde 85+, Indigo 70+, Ambar 60+, Cinza <60) e as tags de `[MISSING]` sem conter regra de negocio.
 
 ## 6. Modalidade (3 estados)
 

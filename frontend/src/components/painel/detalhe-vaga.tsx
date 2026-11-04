@@ -18,6 +18,8 @@ import {
 
 import { formatarDescricaoVaga } from "@/lib/formatar-descricao-vaga"
 
+import { TIER_PERFEITO, TIER_ADERENTE, TIER_BORDERLINE } from "@/config/matcher"
+
 import { obterEstadoVisualVaga, obterRotuloEstadoVaga } from "@/lib/estado-vaga"
 
 import type { StatusVaga, VagaPainel } from "@/types/painel"
@@ -230,9 +232,13 @@ export function DetalheVaga({
               className={[
                 "flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl",
 
-                vaga.local_score >= 85
+                vaga.local_score >= TIER_PERFEITO
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                  : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                  : vaga.local_score >= TIER_ADERENTE
+                    ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                    : vaga.local_score >= TIER_BORDERLINE
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                      : "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300"
               ].join(" ")}
             >
               <span className="text-lg font-bold tabular-nums">{vaga.local_score}%</span>
@@ -386,20 +392,29 @@ export function DetalheVaga({
           {vaga.reasons.length > 0 && (
             <section className="mt-8">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                Por que esta vaga combina com seu perfil
+                Aderência com seu perfil
               </h3>
 
               <div className="mt-3 space-y-2.5">
-                {vaga.reasons.map(motivo => (
-                  <div
-                    key={motivo}
-                    className="flex gap-2.5 text-sm leading-6 text-slate-600 dark:text-slate-400"
-                  >
-                    <Check size={16} className="mt-1 shrink-0 text-emerald-500" />
-
-                    <span>{motivo}</span>
-                  </div>
-                ))}
+                {vaga.reasons.map(motivo => {
+                  const isMissing = motivo.startsWith("[MISSING] ");
+                  const texto = isMissing ? motivo.replace("[MISSING] ", "") : motivo;
+                  return (
+                    <div
+                      key={motivo}
+                      className="flex gap-2.5 text-sm leading-6 text-slate-600 dark:text-slate-400"
+                    >
+                      {isMissing ? (
+                        <X size={16} className="mt-1 shrink-0 text-rose-500" />
+                      ) : (
+                        <Check size={16} className="mt-1 shrink-0 text-emerald-500" />
+                      )}
+                      <span className={isMissing ? "text-rose-600 dark:text-rose-400" : ""}>
+                        {isMissing ? `Falta no perfil: ${texto}` : texto}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}

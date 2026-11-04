@@ -16,6 +16,8 @@ import {
   type EstadoVisualVaga
 } from "@/lib/estado-vaga"
 
+import { TIER_PERFEITO, TIER_ADERENTE, TIER_BORDERLINE } from "@/config/matcher"
+
 import type { VagaPainel } from "@/types/painel"
 
 type Propriedades = {
@@ -264,6 +266,25 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
                 )}
               </div>
             )}
+
+            {(() => {
+              const missing = vaga.reasons.filter(r => r.startsWith("[MISSING] ")).map(r => r.replace("[MISSING] ", ""));
+              if (missing.length === 0) return null;
+              return (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {missing.slice(0, 2).map(skill => (
+                    <span key={skill} className="rounded-md bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                      {skill}
+                    </span>
+                  ))}
+                  {missing.length > 2 && (
+                    <span className="rounded-md bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                      +{missing.length - 2}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-4">
@@ -271,11 +292,13 @@ export function CartaoVaga({ vaga, selecionada, aoSelecionar }: Propriedades) {
               className={[
                 "flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-bold tabular-nums",
 
-                vaga.local_score >= 85
+                vaga.local_score >= TIER_PERFEITO
                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                  : vaga.local_score >= 75
+                  : vaga.local_score >= TIER_ADERENTE
                     ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                    : "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                    : vaga.local_score >= TIER_BORDERLINE
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                      : "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300"
               ].join(" ")}
               title="Compatibilidade com seu perfil"
             >
