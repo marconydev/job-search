@@ -237,7 +237,8 @@ async function pesquisarVagasCom(termo: string, limitePorTermo: number) {
 
 async function collectVagasComJobs(
   limit = LIMITE_MAXIMO_POR_TERMO,
-  perfil?: PerfilProfissional
+  perfil?: PerfilProfissional,
+  opcoes?: { offset?: number }
 ): Promise<JobCollection> {
   if (!perfil) {
     return {
@@ -247,7 +248,13 @@ async function collectVagasComJobs(
     }
   }
 
-  const termos = gerarTermosBuscaPortugues(perfil, LIMITE_TERMOS)
+  const todosTermos = gerarTermosBuscaPortugues(perfil, 100)
+  const offset = opcoes?.offset || 0
+  const offsetFinal = offset % (todosTermos.length || 1)
+  let termos = todosTermos.slice(offsetFinal, offsetFinal + LIMITE_TERMOS)
+  if (termos.length < LIMITE_TERMOS && todosTermos.length > 0) {
+    termos = termos.concat(todosTermos.slice(0, LIMITE_TERMOS - termos.length))
+  }
 
   if (termos.length === 0) {
     return {

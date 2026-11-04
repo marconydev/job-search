@@ -50,10 +50,11 @@ function criarVagaTemporaria(vaga: NewJob): StoredJob {
 }
 
 export function vagaEstaDentroDaJanelaTemporal(
-  vaga: Pick<NewJob, "publishedAt">,
+  vaga: Pick<NewJob, "publishedAt"> & { source?: string },
   agora = new Date()
 ) {
   if (!vaga.publishedAt) return true
+  if (vaga.source === "gupy") return true // Gupy so retorna ativas
   const publicadaEm = new Date(vaga.publishedAt)
   if (Number.isNaN(publicadaEm.getTime())) return true
   const idade = agora.getTime() - publicadaEm.getTime()

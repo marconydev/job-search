@@ -39,5 +39,5 @@ export type JobCollection = {
 export type JobCollector = {
   name: string
 
-  collect: (limit?: number, perfil?: PerfilProfissional) => Promise<JobCollection>
+  collect: (limit?: number, perfil?: PerfilProfissional, opcoes?: { offset?: number }) => Promise<JobCollection>
 }

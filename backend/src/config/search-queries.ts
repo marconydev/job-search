@@ -707,7 +707,7 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
     ...relacionados
   ])
 
-  return termos.slice(0, 40)
+  return termos
 }
 
 /**
@@ -718,7 +718,7 @@ export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
  * devolve os dados diretamente em JSON.
  */
 export function gerarTermosBuscaNativaSolides(perfil: PerfilProfissional) {
-  return gerarTermosBuscaNativaGupy(perfil).slice(0, 20)
+  return gerarTermosBuscaNativaGupy(perfil)
 }
 
 function criarTermosRotativosFamilia(familia: NomeFamilia) {

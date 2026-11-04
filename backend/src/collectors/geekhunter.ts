@@ -337,13 +337,20 @@ async function buscarPagina(pagina: number, termo?: string) {
 
 async function collectGeekHunterJobs(
   limit = LIMITE_PADRAO,
-  perfil?: PerfilProfissional
+  perfil?: PerfilProfissional,
+  opcoes?: { offset?: number }
 ): Promise<JobCollection> {
   const limite = normalizarLimite(limit)
 
   const vagasPorId = new Map<string, NewJob>()
 
-  const termos = perfil ? gerarTermosBuscaPortugues(perfil, 10) : []
+  const todosTermos = perfil ? gerarTermosBuscaPortugues(perfil, 100) : []
+  const offset = opcoes?.offset || 0
+  const offsetFinal = offset % (todosTermos.length || 1)
+  let termos = todosTermos.slice(offsetFinal, offsetFinal + 10)
+  if (termos.length < 10 && todosTermos.length > 0) {
+    termos = termos.concat(todosTermos.slice(0, 10 - termos.length))
+  }
 
   const escopos = termos.length > 0 ? termos : [undefined]
 
