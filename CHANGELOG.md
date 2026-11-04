@@ -1,3 +1,22 @@
+## [2026-11-04 - Sprint 2: Motor de Aderencia ATS]
+
+### Changed
+- **job-matcher.ts:** Redistribuicao de pesos simulando um ATS real:
+  - Cargo principal: 60 → **35** (relacionado 45 → **20**)
+  - Stack tecnologica: 4x max 20 → **5x max 30**
+  - Experiencia: max 8 → **max 15**
+  - Formacao: max 8 → **max 10**
+  - Cursos: max 6 → **max 5**
+  - Localizacao compativel: +10 → **+5** (remoto continua +10)
+- **Behavior:** Vaga com titulo aderente + remoto sem stack tecnica soma ~50 (< 60) e e descartada. Titulo sozinho nao passa mais.
+
+### Fixed
+- **filtragem-vagas.test.ts:** Perfil de teste inclui SQL e Windows; descricao inclui as skills. Score 60 exato (35 + 10 + 5 + 10 = 60).
+
+### Notes
+- `MATCHER_VERSION` 5 → 6. Proximo sync reprocessa vagas `discarded` pelo novo corte.
+- 247/247 testes verdes. typecheck + build zerados.
+
 ## [2026-11-03 - Sprint 2: Hard Cutoff de Senioridade]
 
 ### Added

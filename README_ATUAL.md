@@ -1,5 +1,11 @@
 # README_ATUAL — Job Search
 
+## Sessao 04/11/2026 - Sprint 2: Motor ATS
+- **Score rebalanceado:** cargo 35, stack 30, exp 15, formacao 10, cursos 5, local +5. Titulo sozinho nao passa no corte de 60.
+- **`MATCHER_VERSION = 6`.** Proximo sync reprocessa as vagas sob a nova regra.
+
+---
+
 ## Sessao 03/11/2026 - Sprint 2: Hard Cutoff de Senioridade
 - **Filtro:** `job-matcher.ts` bloqueia Senior/Especialista/Lead/Coordenador/Gerente/Manager quando perfil e Pleno/Junior. Roda antes do bonus de nucleo.
 - **cargosDesvio:** normalizacao de acento e word boundary.

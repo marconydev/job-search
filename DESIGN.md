@@ -54,14 +54,16 @@ Frontend consulta `/jobs/sync/status` durante a execução.
 3. `senioridadesExcluidas` no título → score 0 (Sprint 2, hard cutoff).
 4. `avaliarElegibilidadeBrasil` (com `perfil.localizacoesAceitas`).
 5. `avaliarPoliticaVagaBrasil` — presencial fora de JP/PB → score 0; título fora do foco desconta 15.
-6. Cargo principal 60, relacionado 45, nenhum 0.
-7. Remoto +10; localização compatível +10.
-8. Competências 4x (máx 20), formação (máx 8), experiência (máx 8), cursos (máx 6).
+6. **Cargo principal 35**, relacionado 20, nenhum 0 (redistribuicao ATS 2026-11-04).
+7. **Remoto +10; localizacao compativel +5.**
+8. **Competencias 5x (max 30)**, formacao (max 10), experiencia (max 15), cursos (max 5).
 9. Score final 0–100, corte em `MIN_SCORE_RELEVANT = 60`.
+
+O Motor ATS (Sprint 2, 04/11/2026) reduziu o peso do cargo para 35 e aumentou o da stack para 30. Uma vaga com titulo aderente e remota, mas sem tecnologia no texto, soma apenas 50 e cai abaixo do corte – comportamento equivalente a um ATS real. Titulo sozinho nao importa mais.
 
 `senioridadesExcluidas` é campo separado de `formacoes[].nivel` (que indica grau acadêmico). Default em `perfil-padrao.ts`: `senior`, `sr`, `especialista`, `lider`, `coordenador`, `coordenadora`, `gerente`, `lead`, `coordinator`, `manager`. `specialist` (EN) e `supervisor` ficam fora — são cargos alvo do perfil Pleno. O cutoff roda antes de `pontuarCargo` para impedir que o +60 de núcleo mascare vaga Sênior. Perfis antigos no Neon sem o campo recebem o default em `obterPerfilProfissional` (merge-defaults).
 
-`MATCHER_VERSION = 5`.
+`MATCHER_VERSION = 6`.
 
 ## 6. Modalidade (3 estados)
 

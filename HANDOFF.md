@@ -1,5 +1,20 @@
 # HANDOFF — Job Search
 
+## 0. Sessao 04/11/2026 - Sprint 2: Motor de Aderencia ATS
+
+**Estado:** Sprint 2 item 2 concluido. Score rebalanceado.
+
+### Concluido nesta Sessao:
+- Pesos ATS: cargo 35, stack 30, experiencia 15, formacao 10, cursos 5, localizacao +5.
+- Titulo sozinho nao passa mais no corte de 60 – exige aderencia tecnica no texto.
+- `MATCHER_VERSION` 5 → 6.
+
+### PENDENTE:
+- Rodar 1 sync para reprocessar as ~428 vagas `relevant` sob o novo corte.
+- Ruido remanescente (SEO, Marketing, Vendas) – Sprint 2 continua.
+
+---
+
 ## 0. Sessao 03/11/2026 - Sprint 2: Hard Cutoff de Senioridade
 
 **Estado:** Sprint 2 item 1 concluido. Cutoff de senioridade ativo.

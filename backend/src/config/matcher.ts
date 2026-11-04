@@ -10,7 +10,7 @@
  * - removida a trava geográfica de João Pessoa/PB (M3);
  * - títulos fora do foco em português passam a descontar score (M4).
  */
-export const MATCHER_VERSION = 5
+export const MATCHER_VERSION = 6
 
 /**
  * Corte único de relevância.

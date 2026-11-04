@@ -82,19 +82,20 @@ function encontrarCompetencias(texto: string, perfil: PerfilProfissional) {
 
 function pontuarCargo(titulo: string, motivos: string[], perfil: PerfilProfissional) {
   const tituloNorm = normalizarTexto(titulo);
+  // ATS: Cargo principal vale 35. A stack tecnologica fara o resto.
   if (/\b(suporte|support|infraestrutura|infrastructure|service desk|helpdesk|help desk|implantacao|implementation)\b/.test(tituloNorm)) {
     motivos.push("Cargo diretamente relacionado (núcleo de Suporte/Infra)");
-    return { pontos: 60, aderente: true, principal: true };
+    return { pontos: 35, aderente: true, principal: true };
   }
   const principais = encontrarCargos(titulo, perfil.cargosPrincipais)
   if (principais.length > 0) {
     motivos.push("Cargo diretamente relacionado (núcleo de Suporte/Infra)")
-    return { pontos: 60, aderente: true, principal: true }
+    return { pontos: 35, aderente: true, principal: true }
   }
   const relacionados = encontrarCargos(titulo, perfil.cargosRelacionados)
   if (relacionados.length > 0) {
     motivos.push("Cargo relacionado a uma área complementar do perfil")
-    return { pontos: 45, aderente: true, principal: false }
+    return { pontos: 20, aderente: true, principal: false }
   }
   return { pontos: 0, aderente: false, principal: false }
 }
@@ -113,8 +114,9 @@ function calcularDesvioProfissional(
 }
 
 function pontuarCompetencias(quantidade: number, cargoAderente: boolean) {
-  if (cargoAderente) return Math.min(quantidade * 4, 20)
-  return Math.min(quantidade * 2, 16)
+  // ATS: Stack Tecnologica agora e o coracao da aderencia.
+  if (cargoAderente) return Math.min(quantidade * 5, 30)
+  return Math.min(quantidade * 3, 15)
 }
 
 function avaliarFormacao(textoVaga: string, motivos: string[], perfil: PerfilProfissional) {
@@ -125,14 +127,14 @@ function avaliarFormacao(textoVaga: string, motivos: string[], perfil: PerfilPro
     if (!formacao.curso) continue
     if (contemExpressao(textoVaga, formacao.curso)) {
       motivos.push(`Formação acadêmica compatível: ${formacao.curso}`)
-      return { pontos: 8, compativel: true }
+      return { pontos: 10, compativel: true }
     }
     for (const familia of FAMILIAS_FORMACAO) {
       const perfilPertence = contemAlgum(formacao.curso, familia.termosPerfil)
       const vagaAceita = contemAlgum(textoVaga, familia.termosVaga)
       if (perfilPertence && vagaAceita) {
         motivos.push(`Formação acadêmica compatível com requisito de ${familia.nome}`)
-        return { pontos: 8, compativel: true }
+        return { pontos: 10, compativel: true }
       }
     }
   }
@@ -151,15 +153,15 @@ function avaliarExperiencia(
     .join(" ")
   const comps = encontrarCompetencias(textoExperiencias, perfil)
   const compartilhadas = competenciasVaga.filter(c => comps.includes(c))
-  let pontos = Math.min(compartilhadas.length * 2, 6)
+  let pontos = Math.min(compartilhadas.length * 3, 6)
   const cargosConhecidos = [...perfil.cargosPrincipais, ...perfil.cargosRelacionados]
   const possui = perfil.experiencias.some(exp =>
     cargosConhecidos.some(c =>
       contemExpressao(tituloVaga, c) && contemExpressao(exp.cargo, c)
     )
   )
-  if (possui) pontos += 2
-  pontos = Math.min(pontos, 8)
+  if (possui) pontos += 9
+  pontos = Math.min(pontos, 15)
   if (pontos > 0) motivos.push("Experiência profissional relacionada aos requisitos da vaga")
   return pontos
 }
@@ -176,7 +178,7 @@ function avaliarCursos(
     const comps = encontrarCompetencias(curso.nome, perfil)
     return comps.some(c => competenciasVaga.includes(c))
   })
-  const pontos = Math.min(relacionados.length * 2, 6)
+  const pontos = Math.min(relacionados.length * 2, 5)
   if (pontos > 0) motivos.push(`${relacionados.length} curso(s) ou certificação(ões) relacionado(s)`)
   return pontos
 }
@@ -258,7 +260,7 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
   }
 
   if (elegibilidade.situacao === "compativel") {
-    pontuacao += 10
+    pontuacao += 5
     motivos.push("Localização compatível")
   } else {
     motivos.push("Localização ainda não confirmada; vaga mantida para análise")

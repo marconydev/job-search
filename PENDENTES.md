@@ -8,9 +8,9 @@ Lista oficial de tarefas e débitos técnicos para as próximas Sprints.
 - **Ruído Remanescente:** Auditar os logs do Matcher para identificar padrões de vagas que ainda estão passando indevidamente (ex: SEO, Marketing, Vendas).
 
 ## 🔵 Sprint 3: Motor de Aderência ATS
-- **Cálculo de Score:** Reformular o `job-matcher.ts` para calcular a aderência simulando um ATS real.
-- **Dimensões de Peso:** Ponderar Senioridade, Stack Tecnológica, Modelo de Trabalho e Formação.
-- **Threshold:** Garantir que o score percentual retornado reflita a probabilidade real de seleção (evitar scores 100 para vagas apenas 'similares').
+- OK **Cálculo de Score (04/11/2026):** Reformulado. Motor ATS com pesos redistribuídos.
+- OK **Dimensões de Peso (04/11/2026):** Cargo 35, Stack 30, Exp 15, Formação 10, Cursos 5, Local +5, Remoto +10.
+- OK **Threshold (04/11/2026):** Corte em 60 exige stack técnica. Título sozinho soma ~50.
 
 ## 🟣 Sprint 4: Cobertura de Descoberta (Web)
 - **Brave/LinkedIn:** Investigar por que vagas encontradas via `Brave` (LinkedIn/Indeed) frequentemente caem em `indefinida` ou são descartadas na extração (Débito D7).

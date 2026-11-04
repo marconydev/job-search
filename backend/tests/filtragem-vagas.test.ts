@@ -7,7 +7,7 @@ import type { PerfilProfissional } from "../src/types/perfil-profissional.js"
 function criarPerfil(): PerfilProfissional {
   return {
     resumoProfissional: "", cargosPrincipais: ["Analista de Suporte"], cargosRelacionados: [],
-    cargosDesvio: [], competencias: [], experiencias: [], formacoes: [], cursos: [],
+    cargosDesvio: [], competencias: [{ nome: "SQL", termos: ["sql"] }, { nome: "Windows", termos: ["windows"] }], experiencias: [], formacoes: [], cursos: [],
     localizacoesAceitas: ["Brasil"], titulosExcluidos: [],
     senioridadesExcluidas: []
   }
@@ -16,7 +16,7 @@ function criarPerfil(): PerfilProfissional {
 function criarVaga(alteracoes: Partial<NewJob> = {}): NewJob {
   return {
     source: "teste", externalId: "vaga-1", company: "Empresa", title: "Analista de Suporte",
-    description: "Atendimento técnico.", location: "Brasil", remote: true,
+    description: "Atendimento técnico com SQL e Windows.", location: "Brasil", remote: true,
     url: "https://example.com", publishedAt: null, partial: false, ...alteracoes
   }
 }
