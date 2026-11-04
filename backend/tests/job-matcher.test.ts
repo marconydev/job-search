@@ -21,7 +21,8 @@ function criarPerfil(): PerfilProfissional {
     formacoes: [{ instituicao: "Universidade Exemplo", curso: "Análise e Desenvolvimento de Sistemas", nivel: "Tecnólogo", periodo: "2018 - 2020" }],
     cursos: [{ nome: "Zabbix", instituicao: "Instituição Exemplo", ano: "2024" }],
     localizacoesAceitas: ["brasil", "brazil", "joao pessoa", "paraiba"],
-    titulosExcluidos: ["senior manager", "diretor"]
+    titulosExcluidos: ["senior manager", "diretor"],
+    senioridadesExcluidas: ["senior", "sr", "especialista", "lider", "coordenador", "gerente", "lead", "manager"]
   }
 }
 
@@ -53,5 +54,39 @@ describe("job matcher", () => {
     const resultado = matchJob(criarVaga({ title: "Software Developer I (Technical Support Specialist I)", location: "Brasil", remote: true }), criarPerfil())
     // O matcher atual bloqueia se tiver "software developer" (desvio no título).
     assert.equal(resultado.score, 0)
+  })
+
+  test("bloqueia vaga Senior (com acento) quando perfil busca Pleno", () => {
+    const r = matchJob(criarVaga({ title: "Analista de Suporte Sênior", location: "Brasil", remote: true }), criarPerfil())
+    assert.equal(r.score, 0)
+    assert.ok(r.reasons.some(m => m.includes("Senioridade bloqueada")))
+  })
+
+  test("bloqueia vaga Senior sem acento", () => {
+    const r = matchJob(criarVaga({ title: "Senior Support Analyst", location: "Brasil", remote: true }), criarPerfil())
+    assert.equal(r.score, 0)
+  })
+
+  test("bloqueia vaga Especialista", () => {
+    const r = matchJob(criarVaga({ title: "Especialista de Suporte", location: "Brasil", remote: true }), criarPerfil())
+    assert.equal(r.score, 0)
+  })
+
+  test("bloqueia vaga Lead", () => {
+    const r = matchJob(criarVaga({ title: "Team Lead Support", location: "Brasil", remote: true }), criarPerfil())
+    assert.equal(r.score, 0)
+  })
+
+  test("NAO bloqueia Specialist (EN) - alvo de nivel Pleno", () => {
+    const r = matchJob(criarVaga({ title: "Technical Support Specialist", location: "Brasil", remote: true, description: "Suporte tecnico com SQL." }), criarPerfil())
+    assert.ok(r.score > 0, "Specialist (EN) nao deve ser bloqueado como senioridade")
+  })
+
+  test("bloqueia cargosDesvio com normalizacao de acento", () => {
+    const perfil = criarPerfil()
+    perfil.cargosDesvio = ["desenvolvedôr"]
+    const r = matchJob(criarVaga({ title: "Desenvolvedor Pleno", location: "Brasil", remote: true }), perfil)
+    assert.equal(r.score, 0)
+    assert.ok(r.reasons.some(m => m.includes("Cargo de desvio detectado")))
   })
 })

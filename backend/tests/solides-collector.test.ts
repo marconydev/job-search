@@ -28,7 +28,8 @@ function criarPerfil(): PerfilProfissional {
 
     localizacoesAceitas: ["Brasil"],
 
-    titulosExcluidos: []
+    titulosExcluidos: [],
+    senioridadesExcluidas: []
   }
 }
 

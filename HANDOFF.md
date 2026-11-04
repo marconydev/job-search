@@ -1,5 +1,22 @@
 # HANDOFF — Job Search
 
+## 0. Sessao 03/11/2026 - Sprint 2: Hard Cutoff de Senioridade
+
+**Estado:** Sprint 2 item 1 concluido. Cutoff de senioridade ativo.
+
+### Concluido nesta Sessao:
+- **Campo novo:** `senioridadesExcluidas: string[]` em `PerfilProfissional`.
+- **Defaults:** senior, sr, especialista, lider, coordenador, coordenadora, gerente, lead, coordinator, manager. `specialist` e `supervisor` ficam de fora (alvos legitimos).
+- **Job-matcher:** cutoff executado antes de `pontuarCargo` (sem mascaramento por +60).
+- **cargosDesvio:** migrado para `contemExpressao` (acento + word boundary).
+- **Merge-defaults:** resgate de perfis antigos no Neon.
+- **D8:** `MATCHER_VERSION` incrementado.
+
+### PENDENTE (Sprint 2):
+1. **Motor ATS:** Refinar calculo de aderencia.
+
+---
+
 ## 0. Sessão 03/11/2026 — Sprint 1 Concluída (Bug Aba Novas)
 
 **Estado:** Sprint 1 finalizada. Backend, Frontend e Banco homologados.

@@ -165,6 +165,8 @@ function normalizarPerfilProfissional(valor: unknown): PerfilProfissional {
 
     cargosDesvio: normalizarLista(registro.cargosDesvio),
 
+    senioridadesExcluidas: normalizarLista(registro.senioridadesExcluidas),
+
     competencias: normalizarCompetencias(registro.competencias),
 
     experiencias: normalizarExperiencias(registro.experiencias),
@@ -183,7 +185,26 @@ export async function obterPerfilProfissional() {
   const salvo = await buscarPerfilProfissionalSalvo()
 
   if (salvo) {
-    return salvo
+    const padrao = criarPerfilProfissionalPadrao()
+    const perfil = salvo.perfil
+
+    // Resgate de perfis salvos antes da introducao de campos novos.
+    // Sem este merge, perfis antigos no Neon retornariam o campo
+    // senioridadesExcluidas como undefined e o hard cutoff de senioridade
+    // nao seria ativado.
+    const senioridadesExcluidas =
+      Array.isArray(perfil.senioridadesExcluidas) && perfil.senioridadesExcluidas.length > 0
+        ? perfil.senioridadesExcluidas
+        : padrao.senioridadesExcluidas
+
+    return {
+      perfil: {
+        ...perfil,
+        senioridadesExcluidas
+      },
+      nomeArquivoOrigem: salvo.nomeArquivoOrigem,
+      atualizadoEm: salvo.atualizadoEm
+    }
   }
 
   return {

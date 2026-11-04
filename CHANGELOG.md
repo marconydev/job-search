@@ -1,3 +1,16 @@
+## [2026-11-03 - Sprint 2: Hard Cutoff de Senioridade]
+
+### Added
+- Campo `senioridadesExcluidas: string[]` em `PerfilProfissional` (separado de `formacoes[].nivel`, que e nivel academico).
+- Lista default em `perfil-padrao.ts`: senior, sr, especialista, lider, coordenador, coordenadora, gerente, lead, coordinator, manager.
+- 6 testes novos em `tests/job-matcher.test.ts` (Senior com/sem acento, Especialista, Lead, regressao Specialist EN, acento em cargosDesvio).
+
+### Changed
+- `job-matcher.ts`: cargosDesvio migrou de `.includes()` para `contemExpressao()` (normaliza acento e respeita word boundary).
+- `job-matcher.ts`: hard cutoff de senioridade executado ANTES de `pontuarCargo` (impede que +60 de nucleo mascare Senior).
+- `perfil-profissional-service.ts`: merge-defaults em `obterPerfilProfissional` resgata perfis antigos no Neon sem o campo novo.
+- `config/matcher.ts`: `MATCHER_VERSION` incrementado (debito D8).
+
 ## [2026-11-03 — Sprint 1 Concluída e Homologada]
 
 ### Fixed

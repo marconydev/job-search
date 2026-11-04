@@ -57,6 +57,19 @@ export function criarPerfilProfissionalPadrao(): PerfilProfissional {
       "tech lead"
     ],
 
+    senioridadesExcluidas: [
+      "senior",
+      "sr",
+      "especialista",
+      "lider",
+      "coordenador",
+      "coordenadora",
+      "gerente",
+      "lead",
+      "coordinator",
+      "manager"
+    ],
+
     competencias: [
       {
         nome: "SQL",

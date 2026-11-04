@@ -1,5 +1,13 @@
 # README_ATUAL — Job Search
 
+## Sessao 03/11/2026 - Sprint 2: Hard Cutoff de Senioridade
+- **Filtro:** `job-matcher.ts` bloqueia Senior/Especialista/Lead/Coordenador/Gerente/Manager quando perfil e Pleno/Junior. Roda antes do bonus de nucleo.
+- **cargosDesvio:** normalizacao de acento e word boundary.
+- **Perfil:** campo `senioridadesExcluidas: string[]` + merge-defaults.
+- **D8:** `MATCHER_VERSION` incrementado.
+
+---
+
 Snapshot do estado da aplicação após a sessão de 03/11/2026 (Conclusão da Sprint 1).
 
 ## Funcionalidades Ativas (Corrigidas e Homologadas)

@@ -49,15 +49,19 @@ Frontend consulta `/jobs/sync/status` durante a execução.
 
 ## 5. Matching (ordem em `job-matcher.ts`)
 
-1. `titulosExcluidos` → score 0.
-2. `avaliarElegibilidadeBrasil` (com `perfil.localizacoesAceitas`).
-3. `avaliarPoliticaVagaBrasil` — presencial fora de JP/PB → score 0; título fora do foco desconta 15.
-4. Cargo principal 60, relacionado 45, nenhum 0.
-5. Remoto +10; localização compatível +10.
-6. Competências 4x (máx 20), formação (máx 8), experiência (máx 8), cursos (máx 6).
-7. Score final 0–100, corte em `MIN_SCORE_RELEVANT = 60`.
+1. `cargosDesvio` no título → score 0 (word boundary, normaliza acento).
+2. `titulosExcluidos` → score 0.
+3. `senioridadesExcluidas` no título → score 0 (Sprint 2, hard cutoff).
+4. `avaliarElegibilidadeBrasil` (com `perfil.localizacoesAceitas`).
+5. `avaliarPoliticaVagaBrasil` — presencial fora de JP/PB → score 0; título fora do foco desconta 15.
+6. Cargo principal 60, relacionado 45, nenhum 0.
+7. Remoto +10; localização compatível +10.
+8. Competências 4x (máx 20), formação (máx 8), experiência (máx 8), cursos (máx 6).
+9. Score final 0–100, corte em `MIN_SCORE_RELEVANT = 60`.
 
-`MATCHER_VERSION = 3`.
+`senioridadesExcluidas` é campo separado de `formacoes[].nivel` (que indica grau acadêmico). Default em `perfil-padrao.ts`: `senior`, `sr`, `especialista`, `lider`, `coordenador`, `coordenadora`, `gerente`, `lead`, `coordinator`, `manager`. `specialist` (EN) e `supervisor` ficam fora — são cargos alvo do perfil Pleno. O cutoff roda antes de `pontuarCargo` para impedir que o +60 de núcleo mascare vaga Sênior. Perfis antigos no Neon sem o campo recebem o default em `obterPerfilProfissional` (merge-defaults).
+
+`MATCHER_VERSION = 5`.
 
 ## 6. Modalidade (3 estados)
 

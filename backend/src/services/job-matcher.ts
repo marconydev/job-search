@@ -88,7 +88,7 @@ function pontuarCargo(titulo: string, motivos: string[], perfil: PerfilProfissio
   }
   const principais = encontrarCargos(titulo, perfil.cargosPrincipais)
   if (principais.length > 0) {
-    motivos.push("Cargo diretamente relacionado ao perfil")
+    motivos.push("Cargo diretamente relacionado (núcleo de Suporte/Infra)")
     return { pontos: 60, aderente: true, principal: true }
   }
   const relacionados = encontrarCargos(titulo, perfil.cargosRelacionados)
@@ -183,10 +183,10 @@ function avaliarCursos(
 
 export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): CorrespondenciaVaga {
   // Bloqueio Hard de Cargos de Desvio (Prioridade Absoluta)
-  const textoDesvio = (vaga.title || "").toLowerCase(); // Fix Tech Lead: Desvio apenas no título
   const desvios = perfil.cargosDesvio || [];
   for (const desvio of desvios) {
-    if (textoDesvio.includes(desvio.toLowerCase())) {
+    // Normalizacao de acento e word boundary via contemExpressao.
+    if (contemExpressao(vaga.title || "", desvio)) {
       return { job: vaga, score: 0, matchedSkills: [], reasons: [`Cargo de desvio detectado: ${desvio}`] };
     }
   }
@@ -197,6 +197,17 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
   if (contemAlgum(titulo, perfil.titulosExcluidos)) {
     return { job: vaga, score: 0, matchedSkills: [], reasons: [
       "Cargo fora da senioridade ou do tipo de vaga buscado"
+    ]}
+  }
+
+  // Hard Cutoff de Senioridade (Sprint 2).
+  // Roda ANTES de pontuarCargo para impedir que o +60 de nucleo
+  // (suporte/support/infra/etc.) mascare vaga Senior.
+  const senioridades = perfil.senioridadesExcluidas || []
+  const senioridadeDetectada = senioridades.find(s => contemExpressao(titulo, s))
+  if (senioridadeDetectada) {
+    return { job: vaga, score: 0, matchedSkills: [], reasons: [
+      `Senioridade bloqueada pelo perfil: ${senioridadeDetectada}`
     ]}
   }
 

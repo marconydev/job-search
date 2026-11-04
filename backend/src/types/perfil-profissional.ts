@@ -46,6 +46,8 @@ export type PerfilProfissional = {
 
   cargosDesvio: string[]
 
+  senioridadesExcluidas: string[]
+
   competencias: CompetenciaPerfil[]
 
   experiencias: ExperienciaProfissional[]

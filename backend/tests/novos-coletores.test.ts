@@ -44,7 +44,8 @@ function criarPerfilComAliasesIngles(): PerfilProfissional {
 
     localizacoesAceitas: ["Brasil"],
 
-    titulosExcluidos: []
+    titulosExcluidos: [],
+    senioridadesExcluidas: []
   }
 }
 

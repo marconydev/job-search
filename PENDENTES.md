@@ -3,7 +3,7 @@
 Lista oficial de tarefas e débitos técnicos para as próximas Sprints.
 
 ## 🟡 Sprint 2: Refinamento de Filtros (Hard Cutoff)
-- **Senioridade:** Criar bloqueio determinístico para vagas com termos 'Sênior', 'Especialista', 'Lead', 'Coordenador' (caso o perfil não busque esses níveis).
+- OK **Senioridade (03/11/2026):** Bloqueio deterministico implementado. Campo `senioridadesExcluidas` em `PerfilProfissional`, cutoff antes de `pontuarCargo`. `MATCHER_VERSION` bumpado.
 - **Cargos Desconexos:** Refinar a lista de `cargosDesvio` (ex: Dev, Fullstack, Engenheiro de Software) para que sejam barrados no título (Score 0).
 - **Ruído Remanescente:** Auditar os logs do Matcher para identificar padrões de vagas que ainda estão passando indevidamente (ex: SEO, Marketing, Vendas).
 

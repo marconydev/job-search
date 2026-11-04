@@ -8,7 +8,8 @@ function criarPerfil(): PerfilProfissional {
   return {
     resumoProfissional: "", cargosPrincipais: ["Analista de Suporte"], cargosRelacionados: [],
     cargosDesvio: [], competencias: [], experiencias: [], formacoes: [], cursos: [],
-    localizacoesAceitas: ["Brasil"], titulosExcluidos: []
+    localizacoesAceitas: ["Brasil"], titulosExcluidos: [],
+    senioridadesExcluidas: []
   }
 }
 
