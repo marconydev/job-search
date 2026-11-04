@@ -32,6 +32,7 @@ const dadosVazios: DadosPainel = {
     vistas: 0,
     aplicadas: 0,
     ignoradas: 0,
+    expiradas: 0,
     novas_hoje: 0,
     parciais: 0,
     total: 0,

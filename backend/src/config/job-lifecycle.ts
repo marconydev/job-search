@@ -9,7 +9,7 @@ export const JOB_LIFECYCLE = {
    * Depois deste período a oportunidade deixa de ser considerada atual,
    * mesmo que alguma fonte ainda mantenha a publicação acessível.
    */
-  maxAgeDays: 21,
+  maxAgeDays: 90,
 
   /**
    * A partir desta idade não basta a vaga existir no banco:

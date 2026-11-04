@@ -1,9 +1,16 @@
 import type { FiltroStatus, ResumoPainel, VagaPainel } from "@/types/painel"
 
-export type EstadoVisualVaga = "nova" | "aberta" | "vista" | "aplicada" | "ignorada"
+export type EstadoVisualVaga = "nova" | "aberta" | "vista" | "aplicada" | "ignorada" | "expirada"
+
+export function vagaEstaExpirada(vaga: VagaPainel) {
+  const data = new Date(vaga.created_at)
+  if (Number.isNaN(data.getTime())) return false
+  const dias = (Date.now() - data.getTime()) / (1000 * 60 * 60 * 24)
+  return dias > 21
+}
 
 export function vagaEstaEmAberto(vaga: VagaPainel) {
-  return vaga.status === "relevant"
+  return vaga.status === "relevant" && !vagaEstaExpirada(vaga)
 }
 
 function vagaFoiVista(vaga: VagaPainel) {
@@ -15,13 +22,10 @@ function vagaEhNova(vaga: VagaPainel) {
 }
 
 export function obterEstadoVisualVaga(vaga: VagaPainel): EstadoVisualVaga {
-  if (vaga.status === "applied") {
-    return "aplicada"
-  }
-
-  if (vaga.status === "ignored") {
-    return "ignorada"
-  }
+  if (vaga.status === "applied") return "aplicada"
+  if (vaga.status === "ignored") return "ignorada"
+  
+  if (vagaEstaExpirada(vaga)) return "expirada"
 
   if (vagaFoiVista(vaga)) {
     return "vista"
@@ -48,6 +52,9 @@ export function obterRotuloEstadoVaga(vaga: VagaPainel) {
 
     case "ignorada":
       return "Ignorada"
+      
+    case "expirada":
+      return "Possivelmente Expirada"
   }
 }
 
@@ -67,6 +74,9 @@ export function vagaPertenceAoFiltro(vaga: VagaPainel, filtro: FiltroStatus) {
 
     case "ignored":
       return vaga.status === "ignored"
+
+    case "expiradas":
+      return vaga.status === "relevant" && vagaEstaExpirada(vaga)
   }
 }
 
@@ -91,6 +101,7 @@ export function calcularResumoPainel(vagas: VagaPainel[]): ResumoPainel {
   let vistas = 0
   let aplicadas = 0
   let ignoradas = 0
+  let expiradas = 0
   let novasHoje = 0
   let parciais = 0
   let somaScores = 0
@@ -114,7 +125,9 @@ export function calcularResumoPainel(vagas: VagaPainel[]): ResumoPainel {
       continue
     }
 
-    if (vagaFoiVista(vaga)) {
+    if (vagaEstaExpirada(vaga)) {
+      expiradas++
+    } else if (vagaFoiVista(vaga)) {
       vistas++
     } else if (vagaEhNova(vaga)) {
       novas++
@@ -133,6 +146,8 @@ export function calcularResumoPainel(vagas: VagaPainel[]): ResumoPainel {
     aplicadas,
 
     ignoradas,
+
+    expiradas,
 
     novas_hoje: novasHoje,
 

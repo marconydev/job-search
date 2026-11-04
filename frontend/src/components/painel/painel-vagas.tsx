@@ -6,6 +6,7 @@ import {
   ArchiveX,
   BriefcaseBusiness,
   CheckCircle2,
+  Clock3,
   Eye,
   LayoutDashboard,
   LoaderCircle,
@@ -503,21 +504,21 @@ export function PainelVagas({
   const itensHistorico = [
     {
       rotulo: "Aplicadas",
-
       icone: CheckCircle2,
-
       status: "applied" as const,
-
       quantidade: dados.resumo.aplicadas
     },
     {
       rotulo: "Ignoradas",
-
       icone: ArchiveX,
-
       status: "ignored" as const,
-
       quantidade: dados.resumo.ignoradas
+    },
+    {
+      rotulo: "Possivelmente Expiradas",
+      icone: Clock3,
+      status: "expiradas" as const,
+      quantidade: dados.resumo.expiradas
     }
   ]
 

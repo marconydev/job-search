@@ -9,6 +9,8 @@ export type ResumoPainel = {
 
   ignoradas: number
 
+  expiradas: number
+
   novas_hoje: number
 
   parciais: number
@@ -73,7 +75,7 @@ export type DadosPainel = {
 /**
  * "viewed" é um filtro de acompanhamento, não um status persistido.
  */
-export type FiltroStatus = "abertas" | "viewed" | StatusVaga
+export type FiltroStatus = "abertas" | "viewed" | "expiradas" | StatusVaga
 
 export type FiltroModalidade = "todas" | "remota" | "nao-remota"
 
