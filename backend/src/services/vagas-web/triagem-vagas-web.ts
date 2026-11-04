@@ -131,6 +131,7 @@ export function paginaEhListagem(pagina: PaginaClassificada) {
     }
 
     if (pagina.provedor === "linkedin") {
+      // Aceita formatos como /jobs/view/123 ou /jobs/view/analista-at-empresa-123
       return !caminho.includes("/jobs/view/")
     }
 

@@ -435,6 +435,9 @@ export async function processarVagasWeb(
     if ("erro" in resultado) {
       resumo.falhas++
       falhas++
+      if (resultado.erro.includes('403')) resumo.erro403 = (resumo.erro403 || 0) + 1;
+      else if (resultado.erro.includes('404')) resumo.erro404 = (resumo.erro404 || 0) + 1;
+      else resumo.erroRede = (resumo.erroRede || 0) + 1;
 
       registrarPendencia(pendencias, {
         tipo: "acesso",
@@ -455,6 +458,11 @@ export async function processarVagasWeb(
 
     if (!resultado.vaga || !resultado.ehPublicacaoVaga) {
       resumo.ignoradas++
+      if (resultado.codigoStatus === 403 || resultado.codigoStatus === 404) {
+        resumo['erro' + resultado.codigoStatus] = (resumo['erro' + resultado.codigoStatus] || 0) + 1;
+      } else {
+        resumo.erroParse = (resumo.erroParse || 0) + 1;
+      }
 
       const indisponivel = paginaEstaIndisponivel(resultado.urlFinal, resultado.codigoStatus)
 

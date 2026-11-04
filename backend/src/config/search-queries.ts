@@ -261,7 +261,7 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
   {
     id: "linkedin",
 
-    escopo: "site:linkedin.com/jobs/view",
+    escopo: "(site:linkedin.com/jobs/view/ OR site:br.linkedin.com/jobs/view/)",
 
     restringirAoBrasil: true
   },
