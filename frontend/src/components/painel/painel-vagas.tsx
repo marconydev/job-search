@@ -120,7 +120,7 @@ export function PainelVagas({
 
   const [pontuacaoMinima, setPontuacaoMinima] = useState(60)
 
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoVagas>("recentes")
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoVagas>("compatibilidade")
 
   const [idProcessando, setIdProcessando] = useState<number | null>(null)
 
@@ -448,7 +448,7 @@ export function PainelVagas({
 
     setPontuacaoMinima(60)
 
-    setOrdenacao("recentes")
+    setOrdenacao("compatibilidade")
 
     setLimiteVisivel(QUANTIDADE_POR_LOTE)
 
