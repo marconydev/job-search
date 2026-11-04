@@ -6,6 +6,40 @@ import { avaliarPoliticaVagaBrasil } from "./politica-vagas-brasil.js"
 
 type FamiliaFormacao = { nome: string; termosPerfil: string[]; termosVaga: string[] }
 
+// Dicionario global de skills para detecao de Missing Keywords (O(1) lookup)
+const SKILLS_MERCADO = new Set([
+  "itil", "zabbix", "grafana", "prometheus", "datadog", "splunk",
+  "aws", "azure", "gcp", "docker", "kubernetes", "terraform", "ansible",
+  "python", "java", "golang", "node", "react", "angular", "vue",
+  "mysql", "postgresql", "sql server", "oracle", "mongodb", "redis",
+  "jira", "confluence", "active directory", "ldap", "vpn", "firewall",
+  "windows server", "linux", "bash", "powershell", "git", "github",
+  "scrum", "kanban", "lean", "six sigma", "bpmn", "power bi", "tableau",
+  "excel avançado", "sap", "totvs", "salesforce", "hubspot"
+])
+
+function extrairZonaRequisitos(descricao: string): string {
+  const normalizada = removerHtml(descricao)
+  // Ancora no titulo da secao. Pega ate encontrar a proxima secao comum.
+  const regex = /(?:requisitos|obrigatórios|exigências|must have|requirements)[\s:]*([\s\S]*?)(?=benefícios|diferenciais|desejáveis|oferecemos|$)/i
+  const match = normalizada.match(regex)
+  return match ? match[1] : ""
+}
+
+function encontrarMissingSkills(textoVaga: string, perfil: PerfilProfissional, motivos: string[]) {
+  const texto = normalizarTexto(textoVaga)
+  const perfilSkills = new Set(perfil.competencias.flatMap(c => c.termos.map(t => normalizarTexto(t))))
+  const missing: string[] = []
+  
+  for (const skill of SKILLS_MERCADO) {
+    if (contemExpressao(texto, skill) && !perfilSkills.has(normalizarTexto(skill))) {
+      missing.push(skill)
+      motivos.push(`[MISSING] ${skill}`)
+    }
+  }
+  return missing
+}
+
 const MARCADORES_FORMACAO = [
   "formacao", "graduacao", "ensino superior", "curso superior",
   "superior completo", "superior em", "bacharelado", "tecnologo",
@@ -113,10 +147,16 @@ function calcularDesvioProfissional(
   return { pontos: identificado ? 20 : 0, identificado }
 }
 
-function pontuarCompetencias(quantidade: number, cargoAderente: boolean) {
-  // ATS: Stack Tecnologica agora e o coracao da aderencia.
-  if (cargoAderente) return Math.min(quantidade * 5, 30)
-  return Math.min(quantidade * 3, 15)
+function pontuarCompetencias(competencias: string[], zonaRequisitos: string, cargoAderente: boolean) {
+  if (!cargoAderente) return Math.min(competencias.length * 3, 15)
+  
+  let pontos = 0
+  for (const c of competencias) {
+    const naZona = contemExpressao(zonaRequisitos, c)
+    // Zonal Regex: 1.5x na zona de requisitos, 1.0x no resto.
+    pontos += naZona ? 7.5 : 5
+  }
+  return Math.min(pontos, 30)
 }
 
 function avaliarFormacao(textoVaga: string, motivos: string[], perfil: PerfilProfissional) {
@@ -267,9 +307,11 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
   }
 
   const texto = `${titulo} ${descricao}`
+  const zonaRequisitos = extrairZonaRequisitos(vaga.description)
   const competencias = encontrarCompetencias(texto, perfil)
+  const missingSkills = encontrarMissingSkills(texto, perfil, motivos)
 
-  pontuacao += pontuarCompetencias(competencias.length, resultadoCargo.aderente)
+  pontuacao += pontuarCompetencias(competencias, zonaRequisitos, resultadoCargo.aderente)
   if (competencias.length > 0) motivos.push(`${competencias.length} competência(s) relacionada(s)`)
 
   pontuacao += avaliarFormacao(texto, motivos, perfil).pontos
@@ -282,6 +324,7 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
     job: vaga,
     score: Math.max(0, Math.min(pontuacao, 100)),
     matchedSkills: competencias,
+    missingSkills,
     reasons: motivos
   }
 }

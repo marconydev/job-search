@@ -1,5 +1,13 @@
 # README_ATUAL — Job Search
 
+## Sessao 04/11/2026 - Sprint 2: ATS 2.0
+- **Missing Keywords:** skills que a vaga pede e o perfil nao tem viram tags `[MISSING] X` em `reasons` (JSONB).
+- **Zonal Regex:** skills na zona de "Requisitos" valem 1.5x. Fallback defensivo 1.0x.
+- **Tiers:** `TIER_PERFEITO=85`, `TIER_ADERENTE=70`, `TIER_BORDERLINE=60` exportados em `config/matcher.ts`.
+- **Etapa 2 (Frontend):** pendente – renderizar tags e cores.
+
+---
+
 ## Sessao 04/11/2026 - Sprint 2: Motor ATS
 - **Score rebalanceado:** cargo 35, stack 30, exp 15, formacao 10, cursos 5, local +5. Titulo sozinho nao passa no corte de 60.
 - **`MATCHER_VERSION = 6`.** Proximo sync reprocessa as vagas sob a nova regra.

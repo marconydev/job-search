@@ -1,3 +1,26 @@
+## [2026-11-04 - Sprint 2: ATS 2.0 (Missing Keywords, Zonal Regex, Tiers)]
+
+### Added
+- **SKILLS_MERCADO:** Set em memória (O(1) lookup) com dezenas de skills (ITIL, Zabbix, AWS, Kubernetes, SQL, Jira, etc.) em `job-matcher.ts`.
+- **missingSkills:** nova propriedade em `JobMatch` e `NewJobMatch`. Skills ausentes viram `[MISSING] NomeSkill` em `reasons` (JSONB). Zero migration.
+- **extrairZonaRequisitos:** parser defensivo que isola o bloco "Requisitos" da vaga. Regex: `requisitos|obrigatórios|exigências|must have|requirements`.
+- **Zonal Regex:** skills na zona de requisitos valem 7.5 pts (1.5x). Fora da zona, 5 pts (1.0x). Fallback para zona vazia se âncoras não forem achadas (multiplicador 1.0x).
+- **TIER_PERFEITO = 85, TIER_ADERENTE = 70, TIER_BORDERLINE = 60** exportados em `config/matcher.ts` (fonte única da verdade para o frontend).
+
+### Changed
+- `pontuarCompetencias` recebe `zonaRequisitos` e aplica o multiplicador zonal.
+- `matchJob` extrai `zonaRequisitos` e `missingSkills` antes de pontuar. Retorna `missingSkills` no objeto final.
+
+### Tests
+- 2 testes novos em `job-matcher.test.ts`:
+  - "detecta Missing Keywords e injeta no reasons" (Kubernetes ausente do perfil, Zabbix presente).
+  - "Zonal Regex multiplica peso de skill na zona de requisitos".
+
+### Notes
+- 249/249 testes verdes. typecheck + build zerados.
+- Sem migration. `missingSkills` persistido via JSONB de `reasons`.
+- Etapa 2 (Frontend): renderizar tags `[MISSING]` e cores de Tier.
+
 ## [2026-11-04 - Sprint 2: Motor de Aderencia ATS]
 
 ### Changed

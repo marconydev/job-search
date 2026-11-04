@@ -65,6 +65,27 @@ O Motor ATS (Sprint 2, 04/11/2026) reduziu o peso do cargo para 35 e aumentou o 
 
 `MATCHER_VERSION = 6`.
 
+## 5.1. Motor ATS 2.0 (Sprint 2 - Design-First)
+
+### Missing Keywords (Otimização de Currículo)
+O matcher mantem em memoria um dicionario de `SKILLS_CONHECIDAS`.
+Se a vaga exigir uma skill que o perfil do candidato nao possui, ela e
+anexada ao array `reasons` com o prefixo `[MISSING] NomeDaSkill`.
+Isso evita uma migration prematura (reutiliza a coluna JSONB existente) e permite
+que o frontend exiba as tags de "Palavras-chave Ausentes" para ajuste do curriculo.
+
+### Zonal Regex (Peso por Contexto)
+O extrator tenta isolar o bloco de "Requisitos" da vaga buscando ancoras como
+`requisitos`, `obrigatorio`, `must have`, `exigencias`.
+Skills encontradas nesse bloco recebem multiplicador **1.5x**.
+Se as ancoras nao forem encontradas claramente (fallback defensivo), o texto inteiro
+e processado com multiplicador **1.0x**. O parser nunca aplica 1.5x no escuro.
+
+### Tiers de Aderencia (Frontend)
+As constantes `TIER_PERFEITO = 85`, `TIER_ADERENTE = 70` e `TIER_BORDERLINE = 60`
+serao exportadas em `config/matcher.ts` para que o Frontend atue como camada burra
+de apresentacao (apenas renderiza as cores), mantendo o backend como fonte unica da verdade.
+
 ## 6. Modalidade (3 estados)
 
 `WorkplaceType = "remote" | "hybrid" | "on-site" | "unknown"`.

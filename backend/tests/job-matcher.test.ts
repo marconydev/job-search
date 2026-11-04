@@ -89,4 +89,24 @@ describe("job matcher", () => {
     assert.equal(r.score, 0)
     assert.ok(r.reasons.some(m => m.includes("Cargo de desvio detectado")))
   })
+
+  test("detecta Missing Keywords e injeta no reasons", () => {
+    // criarPerfil() tem SQL, PostgreSQL, Zabbix, Grafana, Active Directory.
+    // ITIL e Kubernetes nao estao no perfil, entao devem aparecer como missing.
+    const r = matchJob(criarVaga({ title: "Analista de Suporte", description: "Requisitos: SQL, PostgreSQL. Diferencial: ITIL e Kubernetes." }), criarPerfil())
+    assert.ok(r.missingSkills?.includes("itil"), "itil deveria estar em missing")
+    assert.ok(r.missingSkills?.includes("kubernetes"), "kubernetes deveria estar em missing")
+    assert.ok(!r.missingSkills?.includes("zabbix"), "zabbix JA esta no perfil do teste")
+    assert.ok(r.reasons.includes("[MISSING] itil"))
+    assert.ok(r.reasons.includes("[MISSING] kubernetes"))
+  })
+
+  test("Zonal Regex multiplica peso de skill na zona de requisitos", () => {
+    const perfil = criarPerfil()
+    // Sem "Requisitos": skill SQL vale 5.
+    const r1 = matchJob(criarVaga({ title: "Analista de Suporte", description: "Precisa saber SQL." }), perfil)
+    // Com "Requisitos": SQL vale 7.5.
+    const r2 = matchJob(criarVaga({ title: "Analista de Suporte", description: "Requisitos: SQL." }), perfil)
+    assert.ok(r2.score > r1.score, "Score com Zonal Regex deve ser maior")
+  })
 })

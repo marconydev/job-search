@@ -82,6 +82,8 @@ export type NewJobMatch = {
 
   matchedSkills: string[]
 
+  missingSkills?: string[]
+
   reasons: string[]
 
   status: JobMatchStatus
@@ -93,6 +95,8 @@ export type JobMatch = {
   score: number
 
   matchedSkills: string[]
+
+  missingSkills?: string[]
 
   reasons: string[]
 }

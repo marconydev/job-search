@@ -1,5 +1,25 @@
 # HANDOFF — Job Search
 
+## 0. Sessao 04/11/2026 - ATS 2.0 (Design-First)
+
+**Estado:** Contrato aprovado e documentado. Aguardando implementacao.
+
+### Diretrizes (Tech Lead):
+- **Missing Keywords:** Reaproveitar JSONB em `reasons` (sem migration). Prefixo `[MISSING]`.
+- **Zonal Regex:** Multiplicador 1.5x na zona de requisitos. Fallback defensivo 1.0x.
+- **Performance:** Dicionario em `Set` O(1) carregado no topo do modulo.
+- **Tiers (Frontend):** Exportar `TIER_PERFEITO = 85`, `TIER_ADERENTE = 70`, `TIER_BORDERLINE = 60` em `config/matcher.ts`.
+
+### PENDENTE (Etapa 1 - Backend):
+- Implementar `SKILLS_CONHECIDAS` e extração de `missingSkills` em `job-matcher.ts`.
+- Implementar parser zonal defensivo.
+- Atualizar testes de `job-matcher.test.ts`.
+
+### PENDENTE (Etapa 2 - Frontend):
+- Renderizar tags de `missingSkills` e cores de Tier no painel.
+
+---
+
 ## 0. Sessao 04/11/2026 - Sprint 2: Motor de Aderencia ATS
 
 **Estado:** Sprint 2 item 2 concluido. Score rebalanceado.

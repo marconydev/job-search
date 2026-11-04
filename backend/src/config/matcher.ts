@@ -27,3 +27,11 @@ export const MIN_SCORE_RELEVANT = 60
  * Valor escolhido para exigir mais de um sinal positivo antes do corte.
  */
 export const PENALIDADE_TITULO_FORA_FOCO = 15
+
+/**
+ * Tiers de aderencia para a UI (Etapa 2 - Frontend).
+ * Exportados aqui para manter o Backend como unica fonte da verdade.
+ */
+export const TIER_PERFEITO = 85
+export const TIER_ADERENTE = 70
+export const TIER_BORDERLINE = 60

@@ -12,6 +12,12 @@ Lista oficial de tarefas e débitos técnicos para as próximas Sprints.
 - OK **Dimensões de Peso (04/11/2026):** Cargo 35, Stack 30, Exp 15, Formação 10, Cursos 5, Local +5, Remoto +10.
 - OK **Threshold (04/11/2026):** Corte em 60 exige stack técnica. Título sozinho soma ~50.
 
+## 🔵 Sprint 3: Motor de Aderência ATS (Fase 2 - Em andamento)
+- OK **Cálculo de Score Base (04/11/2026):** Pesos redistribuídos (Cargo 35, Stack 30, Exp 15, etc.).
+- ⏳ **Missing Keywords (Backend):** Extrair `missingSkills` e injetar em `reasons` com prefixo `[MISSING]`.
+- ⏳ **Zonal Regex (Backend):** Peso 1.5x para skills na zona de requisitos, com fallback defensivo 1.0x.
+- ⏳ **Tiers (Frontend):** Renderizar cores de Tier e tags de `missingSkills`.
+
 ## 🟣 Sprint 4: Cobertura de Descoberta (Web)
 - **Brave/LinkedIn:** Investigar por que vagas encontradas via `Brave` (LinkedIn/Indeed) frequentemente caem em `indefinida` ou são descartadas na extração (Débito D7).
 - **Isolamento de Falhas:** Garantir que a queda de um parser (ex: LinkedIn mudou o DOM) não corrompa a execução global da busca.
