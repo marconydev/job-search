@@ -322,7 +322,7 @@ export function matchJob(vaga: VagaArmazenada, perfil: PerfilProfissional): Corr
 
   return {
     job: vaga,
-    score: Math.max(0, Math.min(pontuacao, 100)),
+    score: Math.max(0, Math.min(Math.round(pontuacao), 100)),
     matchedSkills: competencias,
     missingSkills,
     reasons: motivos
