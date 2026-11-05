@@ -458,8 +458,10 @@ export async function processarVagasWeb(
 
     if (!resultado.vaga || !resultado.ehPublicacaoVaga) {
       resumo.ignoradas++
-      if (resultado.codigoStatus === 403 || resultado.codigoStatus === 404) {
-        resumo['erro' + resultado.codigoStatus] = (resumo['erro' + resultado.codigoStatus] || 0) + 1;
+      if (resultado.codigoStatus === 403) {
+        resumo.erro403 = (resumo.erro403 || 0) + 1;
+      } else if (resultado.codigoStatus === 404) {
+        resumo.erro404 = (resumo.erro404 || 0) + 1;
       } else {
         resumo.erroParse = (resumo.erroParse || 0) + 1;
       }
