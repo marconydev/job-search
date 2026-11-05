@@ -642,53 +642,8 @@ function criarFamilias(perfil: PerfilProfissional) {
  * sacrificar a cobertura principal.
  */
 export function gerarTermosBuscaNativaGupy(perfil: PerfilProfissional) {
-  const familias = criarFamilias(perfil)
-
-  const principais: string[] = []
-
-  const relacionados: string[] = []
-
-  for (const familia of ORDEM_FAMILIAS) {
-    const possuiCargoNaFamilia = familias[familia].length > 0
-
-    if (!possuiCargoNaFamilia) {
-      continue
-    }
-
-    const estrategia = ESTRATEGIAS_FAMILIAS_PORTAIS[familia]
-
-    if (estrategia.tituloPrincipal) {
-      principais.push(estrategia.tituloPrincipal)
-    }
-
-    relacionados.push(
-      ...estrategia.titulosRelacionados.slice(0, LIMITE_RELACIONADOS_POR_FAMILIA_GUPY)
-    )
-  }
-
-  // M2: o usuário é soberano. Cargos que ele cadastrou explicitamente
-  // entram como termos diretos, inclusive quando estão em inglês.
-  // Eles vão à frente porque descrevem o que o usuário realmente busca.
-  const cargosDoPerfil = deduplicarCargos(perfil)
-
-  // Prefixa o titulo principal de cada familia ativa para garantir
-  // cobertura real de todas as familias. Antes, os 45 cargosPrincipais
-  // (dominados por "support") consumiam todo o slice(0,30), e familias
-  // como dados/processos/implantacao nunca apareciam nos termos de busca
-  // do Glassdoor/Brave. Mantem a ordem original dos cargos do usuario
-  // logo depois dos principais.
-  const principaisAtivos = ORDEM_FAMILIAS
-    .filter(fam => familias[fam].length > 0)
-    .map(fam => ESTRATEGIAS_FAMILIAS_PORTAIS[fam].tituloPrincipal)
-    .filter((x): x is string => Boolean(x))
-
-  const termos = deduplicarTermos([
-    ...principaisAtivos,
-    ...cargosDoPerfil,
-    ...relacionados
-  ])
-
-  return termos
+  const cargos = deduplicarCargos(perfil)
+  return cargos.slice(0, 20) // Limite seguro para o Render (Zero Explosão)
 }
 
 /**

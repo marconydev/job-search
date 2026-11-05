@@ -1,3 +1,18 @@
+## [2026-11-05 - Sprint 4: Expansão do Topo do Funil e Opção C (Dinâmico)]
+
+### Added
+- **Opção C (Leitura Dinâmica):** `search-queries.ts` agora lê os cargos diretamente do perfil do usuário (`cargosPrincipais` e `cargosRelacionados`) em vez de usar uma lista estática ou geradores combinatórios. A cobertura é 100% baseada no perfil, limitada a 20 termos para não estourar o Render.
+- **ATS Tenants Bootstrap:** Criado o arquivo `backend/config/ats-tenants.json` com os tenants iniciais da Inhire (cielo, xp, sicredi). O `fontes-ats.ts` agora lê esse JSON no boot para popular a Camada 2 sem depender do Brave.
+
+### Fixed
+- **Sólides (IDs Alfanuméricos):** O coletor não descarta mais IDs alfanuméricos. Se o ID for numérico, usa o portal central; se for alfanumérico, usa o `job.redirectLink` fornecido pela API. O banco já estava preparado (`VARCHAR`).
+- **Perfil Padrão:** Adicionados termos que estavam faltando (`Suporte Técnico`, `Analista NOC`, `Analista de Processos`) para garantir a cobertura total das famílias de suporte e infraestrutura.
+
+### Changed
+- **Vagas.com:** Voltou a usar o gerador dinâmico `gerarTermosBuscaPortugues(perfil, 100)`.
+
+---
+
 ## [2026-11-05 - Sprint 4 Concluída: Expurgo da Camada 3 e Refoco no Brave]
 
 ### Removed

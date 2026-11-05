@@ -19,7 +19,8 @@ export function criarPerfilProfissionalPadrao(): PerfilProfissional {
       "application support",
       "analista de sistemas",
       "analista de infraestrutura",
-      "analista de implantacao"
+      "analista de implantacao",
+      "suporte técnico"
     ],
 
     cargosRelacionados: [
@@ -34,7 +35,8 @@ export function criarPerfilProfissionalPadrao(): PerfilProfissional {
       "data analyst",
       "analista de dados",
       "bi analyst",
-      "analista de bi"
+      "analista de bi",
+      "analista de processos"
     ],
 
     cargosDesvio: [

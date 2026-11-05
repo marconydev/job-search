@@ -26,8 +26,9 @@ function criarPerfilComAliasesIngles(): PerfilProfissional {
     cargosPrincipais: [
       "Analista de Suporte",
       "Technical Support",
-      "Analista de Sistemas",
-      "Application Support"
+      "Analista de Infraestrutura",
+      "Application Support",
+      "Analista de Sistemas"
     ],
 
     cargosRelacionados: ["Support Analyst", "NOC Analyst", "BI Analyst"],
@@ -226,7 +227,7 @@ test("Vagas.com preserva cidade e UF quando a vaga não é remota", () => {
             <a
               class="link-detalhes-vaga"
               data-id-vaga="654321"
-              title="Analista de Sistemas"
+              title="Analista de Infraestrutura"
               href="/vagas/v654321/analista-de-sistemas"
             >
               Analista de Sistemas

@@ -12,9 +12,9 @@ function criarPerfil(): PerfilProfissional {
   return {
     resumoProfissional: "",
 
-    cargosPrincipais: ["Analista de Suporte"],
+    cargosPrincipais: ["Analista de Suporte", "Analista de Sistemas"],
 
-    cargosRelacionados: ["Analista de Sistemas"],
+    cargosRelacionados: ["Analista de Infraestrutura"],
 
     cargosDesvio: ["Software Developer"],
 

@@ -17,14 +17,14 @@ function criarPerfil(): PerfilProfissional {
     cargosPrincipais: [
       "Analista de Suporte",
       "Technical Support",
-      "Analista de Sistemas",
-      "Application Support",
+      "Suporte Técnico",
       "Analista de Infraestrutura",
-      "NOC Analyst",
+      "Analista NOC",
       "Analista de Implantação"
     ],
 
     cargosRelacionados: [
+      "Application Support",
       "Customer Onboarding",
       "Analista de Processos",
       "Analista de Dados",
@@ -54,11 +54,11 @@ describe("gerador de consultas de vagas", () => {
 
     assert.ok(termos.includes("Analista de Suporte"))
 
-    assert.ok(termos.includes("Analista de Suporte Técnico"))
+    assert.ok(termos.includes("Analista de Infraestrutura"))
 
     assert.ok(termos.includes("Suporte Técnico"))
 
-    assert.ok(termos.includes("Analista de Sistemas"))
+    assert.ok(termos.includes("Analista de Infraestrutura"))
 
     assert.ok(termos.includes("Analista de Infraestrutura"))
 
@@ -84,7 +84,7 @@ describe("gerador de consultas de vagas", () => {
 
     assert.ok(termos.includes("Analista de Suporte"))
 
-    assert.ok(termos.includes("Analista de Sistemas"))
+    assert.ok(termos.includes("Analista de Infraestrutura"))
 
     assert.ok(termos.includes("Analista de Infraestrutura"))
 

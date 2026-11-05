@@ -523,6 +523,25 @@ export async function coletarFontesAtsAprendidas(
   limiteVagasPorFonte = 500,
   execucaoId?: string
 ): Promise<ResultadoFonteAts[]> {
+  try {
+    const fs = require("node:fs")
+    const path = require("node:path")
+    const configPath = path.join(process.cwd(), "config", "ats-tenants.json")
+    if (fs.existsSync(configPath)) {
+      const tenants = JSON.parse(fs.readFileSync(configPath, "utf8"))
+      for (const t of tenants) {
+        await registrarFonteAts({
+          provedor: t.provedor,
+          identificador: t.identificador,
+          variante: t.variante || "padrao",
+          urlOrigem: "bootstrap_ats_tenants"
+        })
+      }
+    }
+  } catch (e) {
+    console.warn("Erro ao carregar ats-tenants.json:", e)
+  }
+
   const fontes = await listarFontesAtsParaColeta(limiteFontes)
 
   const resultados: ResultadoFonteAts[] = []

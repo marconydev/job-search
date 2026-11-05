@@ -16,9 +16,9 @@ function criarPerfil(): PerfilProfissional {
      * O teste precisa garantir que eles podem existir no perfil
      * sem serem enviados para a busca nativa.
      */
-    cargosPrincipais: ["Analista de Suporte", "Technical Support"],
+    cargosPrincipais: ["Analista de Suporte", "Technical Support", "Analista de Sistemas"],
 
-    cargosRelacionados: ["Analista de Sistemas", "Application Support"],
+    cargosRelacionados: ["Analista de Infraestrutura", "Application Support", "Analista NOC"],
 
     cargosDesvio: ["Software Developer"],
 
@@ -252,11 +252,11 @@ describe("coletor nativo da Gupy", () => {
       return respostaJson({ erro: "indisponível" }, 500)
     }
 
-    if (termo === "Analista de Sistemas") {
+    if (termo === "Analista de Infraestrutura") {
       return respostaJson({
         data: [{
           id: 9001,
-          name: "Analista de Sistemas",
+          name: "Analista de Infraestrutura",
           careerPageName: "Empresa B",
           description: "Atuação com suporte de sistemas, SQL e atendimento a usuários.",
           city: "João Pessoa",
@@ -278,6 +278,6 @@ describe("coletor nativo da Gupy", () => {
   assert.ok(termosConsultados.includes("Analista de Sistemas"))
   assert.equal(coleta.jobs.length, 1)
   assert.equal(coleta.jobs[0]?.externalId, "9001")
-  assert.equal(coleta.jobs[0]?.title, "Analista de Sistemas")
+  assert.equal(coleta.jobs[0]?.title, "Analista de Infraestrutura")
 })
 })

@@ -2,6 +2,24 @@
 
 # HANDOFF — Job Search
 
+# HANDOFF — Job Search
+
+## 0. Sessao 05/11/2026 - Sprint 4: Topo do Funil Dinâmico (Opção C)
+
+**Estado:** Concluído. Testes 249/249 verdes. Build limpo.
+
+### Concluído nesta Sessao:
+- **Search Queries Dinâmico:** O sistema agora extrai os cargos exatos do perfil do usuário (até 20 termos) para buscar na Gupy e Sólides. Sem hardcode, sem explosão combinatória.
+- **Sólides Alfanumérica:** O bug que descartava IDs não numéricos foi corrigido. Agora usa `redirectLink`.
+- **ATS Inhire:** Criado `ats-tenants.json` e integrado no boot do `fontes-ats.ts`.
+- **Perfil Padrão:** Enriquecido com termos como "Suporte Técnico" e "Analista NOC".
+
+### PENDENTE (Próximas Sprints):
+- Rodar o primeiro Sync completo pós-patch e validar a cobertura dos novos termos e ATS.
+- Sprint 5: UI/UX e refinamento de candidaturas.
+
+---
+
 ## 0. Sessao 05/11/2026 - Sprint 4 Concluída: Expurgo e Refoco no Brave
 
 **Estado:** Sprint 4 100% concluída. Camada 3 provou-se inviável e foi expurgada.
