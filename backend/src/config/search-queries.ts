@@ -259,22 +259,6 @@ const PORTAIS_AGREGADORES_PRIORITARIOS: PortalAgregador[] = []
  */
 const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
   {
-    id: "linkedin",
-
-    escopo: "(site:linkedin.com/jobs/view/ OR site:br.linkedin.com/jobs/view/)",
-
-    restringirAoBrasil: true
-  },
-
-  {
-    id: "indeed",
-
-    escopo: "site:br.indeed.com/viewjob",
-
-    restringirAoBrasil: false
-  },
-
-  {
     /**
      * Segundo grupo de portais brasileiros.
      *
@@ -291,8 +275,7 @@ const PLATAFORMAS_COMPLEMENTARES: PlataformaComplementar[] = [
       "site:99jobs.com OR " +
       "site:empregare.com/pt-br/vaga- OR " +
       "site:br.jooble.org/jdp OR " +
-      "site:jobatus.com.br OR " +
-      "site:glassdoor.com.br/job-listing" +
+      "site:jobatus.com.br" +
       ")",
 
     restringirAoBrasil: false
@@ -550,8 +533,6 @@ const CONTEXTO_LOCALIZACAO = '"Brasil"'
  */
 const ESCOPO_VAGAS_REGIONAIS =
   "(" +
-  "site:linkedin.com/jobs/view OR " +
-  "site:br.indeed.com/viewjob OR " +
   "site:myworkdayjobs.com" +
   ")"
 

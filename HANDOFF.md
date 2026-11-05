@@ -1,5 +1,62 @@
 # HANDOFF — Job Search
 
+# HANDOFF — Job Search
+
+## 0. Sessao 05/11/2026 - Sprint 4 Concluída: Expurgo e Refoco no Brave
+
+**Estado:** Sprint 4 100% concluída. Camada 3 provou-se inviável e foi expurgada.
+
+### Concluído nesta Sessao:
+- **LinkedIn:** Removido da whitelist e queries. Brave não indexa vagas recentes do LinkedIn (0% de sucesso).
+- **Indeed e Glassdoor:** Removidos da whitelist e queries. Bloqueio duro (401/403).
+- **Nova Diretriz Brave:** Focar exclusivamente em ATSs (Lever, Greenhouse, Workable, etc.), Empresas BR e portais vivos.
+- **Telemetria:** Adicionado motivo `JOB_EXPIRADO` para redirecionamentos de vagas mortas.
+- **Higiene:** Filtro de URLs de listagem para InfoJobs e Catho.
+
+### PENDENTE (Próximas Sprints):
+- Rodar o primeiro Sync completo pós-expurgo para validar a coleta focada em ATS.
+- Sprint 5: Melhorias de UI/UX ou Integrações.
+
+---
+
+# HANDOFF — Job Search
+
+## 0. Sessao 05/11/2026 - Sprint 4 Concluída: Expurgo e Refoco no Brave
+
+**Estado:** Sprint 4 100% concluída. Camada 3 provou-se inviável e foi expurgada.
+
+### Concluído nesta Sessao:
+- **LinkedIn:** Removido da whitelist e queries. Brave não indexa vagas recentes do LinkedIn (0% de sucesso).
+- **Indeed e Glassdoor:** Removidos da whitelist e queries. Bloqueio duro (401/403).
+- **Nova Diretriz Brave:** Focar exclusivamente em ATSs (Lever, Greenhouse, Workable, etc.), Empresas BR e portais vivos.
+- **Telemetria:** Adicionado motivo `JOB_EXPIRADO` para redirecionamentos de vagas mortas.
+- **Higiene:** Filtro de URLs de listagem para InfoJobs e Catho.
+
+### PENDENTE (Próximas Sprints):
+- Rodar o primeiro Sync completo pós-expurgo para validar a coleta focada em ATS.
+- Sprint 5: Melhorias de UI/UX ou Integrações.
+
+---
+
+# HANDOFF — Job Search
+
+## 0. Sessao 05/11/2026 - Sprint 4 Concluída: Expurgo e Refoco no Brave
+
+**Estado:** Sprint 4 100% concluída. Camada 3 provou-se inviável e foi expurgada.
+
+### Concluído nesta Sessao:
+- **LinkedIn:** Removido da whitelist e queries. Brave não indexa vagas recentes do LinkedIn (0% de sucesso).
+- **Indeed e Glassdoor:** Removidos da whitelist e queries. Bloqueio duro (401/403).
+- **Nova Diretriz Brave:** Focar exclusivamente em ATSs (Lever, Greenhouse, Workable, etc.), Empresas BR e portais vivos.
+- **Telemetria:** Adicionado motivo `JOB_EXPIRADO` para redirecionamentos de vagas mortas.
+- **Higiene:** Filtro de URLs de listagem para InfoJobs e Catho.
+
+### PENDENTE (Próximas Sprints):
+- Rodar o primeiro Sync completo pós-expurgo para validar a coleta focada em ATS.
+- Sprint 5: Melhorias de UI/UX ou Integrações.
+
+---
+
 ## 0. Sessao 05/11/2026 - Sprint 4: Web Liberada (Cache Brave)
 
 **Estado:** Sprint 4 avancada. Camada 3 destravada.

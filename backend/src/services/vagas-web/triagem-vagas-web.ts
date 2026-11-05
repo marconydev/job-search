@@ -13,9 +13,6 @@ const provedoresProcessaveis = new Set<ProvedorPagina>([
   "greenhouse",
   "workable",
   "smartrecruiters",
-  "linkedin",
-  "indeed",
-  "glassdoor",
   "infojobs",
   "catho",
   "empregare",
@@ -216,6 +213,20 @@ export function paginaEhListagem(pagina: PaginaClassificada) {
         caminho.includes("jobs-in-brazil") ||
         caminho.includes("product-manager-jobs")
       )
+    }
+
+    // InfoJobs: apenas vaga individual no padrao /vaga-de-<slug>_<id>.aspx
+    // Rejeita /vagas-de-..., /vagas/..., /cargo/..., /artigos/...
+    if (pagina.provedor === "infojobs") {
+      return !/\/vaga-de-[^/]+_\d+\.aspx$/i.test(caminho)
+    }
+
+    // Catho: exige ID numerico (4+ digitos) em algum segmento apos /vagas/
+    // Rejeita /vagas/<termo>/, /vagas/<termo>/<uf>/, /profissoes/..., /carreira-sucesso/...
+    if (pagina.provedor === "catho") {
+      if (!caminho.startsWith("/vagas/")) return true
+      const partes = caminho.split("/").filter(Boolean)
+      return !partes.slice(1).some((p) => /^\d{4,}$/.test(p))
     }
 
     return false

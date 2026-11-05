@@ -1,3 +1,51 @@
+## [2026-11-05 - Sprint 4 Concluída: Expurgo da Camada 3 e Refoco no Brave]
+
+### Removed
+- **LinkedIn:** Removido da whitelist de processamento web e das queries do Brave. O índice do Brave para o LinkedIn é estruturalmente obsoleto (IDs de vagas de 6 a 14 meses atrás, 0% de sucesso em 28 URLs frescas).
+- **Indeed e Glassdoor:** Removidos da whitelist e das queries do Brave devido a bloqueios duros inegociáveis (HTTP 401 e 403 em 100% das tentativas).
+- **Scripts de diagnóstico:** `extrair-28-linkedin.ts`, `probe-freshness-linkedin.ts`, `sync-fresco-brave.ts` e `reprocessar-cache.ts` removidos para limpar o repositório.
+
+### Added
+- **Telemetria `JOB_EXPIRADO`:** `processamento-vagas-web.ts` agora classifica redirecionamentos de página de vaga para páginas de busca/empresa no LinkedIn como expiradas, não como erro de parse.
+- **Filtro de Listagem:** InfoJobs (`/vagas-de-`) e Catho (`/vagas/`, `/profissoes/`) agora são bloqueados na triagem antes de gastar rede.
+
+### Changed
+- **Estratégia do Brave:** O Brave agora foca 100% em ATSs permanentes (Lever, Greenhouse, Workable, etc.), portais corporativos e agregadores que resistem. O "Modo Completo" virou uma ferramenta de garimpo de ATS.
+
+---
+
+## [2026-11-05 - Sprint 4 Concluída: Expurgo da Camada 3 e Refoco no Brave]
+
+### Removed
+- **LinkedIn:** Removido da whitelist de processamento web e das queries do Brave. O índice do Brave para o LinkedIn é estruturalmente obsoleto (IDs de vagas de 6 a 14 meses atrás, 0% de sucesso em 28 URLs frescas).
+- **Indeed e Glassdoor:** Removidos da whitelist e das queries do Brave devido a bloqueios duros inegociáveis (HTTP 401 e 403 em 100% das tentativas).
+- **Scripts de diagnóstico:** `extrair-28-linkedin.ts`, `probe-freshness-linkedin.ts`, `sync-fresco-brave.ts` e `reprocessar-cache.ts` removidos para limpar o repositório.
+
+### Added
+- **Telemetria `JOB_EXPIRADO`:** `processamento-vagas-web.ts` agora classifica redirecionamentos de página de vaga para páginas de busca/empresa no LinkedIn como expiradas, não como erro de parse.
+- **Filtro de Listagem:** InfoJobs (`/vagas-de-`) e Catho (`/vagas/`, `/profissoes/`) agora são bloqueados na triagem antes de gastar rede.
+
+### Changed
+- **Estratégia do Brave:** O Brave agora foca 100% em ATSs permanentes (Lever, Greenhouse, Workable, etc.), portais corporativos e agregadores que resistem. O "Modo Completo" virou uma ferramenta de garimpo de ATS.
+
+---
+
+## [2026-11-05 - Sprint 4 Concluída: Expurgo da Camada 3 e Refoco no Brave]
+
+### Removed
+- **LinkedIn:** Removido da whitelist de processamento web e das queries do Brave. O índice do Brave para o LinkedIn é estruturalmente obsoleto (IDs de vagas de 6 a 14 meses atrás, 0% de sucesso em 28 URLs frescas).
+- **Indeed e Glassdoor:** Removidos da whitelist e das queries do Brave devido a bloqueios duros inegociáveis (HTTP 401 e 403 em 100% das tentativas).
+- **Scripts de diagnóstico:** `extrair-28-linkedin.ts`, `probe-freshness-linkedin.ts`, `sync-fresco-brave.ts` e `reprocessar-cache.ts` removidos para limpar o repositório.
+
+### Added
+- **Telemetria `JOB_EXPIRADO`:** `processamento-vagas-web.ts` agora classifica redirecionamentos de página de vaga para páginas de busca/empresa no LinkedIn como expiradas, não como erro de parse.
+- **Filtro de Listagem:** InfoJobs (`/vagas-de-`) e Catho (`/vagas/`, `/profissoes/`) agora são bloqueados na triagem antes de gastar rede.
+
+### Changed
+- **Estratégia do Brave:** O Brave agora foca 100% em ATSs permanentes (Lever, Greenhouse, Workable, etc.), portais corporativos e agregadores que resistem. O "Modo Completo" virou uma ferramenta de garimpo de ATS.
+
+---
+
 ## [2026-11-05 - Sprint 4: Liberação da Camada 3 e Telemetria Web]
 
 ### Added

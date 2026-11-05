@@ -4,6 +4,8 @@ import { createHash } from "node:crypto"
 
 import { inspecionarPaginaVaga } from "../discovery/page-inspector.js"
 
+import type { ResultadoInspecaoPagina } from "../types/page-inspection.js"
+
 import {
   createJob as criarVaga,
   findJobBySourceExternalId as buscarVagaPorOrigemEIdExterno,
@@ -67,6 +69,45 @@ type OpcoesProcessamentoWeb = {
    */
   limiteChamadasBrave?: number
   execucaoId?: string;
+}
+
+/**
+ * Classifica o motivo exato de uma falha de extracao.
+ *
+ * Prioridade:
+ *  1. Redirect de vaga individual para SERP/empresa (LinkedIn) => JOB_EXPIRADO
+ *  2. Status HTTP 403 => 403_ANTI_BOT
+ *  3. Status HTTP 404 => 404_NAO_ENCONTRADA
+ *  4. HTTP 200 com extrator null => ERRO_PARSE_HTML
+ */
+function derivarMotivoFalha(
+  pagina: { url: string },
+  resultado: ResultadoInspecaoPagina
+): "JOB_EXPIRADO" | "403_ANTI_BOT" | "404_NAO_ENCONTRADA" | "ERRO_PARSE_HTML" {
+  const urlFinal = "urlFinal" in resultado
+    ? (resultado as { urlFinal: string }).urlFinal
+    : undefined
+  if (urlFinal && urlFinal !== pagina.url) {
+    try {
+      const original = new URL(pagina.url)
+      const final = new URL(urlFinal)
+      const mesmoLinkedin =
+        original.hostname.includes("linkedin.com") && final.hostname.includes("linkedin.com")
+      if (mesmoLinkedin) {
+        const originalEhVaga = original.pathname.includes("/jobs/view/")
+        const finalEhVaga = final.pathname.includes("/jobs/view/")
+        if (originalEhVaga && !finalEhVaga) return "JOB_EXPIRADO"
+      }
+    } catch {
+      // URL malformada: cai para as regras de status
+    }
+  }
+  const status = "codigoStatus" in resultado
+    ? (resultado as { codigoStatus: number }).codigoStatus
+    : undefined
+  if (status === 403) return "403_ANTI_BOT"
+  if (status === 404) return "404_NAO_ENCONTRADA"
+  return "ERRO_PARSE_HTML"
 }
 
 function criarResultadoProvedor(provedor: ProvedorPagina): ResultadoFonteProcessada {
@@ -479,7 +520,7 @@ export async function processarVagasWeb(
 
         localizacao: null,
 
-        motivo: resultado.codigoStatus === 403 ? "403_ANTI_BOT" : resultado.codigoStatus === 404 ? "404_NAO_ENCONTRADA" : "ERRO_PARSE_HTML"
+        motivo: derivarMotivoFalha(pagina, resultado)
       })
 
       continue

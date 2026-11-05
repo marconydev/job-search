@@ -191,9 +191,9 @@ describe("gerador de consultas de vagas", () => {
 
     const plataformas = new Set(consultas.map(consulta => consulta.plataforma))
 
-    assert.ok(plataformas.has("linkedin"))
+    // LinkedIn removido na Sprint 4 (indice morto no Brave)
 
-    assert.ok(plataformas.has("indeed"))
+    // Indeed removido na Sprint 4 (401)
 
     assert.ok(plataformas.has("workday"))
 
@@ -245,7 +245,7 @@ describe("gerador de consultas de vagas", () => {
 
     assert.ok(texto.includes("site:jobatus.com.br"))
 
-    assert.ok(texto.includes("site:glassdoor.com.br/job-listing"))
+    // Glassdoor removido na Sprint 4 (403)
 
     assert.equal(texto.includes("gupy.io"), false)
 
@@ -329,10 +329,6 @@ describe("gerador de consultas de vagas", () => {
     assert.equal(texto.includes("site:gupy.io"), false)
 
     assert.equal(texto.includes("site:vagas.com.br"), false)
-
-    assert.ok(texto.includes("site:linkedin.com/jobs/view"))
-
-    assert.ok(texto.includes("site:br.indeed.com/viewjob"))
 
     assert.ok(texto.includes("site:myworkdayjobs.com"))
   })

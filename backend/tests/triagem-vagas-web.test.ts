@@ -218,7 +218,7 @@ describe("triagem de vagas web", () => {
           provedor: "linkedin"
         })
       ),
-      true
+      false // LinkedIn bloqueado na Sprint 4
     )
   })
 
