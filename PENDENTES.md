@@ -7,7 +7,9 @@ Lista oficial de tarefas e débitos técnicos.
 - **Sprint 2:** Hard Cutoff de Senioridade e Cargos Desvio. Aba "Possivelmente Expiradas" (> 21 dias).
 - **Sprint 3 (ATS 2.0):** Pesos Redistribuídos (Cargo 35, Stack 30), Zonal Regex (1.5x), Missing Keywords e Tiers de UI.
 
-## 🟣 Sprint 4: Cobertura de Descoberta (Web)
+## 🟣 Sprint 4: Cobertura de Descoberta (Web) - EM ANDAMENTO
+- OK **Camada 3 (05/11/2026):** Provedores liberados, headers de desktop e telemetria de falhas implementados.
+- ⏳ **Validacao de Extracao:** Analisar o log do `reprocessar-cache.ts` para ver quantas vagas do LinkedIn foram salvas.
 - **Brave/LinkedIn:** Investigar por que vagas encontradas via Brave frequentemente caem em `indefinida` ou são descartadas na extração (Débito D7).
 - **Isolamento de Falhas:** Garantir que a queda de um parser (ex: LinkedIn mudou o DOM) não corrompa a execução global da busca.
 

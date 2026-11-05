@@ -1,5 +1,13 @@
 # README_ATUAL — Job Search
 
+## Sessao 05/11/2026 - Sprint 4: Web e Cache
+- **LinkedIn Liberado:** Provedores da Camada 3 (LinkedIn, Indeed, etc.) agora passam pela triagem.
+- **Dorks Rígidas:** Busca focada no padrao `/jobs/view/`.
+- **Headers de Desktop:** Tenta furar o bloqueio anti-bot (HTTP 999).
+- **Script de Reprocessamento:** `reprocessar-cache.ts` (roda sem Brave).
+
+---
+
 ## Sessao 04/11/2026 - Sprint 2: Conclusao
 - **Aba Expiradas:** Adicionada interface para arquivar vagas com mais de 21 dias.
 - **ATS 2.0:** Motor de pontuacao com pesos, zonal regex e missing keywords finalizado.

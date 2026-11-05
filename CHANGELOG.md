@@ -1,3 +1,16 @@
+## [2026-11-05 - Sprint 4: Liberação da Camada 3 e Telemetria Web]
+
+### Added
+- **Dorks Cirúrgicas (search-queries):** LinkedIn agora exige `(site:linkedin.com/jobs/view/ OR site:br.linkedin.com/jobs/view/)`.
+- **Triagem Web:** Bloqueio de links de listagem do LinkedIn, exigindo o caminho `/jobs/view/`.
+- **Headers Desktop:** Extratores e inspetor agora emulam um Chrome real (User-Agent, Sec-Fetch, etc.) para tentar furar bloqueios.
+- **Telemetria de Falhas:** O funil web agora contabiliza e salva os motivos exatos: `403_ANTI_BOT`, `404_NAO_ENCONTRADA`, `ERRO_PARSE_HTML`.
+- **Whitelist:** Liberação de processamento para LinkedIn, Indeed, Glassdoor, InfoJobs, Catho, Empregare, 99jobs e Remotar.
+
+### Notes
+- O cache de 2584 URLs do Brave foi preservado para reprocessamento sem gastar nova cota.
+- 249/249 testes verdes (teste do LinkedIn ajustado para processável).
+
 ## [2026-11-04 - Sprint 2 Concluída: Aba Expiradas e Ajuste Fino]
 
 ### Added

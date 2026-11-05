@@ -1,5 +1,20 @@
 # HANDOFF — Job Search
 
+## 0. Sessao 05/11/2026 - Sprint 4: Web Liberada (Cache Brave)
+
+**Estado:** Sprint 4 avancada. Camada 3 destravada.
+
+### Concluido nesta Sessao:
+- **Liberacao:** LinkedIn, Indeed, Glassdoor, InfoJobs, Catho e Remotar autorizados a inspecao.
+- **Headers:** Emulacao de navegador real no `linkedin.ts` e `page-inspector.ts`.
+- **Telemetria:** Captura de erros 403/404 e falhas de parse no processamento web.
+- **Reprocessamento:** Script em `backend/scripts/reprocessar-cache.ts` criado para ler as URLs antigas do cache e forcar extracao sem gastar Brave.
+
+### PENDENTE:
+- Analisar logs do `reprocessar-cache.ts` para validar se os headers estao salvando as vagas do LinkedIn.
+
+---
+
 ## 0. Sessao 04/11/2026 - Sprint 2: Conclusao e Aba Expiradas
 
 **Estado:** Sprint 2 100% concluida.
