@@ -163,6 +163,10 @@ export function identificarProvedorPagina(url: string): ProvedorPagina {
       return "remotive"
     }
 
+    if (ehDominio(hostname, "remotar.com.br")) {
+      return "remotar" as any
+    }
+
     if (ehDominioAgregador(hostname)) {
       return "agregador"
     }

@@ -479,9 +479,7 @@ export async function processarVagasWeb(
 
         localizacao: null,
 
-        motivo: indisponivel
-          ? "A publicação não está mais disponível no ATS."
-          : "A página foi acessada, mas nenhum extrator conseguiu confirmar uma vaga válida."
+        motivo: resultado.codigoStatus === 403 ? "403_ANTI_BOT" : resultado.codigoStatus === 404 ? "404_NAO_ENCONTRADA" : "ERRO_PARSE_HTML"
       })
 
       continue

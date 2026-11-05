@@ -12,7 +12,15 @@ const provedoresProcessaveis = new Set<ProvedorPagina>([
   "lever",
   "greenhouse",
   "workable",
-  "smartrecruiters"
+  "smartrecruiters",
+  "linkedin",
+  "indeed",
+  "glassdoor",
+  "infojobs",
+  "catho",
+  "empregare",
+  "99jobs",
+  "remotar" as any
 ])
 
 const termosComplementaresTitulo = [
