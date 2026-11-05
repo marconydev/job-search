@@ -51,6 +51,14 @@ export type ResultadoFonteProcessada = {
   falhas: number
 
   ignoradas: number
+
+  erro403?: number
+
+  erro404?: number
+
+  erroRede?: number
+
+  erroParse?: number
 }
 
 export type RecomendacaoDescoberta = {
